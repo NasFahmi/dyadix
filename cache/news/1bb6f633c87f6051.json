@@ -1,0 +1,86 @@
+{
+  "key": "rss_decrypt",
+  "content": [
+    {
+      "title": "Bitcoin Depot ATM Operator Says $3.6 Million in BTC Stolen in Corporate Hack",
+      "link": "https://decrypt.co/363734/bitcoin-depot-atm-operator-3-6-million-btc-stolen-security-breach",
+      "published": "Wed, 08 Apr 2026 21:14:43 +0000",
+      "summary": "The Bitcoin ATM operator disclosed a hack two weeks after attackers gained control of settlement account credentials and stole BTC.",
+      "source": "decrypt",
+      "fetched_at": "2026-04-09T15:52:11.479591"
+    },
+    {
+      "title": "Researchers Propose New Way to Manage Financial Risk When AI Agents Fumble Trades",
+      "link": "https://decrypt.co/363727/agentic-risk-standard-ai-research-finance-trades",
+      "published": "Wed, 08 Apr 2026 20:56:52 +0000",
+      "summary": "A newly proposed agentic settlement standard would hold fees in escrow and bring underwriters into AI agent transactions.",
+      "source": "decrypt",
+      "fetched_at": "2026-04-09T15:52:11.479602"
+    },
+    {
+      "title": "Bitcoin Miner Cango Sells $143 Million in BTC, Slashes Production Costs",
+      "link": "https://decrypt.co/363730/bitcoin-miner-cango-sells-143-million-btc-slashes-production-costs",
+      "published": "Wed, 08 Apr 2026 20:41:30 +0000",
+      "summary": "NYSE-listed miner Cango reduced costs by 19% by shutting down inefficient equipment, and sold Bitcoin to pay down debt.",
+      "source": "decrypt",
+      "fetched_at": "2026-04-09T15:52:11.479608"
+    },
+    {
+      "title": "Meta Launches Muse Spark, Its Most Capable AI Yet\u2014But Gemini 3.1 Pro Still Leads the Pack",
+      "link": "https://decrypt.co/363691/meta-muse-spark-most-capable-ai-gemini-pro-still-leads",
+      "published": "Wed, 08 Apr 2026 20:07:25 +0000",
+      "summary": "Meta's first model from its Superintelligence team is natively multimodal, built for health reasoning, and genuinely competitive\u2014but it doesn't top every leaderboard.",
+      "source": "decrypt",
+      "fetched_at": "2026-04-09T15:52:11.479616"
+    },
+    {
+      "title": "Treasury Outlines How Stablecoin Rules Will Fight Illicit Finance Under GENIUS Act",
+      "link": "https://decrypt.co/363690/treasury-outlines-stablecoin-rules-fight-illicit-finance-under-genius-act",
+      "published": "Wed, 08 Apr 2026 19:42:29 +0000",
+      "summary": "The proposed rule prohibits people with criminal backgrounds from serving as the head of stablecoin issuers\u2019 compliance programs.",
+      "source": "decrypt",
+      "fetched_at": "2026-04-09T15:52:11.479622"
+    },
+    {
+      "title": "Anthropic's Mythos Safety Report Shows It Can No Longer Fully Measure What It Built",
+      "link": "https://decrypt.co/363663/anthropic-claude-mythos-safety-report-warning-risk-assesment",
+      "published": "Wed, 08 Apr 2026 19:36:03 +0000",
+      "summary": "Anthropic\u2019s Claude Mythos is powerful, but Its own safety report reveals a deeper crisis that's gone largely unnoticed.",
+      "source": "decrypt",
+      "fetched_at": "2026-04-09T15:52:11.479627"
+    },
+    {
+      "title": "Stablecoin Trading Volume Could Skyrocket to $1.5 Quadrillion by 2035: Chainalysis",
+      "link": "https://decrypt.co/363685/stablecoin-trading-volume-skyrocket-1-5-quadrillion-2035-chainalysis",
+      "published": "Wed, 08 Apr 2026 19:06:15 +0000",
+      "summary": "Generational wealth transfer and point-of-sale adoption could drive stablecoin volumes to eclipse traditional payment rails, says Chainalysis.",
+      "source": "decrypt",
+      "fetched_at": "2026-04-09T15:52:11.479633"
+    },
+    {
+      "title": "Bitcoin Pioneer Adam Back, Bernstein Say Quantum Threat to BTC Isn\u2019t Existential",
+      "link": "https://decrypt.co/363680/bitcoin-pioneer-adam-back-bernstein-quantum-threat-not-existential",
+      "published": "Wed, 08 Apr 2026 18:58:03 +0000",
+      "summary": "Anxieties over the quantum threat to Bitcoin have been growing, but Bernstein backs Back in saying there\u2019s no cause for alarm.",
+      "source": "decrypt",
+      "fetched_at": "2026-04-09T15:52:11.479639"
+    },
+    {
+      "title": "OpenAI Publishes Child Safety Blueprint to Address AI-Enabled Exploitation",
+      "link": "https://decrypt.co/363681/openai-child-safety-blueprint-ai-exploitation",
+      "published": "Wed, 08 Apr 2026 18:51:32 +0000",
+      "summary": "OpenAI's new policy blueprint outlines steps the industry can take to combat AI-enabled child sexual exploitation.",
+      "source": "decrypt",
+      "fetched_at": "2026-04-09T15:52:11.479644"
+    },
+    {
+      "title": "Hyperliquid Traders Face Widespread Liquidations as Oil Prices Collapse",
+      "link": "https://decrypt.co/363660/hyperliquid-traders-face-widespread-liquidations-oil-prices-collapse",
+      "published": "Wed, 08 Apr 2026 18:01:17 +0000",
+      "summary": "Brent crude oil prices were on track for their biggest daily decline since the start of the COVID-19 pandemic in early 2020.",
+      "source": "decrypt",
+      "fetched_at": "2026-04-09T15:52:11.479649"
+    }
+  ],
+  "timestamp": "2026-04-09T15:52:11.479671"
+}
