@@ -10,6 +10,7 @@ import pandas_ta as ta
 from typing import Dict
 import logging
 from datetime import datetime
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +77,6 @@ class TrendEngine:
         df["plus_di"] = adx["DMP_14"]  # +DI
         df["minus_di"] = adx["DMN_14"]  # -DI
 
-        # ==================== TREND REGIME CLASSIFICATION ====================
         # Kombinasi Supertrend + ADX + Price Position
         conditions = [
             (df["supertrend_trend"] == "Bullish") & (df["adx"] > 25),
@@ -85,14 +85,7 @@ class TrendEngine:
         ]
         choices = ["Strong Uptrend", "Strong Downtrend", "Sideways/Choppy"]
 
-        df["trend_regime"] = pd.Series(
-            pd.Categorical.from_codes(
-                pd.cut(
-                    df["adx"], bins=[0, 25, 100], labels=[2, 0, 1], right=False
-                ).cat.codes,
-                categories=choices,
-            )
-        )
+        df["trend_regime"] = np.select(conditions, choices, default="Unknown")
 
         # Override dengan Supertrend jika ADX sedang
         df.loc[
