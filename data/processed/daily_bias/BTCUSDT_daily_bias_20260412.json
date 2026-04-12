@@ -1,0 +1,17 @@
+{
+  "pair": "BTCUSDT",
+  "date": "2026-04-11",
+  "bias": "Bullish",
+  "strength": "Moderate",
+  "candle_pattern": "Doji",
+  "previous_day_high": 73798.0227238,
+  "previous_day_low": 72487.58576104,
+  "previous_day_close": 73017.84028369,
+  "previous_day_open": 72928.44494665,
+  "previous_day_range": 1310.4369627599954,
+  "current_day_open": 73017.55098875,
+  "current_price": 70749.40152459,
+  "body_size_pct": 6.8217960558538415,
+  "calculated_at": "2026-04-12T15:10:44.536972",
+  "source": "aggregated_volume_weighted"
+}

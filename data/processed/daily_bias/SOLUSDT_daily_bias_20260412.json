@@ -1,0 +1,17 @@
+{
+  "pair": "SOLUSDT",
+  "date": "2026-04-11",
+  "bias": "Bullish",
+  "strength": "Moderate",
+  "candle_pattern": "Doji",
+  "previous_day_high": 86.26785124,
+  "previous_day_low": 83.73719006,
+  "previous_day_close": 84.88289255,
+  "previous_day_open": 84.79859503,
+  "previous_day_range": 2.5306611799999956,
+  "current_day_open": 84.88333289,
+  "current_price": 81.66952349,
+  "body_size_pct": 3.3310472640985007,
+  "calculated_at": "2026-04-12T15:10:44.834663",
+  "source": "aggregated_volume_weighted"
+}

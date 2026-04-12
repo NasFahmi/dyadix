@@ -1,0 +1,15 @@
+trading:
+  pairs:
+    - BTCUSDT
+    - ETHUSDT
+    - SOLUSDT
+    - XRPUSDT
+    # - HYPEUSDT
+    # - ADAUSDT
+    # - ARBUSDT
+  timeframes:
+    - "5m"
+    - "15m"
+    - "1h"
+  daily_context: true # enable previous day candle
+  active_session: "london_ny" # marker untuk logic session

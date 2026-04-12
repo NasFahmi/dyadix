@@ -25,22 +25,30 @@ class BinanceService:
             'enableRateLimit': True,
         })
         
-    def get_ohlcv(self, symbol: str, timeframe: str = '1h', limit: int = 100):
+    def fetch_ohlcv(self, symbol: str, timeframe: str = '1h', limit: int = 100):
         """
-        Fetch OHLCV data for a specific symbol.
+        Fetch OHLCV data for a specific symbol as pandas DataFrame.
         
         :param symbol: Trading pair symbol, e.g., 'BTC/USDT'
         :param timeframe: Timeframe interval, e.g., '1m', '1h', '1d'
         :param limit: Number of candles to return (default 100)
-        :return: List of OHLCV data [[timestamp, open, high, low, close, volume], ...]
+        :return: pandas DataFrame containing OHLCV
         """
+        import pandas as pd
         try:
-            print(f"Fetching OHLCV for {symbol} on {timeframe} timeframe...")
+            print(f"Fetching OHLCV for {symbol} on {timeframe} timeframe from Binance...")
             ohlcv = self.exchange.fetch_ohlcv(symbol, timeframe, limit=limit)
-            return ohlcv
+            if not ohlcv:
+                return pd.DataFrame()
+                
+            df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+            df.set_index('timestamp', inplace=True)
+            return df
         except Exception as e:
-            print(f"Error fetching OHLCV for {symbol}: {e}")
-            return None
+            import pandas as pd
+            print(f"Error fetching OHLCV for {symbol} from Binance: {e}")
+            return pd.DataFrame()
 
 if __name__ == "__main__":
     # Test execution
@@ -58,12 +66,10 @@ if __name__ == "__main__":
     
     # Test getting OHLCV for BTC/USDT
     print("\n--- Testing OHLCV Data Retrieval ---")
-    data = service.get_ohlcv("BTC/USDT", timeframe="1h", limit=5)
+    data = service.fetch_ohlcv("BTC/USDT", timeframe="1h", limit=5)
     
-    if data:
-        print(f"\nSuccessfully fetched {len(data)} OHLCV candles:")
-        print("Format: [Timestamp, Open, High, Low, Close, Volume]")
-        for candle in data:
-            print(candle)
+    if data is not None and not data.empty:
+        print(f"\nSuccessfully fetched {len(data)} OHLCV candles (DataFrame):")
+        print(data.head())
     else:
         print("Failed to fetch OHLCV data.")

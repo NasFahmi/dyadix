@@ -1,0 +1,17 @@
+{
+  "pair": "XRPUSDT",
+  "date": "2026-04-11",
+  "bias": "Bearish",
+  "strength": "Moderate",
+  "candle_pattern": "Doji",
+  "previous_day_high": 1.37491617,
+  "previous_day_low": 1.33840658,
+  "previous_day_close": 1.35417425,
+  "previous_day_open": 1.35540329,
+  "previous_day_range": 0.03650959000000009,
+  "current_day_open": 1.3542053,
+  "current_price": 1.32286396,
+  "body_size_pct": 3.366348403254872,
+  "calculated_at": "2026-04-12T15:10:44.990315",
+  "source": "aggregated_volume_weighted"
+}
