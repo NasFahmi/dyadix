@@ -1,0 +1,8 @@
+ccxt
+python-dotenv
+feedparser
+pandas
+pandas-ta
+requests
+urllib3
+PyYAML

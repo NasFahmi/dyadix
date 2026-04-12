@@ -108,10 +108,54 @@ def test_daily_bias():
         print(f"Error pada saat testing Daily Bias: {e}")
 
 
+def test_trend_engine():
+    from service.market.market_service import MarketService
+    from features.technical.trend import calculate_trend_features
+    import json
+    import pandas as pd
+
+    print("\n" + "=" * 60)
+    print(" TEST: Trend Engine Calculation")
+    print("=" * 60)
+    
+    try:
+        market_svc = MarketService()
+        
+        for pair in market_svc.pairs:
+            print(f"\n[{pair}] Mengambil data untuk H1 (1h)...")
+            market_data = market_svc.fetch_single_pair(
+                pair=pair, timeframes=["1h"], limit=250 # Ambil > 200 agar EMA200 valid
+            )
+
+            if (
+                "1h" in market_data
+                and not market_data["1h"].get("aggregated", pd.DataFrame()).empty
+            ):
+                h1_data = market_data["1h"]["aggregated"]
+
+                print(
+                    f"Berhasil mendapat {len(h1_data)} baris data H1. Kalkulasi Trend..."
+                )
+                
+                df_with_features, summary = calculate_trend_features(h1_data, "1h")
+                
+                print(f"\n--- Hasil Trend {pair} (H1) ---")
+                print(json.dumps(summary, indent=2))
+            else:
+                print(f"Gagal mengambil data 1h untuk {pair}.")
+
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        print(f"Error pada saat testing Trend Engine: {e}")
+
+
 def main():
     # test_news_scraper() # Dinonaktifkan sementara untuk fokus test market
     # test_market_service()
-    test_daily_bias()
+    # test_daily_bias()
+    test_trend_engine()
     print("\nAll tests completed!")
 
 
