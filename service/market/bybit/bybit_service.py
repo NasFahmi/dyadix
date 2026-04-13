@@ -23,7 +23,15 @@ class BybitService:
             'apiKey': self.api_key,
             'secret': self.secret_key,
             'enableRateLimit': True,
+            'options': {
+                'adjustForTimeDifference': True,
+                'recvWindow': 60000,
+            }
         })
+        try:
+            self.exchange.load_time_difference()
+        except:
+            pass
         
     def fetch_ohlcv(self, symbol: str, timeframe: str = '1h', limit: int = 100):
         """

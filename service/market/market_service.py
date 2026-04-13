@@ -175,15 +175,15 @@ class MarketService:
 
                 try:
                     if not exchange_data["aggregated"].empty:
-                        exchange_data["aggregated"].to_parquet(
-                            f"{path}/aggregated_{timestamp}.parquet"
-                        )
-                        # exchange_data["aggregated"].reset_index().to_json(
-                        #     f"{path}/aggregated_{timestamp}.json",
-                        #     orient="records",
-                        #     date_format="iso",
-                        #     indent=4,
+                        # exchange_data["aggregated"].to_parquet(
+                        #     f"{path}/aggregated_{timestamp}.parquet"
                         # )
+                        exchange_data["aggregated"].reset_index().to_json(
+                            f"{path}/aggregated_{timestamp}.json",
+                            orient="records",
+                            date_format="iso",
+                            indent=4,
+                        )
                     # Kamu bisa juga simpan binance & bybit kalau perlu untuk debugging
                 except Exception as e:
                     logger.warning(f"Failed to save {pair} {tf}: {e}")
