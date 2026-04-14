@@ -1,4 +1,4 @@
-from service.sentiment.model.feer_greed_model import FearGreedData
+from service.sentiment.feer_greed.model.feer_greed_model import FearGreedData
 from typing import List, Optional
 import requests
 

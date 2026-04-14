@@ -295,20 +295,22 @@ def test_context_builder():
 
     try:
         market_svc = MarketService()
-        
+
         # Tambahkan timeframe '1d' manual agar daily_bias dapat dihitung (tidak null)
         if "1d" not in market_svc.timeframes:
             market_svc.timeframes.append("1d")
-        
-        print(f"Mengambil data market untuk semua pair (limit 250) untuk TF {market_svc.timeframes}...")
+
+        print(
+            f"Mengambil data market untuk semua pair (limit 250) untuk TF {market_svc.timeframes}..."
+        )
         market_data = market_svc.fetch_ohlcv_all(limit=250)
-        
+
         print("Membangun technical context...")
         context = build_technical_context(market_data)
-        
+
         print("\n--- Hasil Technical Context ---")
         print(json.dumps(context, indent=2))
-            
+
     except Exception as e:
         import traceback
 
@@ -327,24 +329,24 @@ def test_correlation():
 
     try:
         market_svc = MarketService()
-        
+
         # Ambil correlation_pairs dari config
         config = market_svc.config.get("trading", {})
         correlation_pairs = config.get("correlation_pairs", [])
-        
+
         # Filter duplicate (akibat copy_paste bug di config sebelumnya)
         unique_pairs = list(dict.fromkeys(correlation_pairs))
-        
+
         # Gunakan semua pair yang ada di correlation_pairs config
         test_pairs = unique_pairs
         print(f"Target pairs untuk testing: {test_pairs}")
-        
+
         # Overwrite pairs yang difetch oleh market_svc secara sementara
         market_svc.pairs = test_pairs
-        
+
         # Fokus ke timeframe '1h' saja
         market_svc.timeframes = ["1h"]
-            
+
         print("Mengambil data market (limit 200) khusus 1h...")
         market_data = market_svc.fetch_ohlcv_all(limit=200)
 
@@ -353,7 +355,7 @@ def test_correlation():
 
         print("\n--- Hasil Correlation Insight ---")
         print(json.dumps(result, indent=2))
-            
+
     except Exception as e:
         import traceback
 
@@ -374,44 +376,43 @@ def test_derivatives_engine():
 
     try:
         pair = "BTCUSDT"
-        
+
         # Buat dummy data untuk 24 jam terakhir (1 data per jam)
         now = datetime.utcnow()
         timestamps = [now - timedelta(hours=i) for i in range(24)][::-1]
-        
+
         # 1. Mock Funding Rate Data
         # Misal funding rate naik perlahan
         funding_rates = np.linspace(0.00005, 0.00015, 24)
-        df_funding = pd.DataFrame({
-            "timestamp": timestamps,
-            "funding_rate": funding_rates
-        })
-        
+        df_funding = pd.DataFrame(
+            {"timestamp": timestamps, "funding_rate": funding_rates}
+        )
+
         # 2. Mock Open Interest Data
         # Misal open interest naik bersama harga (Healthy Uptrend / Longs Increasing)
         open_interests = np.linspace(50000, 60000, 24)
         closes = np.linspace(70000, 72000, 24)
-        
-        df_oi = pd.DataFrame({
-            "timestamp": timestamps,
-            "open_interest": open_interests,
-            "oi_change": np.random.normal(0, 1, 24), # Dummy
-            "close": closes
-        })
-        
-        derivatives_data = {
-            "funding_rate": df_funding,
-            "open_interest": df_oi
-        }
+
+        df_oi = pd.DataFrame(
+            {
+                "timestamp": timestamps,
+                "open_interest": open_interests,
+                "oi_change": np.random.normal(0, 1, 24),  # Dummy
+                "close": closes,
+            }
+        )
+
+        derivatives_data = {"funding_rate": df_funding, "open_interest": df_oi}
 
         print(f"[{pair}] Kalkulasi Derivatives dengan Mock Data...")
         result = calculate_derivatives_features(derivatives_data, pair)
 
         print(f"\n--- Hasil Derivatives {pair} ---")
         print(json.dumps(result, indent=2))
-        
+
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         print(f"Error pada saat testing Derivatives Engine: {e}")
 
@@ -429,43 +430,118 @@ def test_liquidity_engine():
     try:
         market_svc = MarketService()
         pair = "BTCUSDT"
-        
+
         print(f"Mengambil data market untuk {pair} (timeframe 15m)...")
-        market_data = market_svc.fetch_single_pair(pair=pair, timeframes=["15m"], limit=200)
-        
-        if "15m" in market_data and not market_data["15m"].get("aggregated", pd.DataFrame()).empty:
+        market_data = market_svc.fetch_single_pair(
+            pair=pair, timeframes=["15m"], limit=200
+        )
+
+        if (
+            "15m" in market_data
+            and not market_data["15m"].get("aggregated", pd.DataFrame()).empty
+        ):
             df_15m = market_data["15m"]["aggregated"]
-            
+
             # Mock daily_bias untuk mengetes logic PDH/PDL Sweep
             # Set PDH sedikit di bawah highest high fetched data untuk men-simulate sweep
             recent_high = df_15m["high"].max()
             recent_low = df_15m["low"].min()
-            
+
             mock_daily_bias = {
-                "previous_day_high": float(recent_high * 0.999), 
-                "previous_day_low": float(recent_low * 1.001)
+                "previous_day_high": float(recent_high * 0.999),
+                "previous_day_low": float(recent_low * 1.001),
             }
-            
+
             print(f"[{pair}] Kalkulasi Liquidity dengan Mock PDH/PDL...")
             df_with_features, summary = calculate_liquidity_features(
-                df=df_15m, 
-                daily_bias=mock_daily_bias, 
-                timeframe="15m"
+                df=df_15m, daily_bias=mock_daily_bias, timeframe="15m"
             )
 
             print(f"\n--- Hasil Liquidity Summary {pair} ---")
             print(json.dumps(summary, indent=2))
         else:
             print(f"Gagal mengambil data 15m untuk {pair}.")
-            
+
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         print(f"Error pada saat testing Liquidity Engine: {e}")
 
 
+def test_sentiment_context_builder():
+    from features.sentiment.sentiment_context_builder import build_sentiment_context
+    import json
+
+    print("\n" + "=" * 60)
+    print(" TEST: Sentiment Context Builder")
+    print("=" * 60)
+
+    try:
+        print("Starting sentiment context builder test. Ini mungkin memakan waktu beberapa detik karena fetching dari API...")
+        context = build_sentiment_context(
+            news_limit=3, 
+            reddit_limit_per_sub=2, 
+            twitter_limit_per_user=2, 
+            eco_days_ahead=3
+        )
+
+        print("\n--- Hasil Sentiment Context (JSON) ---")
+        print(json.dumps(context, indent=2, default=str))
+
+        print("\n--- Summary Sentiment Context ---")
+        print(f"News articles: {len(context.get('news', []))}")
+        print(f"Reddit subreddits fetched: {len(context.get('social', {}).get('reddit', {}))}")
+        print(f"Twitter accounts fetched: {len(context.get('social', {}).get('twitter', {}))}")
+        
+        fng = context.get('fear_and_greed')
+        if fng:
+            print(f"Fear & Greed Index: {fng.get('value')} ({fng.get('classification')})")
+        else:
+            print("Fear & Greed Index: Not available")
+            
+        print(f"Economic Calendar events: {len(context.get('economic_calendar', []))}")
+
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        print(f"Error pada saat testing Sentiment Context Builder: {e}")
+
+
+def test_sentiment_engine():
+    from features.sentiment.sentiment_context_builder import build_sentiment_context
+    from features.sentiment.sentiment_engine import SentimentEngine
+    import json
+
+    print("\n" + "=" * 60)
+    print(" TEST: Sentiment Engine (Aggregation)")
+    print("=" * 60)
+
+    try:
+        print("Gathering context for sentiment engine...")
+        context = build_sentiment_context(
+            news_limit=3, 
+            reddit_limit_per_sub=1, 
+            twitter_limit_per_user=1, 
+            eco_days_ahead=3
+        )
+        
+        print("Running SentimentEngine aggregation (Memanggil LLM - mungkin butuh waktu)...")
+        result = SentimentEngine.aggregate(context)
+
+        print("\n--- Final Sentiment Analysis Result ---")
+        print(json.dumps(result, indent=2, default=str))
+
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        print(f"Error pada saat testing Sentiment Engine: {e}")
+
+
 def main():
-    # test_news_scraper() # Dinonaktifkan sementara untuk fokus test market
+    # test_news_scraper()  # Dinonaktifkan sementara untuk fokus test market
     # test_market_service()
     # test_daily_bias()
     # test_trend_engine()
@@ -475,7 +551,9 @@ def main():
     # test_context_builder()
     # test_correlation()
     # test_derivatives_engine()
-    test_liquidity_engine()
+    # test_liquidity_engine()
+    # test_sentiment_context_builder()
+    test_sentiment_engine()
     print("\nAll tests completed!")
 
 
