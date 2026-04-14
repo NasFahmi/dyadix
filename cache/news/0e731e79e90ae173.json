@@ -2,12 +2,28 @@
   "key": "rss_cointelegraph",
   "content": [
     {
+      "title": "XRP consolidation may transform into explosive rally if $1.40 is topped: Data",
+      "link": "https://cointelegraph.com/news/xrp-consolidation-may-transform-into-explosive-rally-if-dollar1-40-is-topped-data?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound",
+      "published": "Tue, 14 Apr 2026 17:39:25 +0100",
+      "summary": "XRP transaction activity on Binance mirrors a 2025 signal that preceded the altcoin\u2019s run to an all-time high. Could it happen again?",
+      "source": "cointelegraph",
+      "fetched_at": "2026-04-14T23:50:41.645388"
+    },
+    {
+      "title": "Figure and Hastra widen DeFi credit offering with auto loan launch",
+      "link": "https://cointelegraph.com/news/figure-hastra-expand-tokenized-credit-auto-loans?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound",
+      "published": "Tue, 14 Apr 2026 17:30:00 +0100",
+      "summary": "Figure is adding auto loans to Democratized Prime and extending Hastra beyond Solana, widening tokenized consumer credit access for DeFi investors.",
+      "source": "cointelegraph",
+      "fetched_at": "2026-04-14T23:50:41.645400"
+    },
+    {
       "title": "Federal Reserve chair nominee's disclosure includes crypto and AI holdings",
       "link": "https://cointelegraph.com/news/federal-reserve-chair-nominee-discloses-holdings-in-crypto-and-ai?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound",
       "published": "Tue, 14 Apr 2026 16:37:27 +0100",
       "summary": "Kevin Warsh did not include the value of several crypto and AI investments among his disclosures as he awaits his confirmation hearing before the Senate Banking Committee.",
       "source": "cointelegraph",
-      "fetched_at": "2026-04-14T23:16:09.209433"
+      "fetched_at": "2026-04-14T23:50:41.645406"
     },
     {
       "title": "Bitcoin hits $76K after US PPI inflation stays tame: Will BTC hold its gains?",
@@ -15,7 +31,7 @@
       "published": "Tue, 14 Apr 2026 15:50:35 +0100",
       "summary": "Bitcoin rallied to levels not seen since early February after US PPI inflation fell well below market expectations.",
       "source": "cointelegraph",
-      "fetched_at": "2026-04-14T23:16:09.209443"
+      "fetched_at": "2026-04-14T23:50:41.645412"
     },
     {
       "title": "Fake Ledger Live app on Apple App Store drained $9.5M from victims: ZachXBT",
@@ -23,7 +39,7 @@
       "published": "Tue, 14 Apr 2026 15:22:57 +0100",
       "summary": "A Fake Ledger Live app on Apple\u2019s store is tied to $9.5 million in crypto thefts, as ZachXBT links over 50 victims\u2019 funds to a KuCoin-linked mixer and questions Apple\u2019s liability.",
       "source": "cointelegraph",
-      "fetched_at": "2026-04-14T23:16:09.209459"
+      "fetched_at": "2026-04-14T23:50:41.645420"
     },
     {
       "title": "Tether launches self-custodial wallet with cloud backup option",
@@ -31,7 +47,7 @@
       "published": "Tue, 14 Apr 2026 15:11:12 +0100",
       "summary": "Tether launches tether.wallet, a self-custodial app supporting USDT, XAUT, USAT and Bitcoin with cloud-based key backup features.",
       "source": "cointelegraph",
-      "fetched_at": "2026-04-14T23:16:09.209464"
+      "fetched_at": "2026-04-14T23:50:41.645426"
     },
     {
       "title": "Here\u2019s what happened in crypto today",
@@ -39,7 +55,7 @@
       "published": "Tue, 14 Apr 2026 14:40:27 +0100",
       "summary": "Need to know what happened in crypto today? Here is the latest news on daily trends and events impacting Bitcoin price, blockchain, DeFi, NFTs, Web3 and crypto regulation.",
       "source": "cointelegraph",
-      "fetched_at": "2026-04-14T23:16:09.209471"
+      "fetched_at": "2026-04-14T23:50:41.645432"
     },
     {
       "title": "X product chief Nikita Bier teases a crypto \u2018fix\u2019 amid market slump",
@@ -47,7 +63,7 @@
       "published": "Tue, 14 Apr 2026 14:06:06 +0100",
       "summary": "X product chief Nikita Bier teases a crypto \u201cfix\u201d product as speculation grows around an X Money rollout this month, a potential Bitcoin revival and Bier\u2019s Solana ties.",
       "source": "cointelegraph",
-      "fetched_at": "2026-04-14T23:16:09.209478"
+      "fetched_at": "2026-04-14T23:50:41.645439"
     },
     {
       "title": "XRP Ledger taps Boundless for bank-grade privacy on public blockchains",
@@ -55,7 +71,7 @@
       "published": "Tue, 14 Apr 2026 14:00:00 +0100",
       "summary": "XRPL is integrating Boundless\u2019 zero-knowledge tech into its base layer, stepping into the race to offer banks confidential onchain transactions without losing regulatory visibility.",
       "source": "cointelegraph",
-      "fetched_at": "2026-04-14T23:16:09.209485"
+      "fetched_at": "2026-04-14T23:50:41.645446"
     },
     {
       "title": "Deutsche B\u00f6rse invests $200 million in Kraken parent Payward",
@@ -63,24 +79,8 @@
       "published": "Tue, 14 Apr 2026 12:18:43 +0100",
       "summary": "Deutsche B\u00f6rse said it will invest $200 million in Kraken\u2019s parent company for a fully diluted stake of 1.5%, subject to regulatory approval.",
       "source": "cointelegraph",
-      "fetched_at": "2026-04-14T23:16:09.209491"
-    },
-    {
-      "title": "Nauru taps Bitcoiner Dadvan Yousuf for trade role in digital asset push",
-      "link": "https://cointelegraph.com/news/nauru-appoints-dadvan-yousuf-trade-commissioner-crypto-push?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound",
-      "published": "Tue, 14 Apr 2026 11:07:11 +0100",
-      "summary": "Nauru moves from building rules to promoting its digital asset framework as it looks to attract companies and cross-border partnerships.",
-      "source": "cointelegraph",
-      "fetched_at": "2026-04-14T23:16:09.209497"
-    },
-    {
-      "title": "Bitcoin ETFs clock $291M outflows as BTC blasts past $74K",
-      "link": "https://cointelegraph.com/news/bitcoin-etfs-291-million-outflow-btc-surge-74000?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound",
-      "published": "Tue, 14 Apr 2026 10:48:54 +0100",
-      "summary": "US spot Bitcoin ETFs recorded $291 million in outflows on Monday as BTC climbed above $74,000, marking the biggest day of redemptions since March 27, led by FBTC.",
-      "source": "cointelegraph",
-      "fetched_at": "2026-04-14T23:16:09.209502"
+      "fetched_at": "2026-04-14T23:50:41.645453"
     }
   ],
-  "timestamp": "2026-04-14T23:16:09.209527"
+  "timestamp": "2026-04-14T23:50:41.645476"
 }

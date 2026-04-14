@@ -527,8 +527,21 @@ def test_sentiment_engine():
             eco_days_ahead=3
         )
         
+        from features.sentiment.news_social_analysis import analyze_news_social_with_llm
+
         print("Running SentimentEngine aggregation (Memanggil LLM - mungkin butuh waktu)...")
-        result = SentimentEngine.aggregate(context)
+        llm_result = analyze_news_social_with_llm(
+            news_list=context.get("news", []),
+            twitter_data=context.get("social", {}).get("twitter", {}),
+            reddit_data=context.get("social", {}).get("reddit", {}),
+            fear_greed=context.get("fear_and_greed")
+        )
+
+        result = SentimentEngine.aggregate(
+            llm_result=llm_result,
+            fear_greed_data=context.get("fear_and_greed"),
+            economic_data=context.get("economic_calendar")
+        )
 
         print("\n--- Final Sentiment Analysis Result ---")
         print(json.dumps(result, indent=2, default=str))

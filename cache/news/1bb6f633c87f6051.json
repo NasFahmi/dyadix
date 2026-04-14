@@ -2,12 +2,20 @@
   "key": "rss_decrypt",
   "content": [
     {
+      "title": "Goldman Sachs Files to Launch Bitcoin Income ETF Tied to Options",
+      "link": "https://decrypt.co/364327/goldman-sachs-files-launch-bitcoin-income-etf-options",
+      "published": "Tue, 14 Apr 2026 16:32:32 +0000",
+      "summary": "Goldman Sachs filed an application for an ETF that seeks to generate income for investors by selling options tied to Bitcoin\u2019s price.",
+      "source": "decrypt",
+      "fetched_at": "2026-04-14T23:50:41.815044"
+    },
+    {
       "title": "What Is Hermes? The Self-Improving AI Agent Coming for OpenClaw",
       "link": "https://decrypt.co/364211/what-is-hermes-open-source-ai-agent-openclaw-competitor",
       "published": "Tue, 14 Apr 2026 16:01:02 +0000",
       "summary": "Nous Research's open-source AI agent is the first with a built-in learning loop\u2014it creates skills from experience, gets better the more you use it, and runs on terminal.",
       "source": "decrypt",
-      "fetched_at": "2026-04-14T23:16:09.390695"
+      "fetched_at": "2026-04-14T23:50:41.815056"
     },
     {
       "title": "Fake Ledger App Steals Millions in Bitcoin, Crypto From Holders\u2014Including Musician G. Love",
@@ -15,7 +23,7 @@
       "published": "Tue, 14 Apr 2026 15:33:19 +0000",
       "summary": "A fake Ledger Live app on the Mac App Store duped more than 50 users, swiping more than $9 million in a new crypto scam.",
       "source": "decrypt",
-      "fetched_at": "2026-04-14T23:16:09.390707"
+      "fetched_at": "2026-04-14T23:50:41.815063"
     },
     {
       "title": "Senators Eye Draft Deal on Stablecoin Yield Amid Banking Lobby Pushback",
@@ -23,7 +31,7 @@
       "published": "Tue, 14 Apr 2026 14:58:39 +0000",
       "summary": "Banks and crypto firms remain divided even as White House data says a yield ban wouldn\u2019t do much for lending.",
       "source": "decrypt",
-      "fetched_at": "2026-04-14T23:16:09.390715"
+      "fetched_at": "2026-04-14T23:50:41.815070"
     },
     {
       "title": "Circle 'Exploring' Arc Network Token Launch, Proof-of-Stake Shift: CEO",
@@ -31,7 +39,7 @@
       "published": "Tue, 14 Apr 2026 14:52:14 +0000",
       "summary": "Circle CEO Jeremy Allaire reiterated plans for its stablecoin-focused layer-1 blockchain to launch in mainnet \u201csoon.\u201d",
       "source": "decrypt",
-      "fetched_at": "2026-04-14T23:16:09.390721"
+      "fetched_at": "2026-04-14T23:50:41.815076"
     },
     {
       "title": "Bitcoin Shorts Get Rekt as BTC Jumps Above $75K, Hitting 2-Month Price High",
@@ -39,7 +47,7 @@
       "published": "Tue, 14 Apr 2026 14:33:40 +0000",
       "summary": "Bitcoin just hit its highest price in over two months, with Ethereum and other top coins rising faster as crypto bears get liquidated.",
       "source": "decrypt",
-      "fetched_at": "2026-04-14T23:16:09.390727"
+      "fetched_at": "2026-04-14T23:50:41.815083"
     },
     {
       "title": "Deutsche B\u00f6rse Acquires Kraken Stake in $200M Deal",
@@ -47,7 +55,7 @@
       "published": "Tue, 14 Apr 2026 11:56:10 +0000",
       "summary": "The Frankfurt exchange operator's investment values Kraken at $13.3 billion, as TradFi giants race to secure footholds in crypto.",
       "source": "decrypt",
-      "fetched_at": "2026-04-14T23:16:09.390734"
+      "fetched_at": "2026-04-14T23:50:41.815090"
     },
     {
       "title": "Morning Minute: The SEC Just Gave DeFi The Green Light",
@@ -55,7 +63,7 @@
       "published": "Tue, 14 Apr 2026 11:41:37 +0000",
       "summary": "Bitcoin and Ethereum are pumping. DeFi is winning. Saylor is buying big. And Kraken is getting extorted.",
       "source": "decrypt",
-      "fetched_at": "2026-04-14T23:16:09.390740"
+      "fetched_at": "2026-04-14T23:50:41.815096"
     },
     {
       "title": "Bitcoin Nears $75K As Risk-on Sentiment, Geopolitical Landscape Improves",
@@ -63,7 +71,7 @@
       "published": "Tue, 14 Apr 2026 10:55:45 +0000",
       "summary": "Bitcoin\u2019s push towards $75K comes amid declining bearish options flow and spot buying, with analysts leaning slightly bullish.",
       "source": "decrypt",
-      "fetched_at": "2026-04-14T23:16:09.390746"
+      "fetched_at": "2026-04-14T23:50:41.815102"
     },
     {
       "title": "DOJ Opens $40M Compensation Process for OneCoin Crypto Fraud Victims",
@@ -71,16 +79,8 @@
       "published": "Tue, 14 Apr 2026 09:32:21 +0000",
       "summary": "Victims of the $4 billion OneCoin scam can petition for the opportunity to recover funds from over $40 million in forfeited assets.",
       "source": "decrypt",
-      "fetched_at": "2026-04-14T23:16:09.390752"
-    },
-    {
-      "title": "Crypto.com Reveals $1 Million in CRO Fighter Bonuses for White House UFC Fight",
-      "link": "https://decrypt.co/364214/crypto-com-1-million-cro-fighter-bonuses-white-house-ufc-fight",
-      "published": "Mon, 13 Apr 2026 21:31:02 +0000",
-      "summary": "The crypto exchange will distribute a record $1 million Cronos (CRO) fighter bonus pool at the upcoming UFC fight at the White House.",
-      "source": "decrypt",
-      "fetched_at": "2026-04-14T23:16:09.390759"
+      "fetched_at": "2026-04-14T23:50:41.815109"
     }
   ],
-  "timestamp": "2026-04-14T23:16:09.390783"
+  "timestamp": "2026-04-14T23:50:41.815131"
 }
