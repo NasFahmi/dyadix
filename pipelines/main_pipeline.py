@@ -227,7 +227,11 @@ class MainPipeline:
             for col in ["timestamp"]:
                 if col in tail.columns:
                     tail[col] = tail[col].astype(str)
-            cols = [c for c in ["timestamp", "open", "high", "low", "close", "volume"] if c in tail.columns]
+            cols = [
+                c
+                for c in ["timestamp", "open", "high", "low", "close", "volume"]
+                if c in tail.columns
+            ]
             last_candles[tf] = tail[cols].to_dict(orient="records")
 
         ctx["last_candles"] = last_candles
@@ -242,6 +246,7 @@ class MainPipeline:
         """
         try:
             from features.snapshot.market_snapshot import build_market_snapshot
+
             snapshot = build_market_snapshot(tf_data)
             ctx["market_snapshot"] = snapshot
         except Exception as e:
@@ -263,6 +268,7 @@ class MainPipeline:
             "- Do not force a trade just because you have data.\n"
             "- If the setup is mediocre or unclear, choose WAIT — no trade is often the best decision.\n"
             "- You are patient and willing to wait for the right setup with strong confluence.\n\n"
+            "- Today is a new day. Do not assume there must be a trade.\n\n"
             "You are given complete market context including:\n"
             "- Technical analysis (trend, momentum, volatility, price action, daily bias)\n"
             "- Recent OHLCV candlesticks (last_candles) for 5m, 15m, 1h\n"
@@ -311,7 +317,7 @@ class MainPipeline:
             "model": self.DECISION_LLM_MODEL,
             "system_prompt": system_prompt,
             "input": user_input,
-            "temperature": 0.25,
+            "temperature": 0.22,
             "stream": False,
         }
 
