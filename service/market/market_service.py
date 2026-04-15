@@ -29,10 +29,11 @@ class MarketService:
         self.bybit = BybitService()
 
         # Ambil konfigurasi dari settings.yaml
-        self.pairs: List[str] = self.config.get("trading", {}).get("pairs", ["BTCUSDT"])
+        # YAML returns None jika semua pair dikomentari → fallback ke default
+        self.pairs: List[str] = self.config.get("trading", {}).get("pairs") or ["BTCUSDT"]
         self.timeframes: List[str] = self.config.get("trading", {}).get(
             "timeframes", ["5m", "15m", "1h"]
-        )
+        ) or ["5m", "15m", "1h"]
         self.agg_method: str = "volume_weighted"  # default sesuai pilihan kamu
 
         logger.info(

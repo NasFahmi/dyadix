@@ -5,5 +5,33 @@
     "published": "Fri, 10 Apr 2026 00:00:00 GMT",
     "source": "RSS",
     "url": "https://blog.ethereum.org/en/2026/04/10/checkpoint-9"
+  },
+  {
+    "text": "How L1 and L2s can build the strongest possible Ethereum: *The North Star of the Platform team is for Ethereum to scale as a cohesive system and enable confident adoption by all users. This post is intended to share our perspective on the L1 \\ L2 relationshi",
+    "username": "VitalikButerin",
+    "published": "Mon, 23 Mar 2026 00:00:00 GMT",
+    "source": "RSS",
+    "url": "https://blog.ethereum.org/en/2026/03/23/l1-l2-ethereum"
+  },
+  {
+    "text": "The Promise of Ethereum: Introducing the EF Mandate: Dearest Friends, Today we are publishing the EF Mandate, a document that serves as part constitution, part manifesto, and part guide for the Ethereum Foundation. It is written primarily for the EF its",
+    "username": "VitalikButerin",
+    "published": "Fri, 13 Mar 2026 00:00:00 GMT",
+    "source": "RSS",
+    "url": "https://blog.ethereum.org/en/2026/03/13/ef-mandate"
+  },
+  {
+    "text": "This Is Fine (Until the Grant Runs Out): The commons called. It wants a runway. Every so often, in the blockchain world\u2019s usual cycle of funding scares, a team maintaining a widely used open source public good declares mayday. Libp2p is a co",
+    "username": "VitalikButerin",
+    "published": "Fri, 27 Feb 2026 00:00:00 GMT",
+    "source": "RSS",
+    "url": "https://blog.ethereum.org/en/2026/02/27/project-odin"
+  },
+  {
+    "text": "Treasury Staking Initiative: The Ethereum Foundation has begun staking a portion of its treasury, in line with its Treasury Policy announced last year. Approximately 70,000 ETH is being staked with rewards directed back to the EF",
+    "username": "VitalikButerin",
+    "published": "Tue, 24 Feb 2026 00:00:00 GMT",
+    "source": "RSS",
+    "url": "https://blog.ethereum.org/en/2026/02/24/staking"
   }
 ]

@@ -6,10 +6,14 @@ menggunakan API format yang kamu tunjukkan.
 """
 
 import json
+import os
 import requests
 import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +27,7 @@ class NewsSocialLLMAnalyzer:
     def __init__(self, base_url: str = "http://localhost:1234"):
         self.base_url = base_url.rstrip("/")
         self.endpoint = f"{self.base_url}/api/v1/chat"
-        self.model = "llama-open-finance-8b"  # ganti sesuai model kamu
+        self.model = os.getenv("NEWS_SOCIAL_ANALYSIS_MODEL", "llama-open-finance-8b")
 
     def analyze(
         self,

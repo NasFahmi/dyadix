@@ -1,0 +1,17 @@
+{
+  "pair": "SOLUSDT",
+  "date": "2026-04-14",
+  "bias": "Bearish",
+  "strength": "Moderate",
+  "candle_pattern": "Normal",
+  "previous_day_high": 87.63225005,
+  "previous_day_low": 83.26225005,
+  "previous_day_close": 83.68225005,
+  "previous_day_open": 86.50245001,
+  "previous_day_range": 4.36999999999999,
+  "current_day_open": 83.68086851,
+  "current_price": 83.9921737,
+  "body_size_pct": 64.53546819222007,
+  "calculated_at": "2026-04-15T15:46:57.078088",
+  "source": "aggregated_volume_weighted"
+}

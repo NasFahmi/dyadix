@@ -31,12 +31,21 @@ class EconomicAnalysis:
         )
 
         today = datetime.utcnow().strftime("%Y-%m-%d")
-        today_events = [e["title"] for e in events if e.get("date") == today]
+        today_events_count = len([e for e in events if e.get("date") == today])
+
+        detailed_events = [
+            {
+                "title": e.get("title", ""),
+                "date": e.get("date", ""),
+                "time": e.get("time", ""),
+            }
+            for e in events
+        ]
 
         return {
             "count": high_impact_count,
-            "high_impact_today": len(today_events),
-            "events": today_events[:5],
+            "high_impact_today": today_events_count,
+            "events": detailed_events[:5],
             "score_contribution": contribution,
             "impact": "High"
             if high_impact_count >= 2

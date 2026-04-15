@@ -135,8 +135,12 @@ class SentimentEngine:
             insights.append("Social mood di Twitter dan Reddit masih mixed, dengan volume diskusi tinggi")
 
         if eco_result and eco_result.get("count", 0) > 0:
-            events = ", ".join(eco_result.get("events", [])[:2])
-            insights.append(f"High-impact economic data ({events}) dirilis hari ini, berpotensi mempengaruhi USD strength")
+            events_list = eco_result.get("events", [])[:2]
+            if events_list and isinstance(events_list[0], dict):
+                events_str = ", ".join([f"{e.get('title')} ({e.get('date')})" for e in events_list])
+            else:
+                events_str = ", ".join(events_list)
+            insights.append(f"High-impact economic data ({events_str}) terjadwal, berpotensi mempengaruhi USD strength")
 
         return insights[:4]
 

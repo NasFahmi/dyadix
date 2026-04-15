@@ -1,0 +1,17 @@
+{
+  "pair": "ETHUSDT",
+  "date": "2026-04-14",
+  "bias": "Bearish",
+  "strength": "Moderate",
+  "candle_pattern": "Normal",
+  "previous_day_high": 2414.7790976,
+  "previous_day_low": 2301.45052603,
+  "previous_day_close": 2321.54270659,
+  "previous_day_open": 2368.29428548,
+  "previous_day_range": 113.3285715699999,
+  "current_day_open": 2321.46324107,
+  "current_price": 2322.42131883,
+  "body_size_pct": 41.25312641139474,
+  "calculated_at": "2026-04-15T13:49:06.695743",
+  "source": "aggregated_volume_weighted"
+}

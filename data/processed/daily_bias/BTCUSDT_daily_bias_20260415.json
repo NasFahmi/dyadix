@@ -1,0 +1,17 @@
+{
+  "pair": "BTCUSDT",
+  "date": "2026-04-14",
+  "bias": "Bearish",
+  "strength": "Moderate",
+  "candle_pattern": "Normal",
+  "previous_day_high": 76016.80866928,
+  "previous_day_low": 73764.12672132,
+  "previous_day_close": 74101.4460699,
+  "previous_day_open": 74391.75947135,
+  "previous_day_range": 2252.6819479599944,
+  "current_day_open": 74100.2144403,
+  "current_price": 74282.25177392,
+  "body_size_pct": 12.88745629239407,
+  "calculated_at": "2026-04-15T12:46:52.530210",
+  "source": "aggregated_volume_weighted"
+}
