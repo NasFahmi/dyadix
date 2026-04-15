@@ -1,9 +1,9 @@
 trading:
   pairs:
-    # - BTCUSDT
+    - BTCUSDT
     # - ETHUSDT
     # - SOLUSDT
-    - XRPUSDT
+    # - XRPUSDT
     # - HYPEUSDT
     # - ADAUSDT
     # - ARBUSDT
@@ -16,3 +16,9 @@ trading:
     - ADAUSDT
     - ARBUSDT
   active_session: "london_ny" # marker untuk logic session
+  timeframes:
+    - "3m"
+    - "5m"
+    - "15m"
+    - "1h"
+    - "1d"

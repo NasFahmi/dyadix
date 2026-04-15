@@ -207,5 +207,11 @@ untuk saat ini masih mereturn
   }
 }
 
-
+15/04/2026
 namun LLM belum dikasih candlestik terakhir, jadi decision engine bisa membaca dari sentiment, dan technical, liquidity,dll namun masih tau bisa candle terakhir,
+
+16/04/2026
+1. AI overcondifend, 
+2. beberapa Major pair cocok di TF h1, m15, m5, namun ada bebrapa minor pair atau pair yang ada di urutan bawah, tidak cocok di TF h1, m15, m5, perlu ada penyesuaian disini
+
+

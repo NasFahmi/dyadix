@@ -2,12 +2,20 @@
   "key": "rss_decrypt",
   "content": [
     {
+      "title": "Tom Lee's BitMine Posts $3.8 Billion Quarterly Loss Due to Ethereum Price Plunge",
+      "link": "https://decrypt.co/364472/tom-lees-bitmine-posts-3-8-billion-loss-ethereum-price-plunge",
+      "published": "Wed, 15 Apr 2026 17:17:41 +0000",
+      "summary": "Leading Ethereum treasury firm BitMine Immersion Technologies posted a major loss thanks to unrealized losses on its ETH.",
+      "source": "decrypt",
+      "fetched_at": "2026-04-16T00:45:43.493923"
+    },
+    {
       "title": "eToro Acquires Self-Custody Crypto Wallet Firm Zengo for $70 Million",
       "link": "https://decrypt.co/364464/etoro-acquires-self-custody-crypto-wallet-firm-70-million",
       "published": "Wed, 15 Apr 2026 16:40:20 +0000",
       "summary": "The deal signals eToro's strategic push into self-custody solutions amid growing demand for non-custodial crypto infrastructure.",
       "source": "decrypt",
-      "fetched_at": "2026-04-16T00:08:17.886661"
+      "fetched_at": "2026-04-16T00:45:43.493934"
     },
     {
       "title": "Pakistan Lifts 8-Year Crypto Banking Ban Following Trump Family, Binance Deals",
@@ -15,7 +23,7 @@
       "published": "Wed, 15 Apr 2026 16:15:48 +0000",
       "summary": "Banks in Pakistan can now provide services to registered crypto firms\u2014but not trade crypto themselves\u2014after a 2018 ban was rescinded.",
       "source": "decrypt",
-      "fetched_at": "2026-04-16T00:08:17.886673"
+      "fetched_at": "2026-04-16T00:45:43.493943"
     },
     {
       "title": "Online Casino Operator's Stock Surges on Crypto.com Prediction Market Deal",
@@ -23,7 +31,7 @@
       "published": "Wed, 15 Apr 2026 15:43:31 +0000",
       "summary": "Shares in High Roller Technologies nearly doubled Tuesday after the firm announced it was entering the prediction markets space.",
       "source": "decrypt",
-      "fetched_at": "2026-04-16T00:08:17.886679"
+      "fetched_at": "2026-04-16T00:45:43.493949"
     },
     {
       "title": "'Nothing Ever Happens': This Bot Always Bets 'No' on Polymarket, And It Has a Point",
@@ -31,7 +39,7 @@
       "published": "Wed, 15 Apr 2026 15:16:03 +0000",
       "summary": "Sterling Crispin's 'Nothing Ever Happens' bot automatically buys \"No\" on every non-sports Polymarket it finds. It's not that crazy.",
       "source": "decrypt",
-      "fetched_at": "2026-04-16T00:08:17.886685"
+      "fetched_at": "2026-04-16T00:45:43.493955"
     },
     {
       "title": "New Bitcoin Proposal Would Freeze Coins to Counter Quantum Threat",
@@ -39,7 +47,7 @@
       "published": "Wed, 15 Apr 2026 14:43:52 +0000",
       "summary": "The proposal would phase out Bitcoin's original security methods and freeze coins that don't move in time.",
       "source": "decrypt",
-      "fetched_at": "2026-04-16T00:08:17.886691"
+      "fetched_at": "2026-04-16T00:45:43.493963"
     },
     {
       "title": "Can AI Beat the Sports Betting Market? 8 of the Top Models Tried",
@@ -47,7 +55,7 @@
       "published": "Wed, 15 Apr 2026 14:36:03 +0000",
       "summary": "KellyBench put Claude, GPT-5, Gemini, and Grok through a full Premier League season of betting. Not one turned a profit. Here's why.",
       "source": "decrypt",
-      "fetched_at": "2026-04-16T00:08:17.886697"
+      "fetched_at": "2026-04-16T00:45:43.493970"
     },
     {
       "title": "Allbirds Stock Spikes 400% on Pivot From Shoe Brand to AI Compute\u2014Yes, Really",
@@ -55,7 +63,7 @@
       "published": "Wed, 15 Apr 2026 14:19:07 +0000",
       "summary": "Sustainable footwear company Allbirds will rebrand as NewBird AI and enter the GPU-as-a-service market. Investors love the pivot.",
       "source": "decrypt",
-      "fetched_at": "2026-04-16T00:08:17.886704"
+      "fetched_at": "2026-04-16T00:45:43.493976"
     },
     {
       "title": "Elizabeth Warren Warns Elon Musk's X Money Threatens 'Stability of the Financial System'",
@@ -63,7 +71,7 @@
       "published": "Wed, 15 Apr 2026 12:26:42 +0000",
       "summary": "The Massachusetts Senator warned of consumer protection gaps as Musk's payment platform launches amid weakened federal oversight.",
       "source": "decrypt",
-      "fetched_at": "2026-04-16T00:08:17.886710"
+      "fetched_at": "2026-04-16T00:45:43.493982"
     },
     {
       "title": "Morning Minute: The Next Fed Chair Has a Crypto Portfolio",
@@ -71,16 +79,8 @@
       "published": "Wed, 15 Apr 2026 12:14:40 +0000",
       "summary": "Kevin Warsh is holding Solana, Polymarket and more. Goldman Sachs is filing for a BTC ETF. And Circle stock is jumping on news of a token.",
       "source": "decrypt",
-      "fetched_at": "2026-04-16T00:08:17.886716"
-    },
-    {
-      "title": "Virginia Governor Signs Law Protecting Dormant Crypto From Forced Liquidation",
-      "link": "https://decrypt.co/364426/virginia-governor-signs-law-protecting-dormant-crypto-from-forced-liquidation",
-      "published": "Wed, 15 Apr 2026 11:13:03 +0000",
-      "summary": "The legislation ensures unclaimed digital assets are held in their native form for at least one year before the state can move to sell them.",
-      "source": "decrypt",
-      "fetched_at": "2026-04-16T00:08:17.886722"
+      "fetched_at": "2026-04-16T00:45:43.493989"
     }
   ],
-  "timestamp": "2026-04-16T00:08:17.886746"
+  "timestamp": "2026-04-16T00:45:43.494013"
 }

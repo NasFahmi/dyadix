@@ -100,6 +100,13 @@ class MainPipeline:
             # Tambah market snapshot (ringkasan candle M5/M15/H1 untuk precision entry)
             ctx = self._inject_market_snapshot(ctx, market_data.get(pair, {}))
 
+            # Debug: Print full context before sending to LLM
+            print("\n" + "=" * 60)
+            print(f" DEBUG: PROMPTING DECISION LLM FOR {pair}")
+            print("=" * 60)
+            print(json.dumps(ctx, indent=2, default=str, ensure_ascii=False))
+            print("=" * 60 + "\n")
+
             logger.info(f"  ⚙  Calling Decision LLM for {pair}...")
             decision = self._call_decision_llm(ctx)
 
@@ -211,7 +218,7 @@ class MainPipeline:
         agar decision LLM bisa membaca struktur candle terakhir.
         """
         last_candles: Dict[str, Any] = {}
-        for tf in ["5m", "15m", "1h"]:
+        for tf in ["3m", "5m", "15m", "1h"]:
             df = tf_data.get(tf, {}).get("aggregated", pd.DataFrame())
             if df.empty:
                 continue
