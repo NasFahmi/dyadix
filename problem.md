@@ -208,4 +208,4 @@ untuk saat ini masih mereturn
 }
 
 
-namun LLM belum dikasih candlestik terakhir, jadi decision engine bisa membaca dari sentiment, dan technical, liquidity, namun masih belum bisa membaca candle terakhir, jadi perlu ditambahkan data candlestick terakhir
+namun LLM belum dikasih candlestik terakhir, jadi decision engine bisa membaca dari sentiment, dan technical, liquidity,dll namun masih tau bisa candle terakhir,

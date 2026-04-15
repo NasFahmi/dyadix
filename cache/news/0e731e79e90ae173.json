@@ -2,12 +2,44 @@
   "key": "rss_cointelegraph",
   "content": [
     {
+      "title": "Bitcoin can grow 'probably a lot bigger' than $30T+ gold market \u2014 Analysis",
+      "link": "https://cointelegraph.com/news/bitcoin-can-grow-probably-a-lot-bigger-than-30t-gold-market-analysis?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound",
+      "published": "Wed, 15 Apr 2026 17:16:54 +0100",
+      "summary": "New Bitcoin macro analysis found its \"addressable market\" surpassed the $38 trillion gold market cap, driven by geopolitical instability and financial sanctions.",
+      "source": "cointelegraph",
+      "fetched_at": "2026-04-16T00:08:17.755790"
+    },
+    {
+      "title": "Senator Elizabeth Warren questions Elon Musk about X Money",
+      "link": "https://cointelegraph.com/news/elizabeth-warren-question-musk-x-money?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound",
+      "published": "Wed, 15 Apr 2026 17:16:35 +0100",
+      "summary": "The Massachusetts Democrat has been critical of private companies, including non-bank entities, issuing their own dollar-pegged stablecoins.",
+      "source": "cointelegraph",
+      "fetched_at": "2026-04-16T00:08:17.755801"
+    },
+    {
+      "title": "Bitcoin falls to lower support as analysts say markets are ignoring key Iran issue",
+      "link": "https://cointelegraph.com/news/bitcoin-falls-to-lower-support-as-analysts-say-markets-are-ignoring-key-iran-issue?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound",
+      "published": "Wed, 15 Apr 2026 16:20:00 +0100",
+      "summary": "Bitcoin paused its rally toward new range highs while the S&P 500 came within an inch of a fresh year-to-date high, leading analysts to warn that traders are overconfident.",
+      "source": "cointelegraph",
+      "fetched_at": "2026-04-16T00:08:17.755808"
+    },
+    {
+      "title": "EIP-8105: A new design for Ethereum\u2019s encrypted mempool",
+      "link": "https://cointelegraph.com/news/eip-8105-a-new-design-for-ethereums-encrypted-mempool?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound",
+      "published": "Wed, 15 Apr 2026 16:00:00 +0100",
+      "summary": "EIP-8105 proposes a scheme-agnostic encrypted mempool for Ethereum, designed to hide transaction payloads until after inclusion and reduce harmful MEV.",
+      "source": "cointelegraph",
+      "fetched_at": "2026-04-16T00:08:17.755814"
+    },
+    {
       "title": "Here\u2019s what happened in crypto today",
       "link": "https://cointelegraph.com/news/what-happened-in-crypto-today?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound",
       "published": "Wed, 15 Apr 2026 15:51:20 +0100",
       "summary": "Need to know what happened in crypto today? Here is the latest news on daily trends and events impacting Bitcoin price, blockchain, DeFi, NFTs, Web3 and crypto regulation.",
       "source": "cointelegraph",
-      "fetched_at": "2026-04-15T22:40:44.289129"
+      "fetched_at": "2026-04-16T00:08:17.755819"
     },
     {
       "title": "UK FCA seeks feedback on guidance for crypto rules ahead of 2027 rollout",
@@ -15,7 +47,7 @@
       "published": "Wed, 15 Apr 2026 15:37:33 +0100",
       "summary": "The UK financial regulator has launched a consultation on crypto rules covering stablecoins, trading and staking ahead of a broader UK crypto regime expected to take effect in 2027.",
       "source": "cointelegraph",
-      "fetched_at": "2026-04-15T22:40:44.289141"
+      "fetched_at": "2026-04-16T00:08:17.755825"
     },
     {
       "title": "Tom Lee says \u2018mini crypto winter\u2019 is over, sees Ether above $60K",
@@ -23,7 +55,7 @@
       "published": "Wed, 15 Apr 2026 15:18:39 +0100",
       "summary": "Bitmine chairman Tom Lee told Paris Blockchain Week that the recent crypto slump was a \u201cmini crypto winter\u201d and said Ether could climb above $60,000 over the next few years.",
       "source": "cointelegraph",
-      "fetched_at": "2026-04-15T22:40:44.289162"
+      "fetched_at": "2026-04-16T00:08:17.755838"
     },
     {
       "title": "WLFI proposes unlock plan for 62 billion tokens with long lockups and burns",
@@ -31,7 +63,7 @@
       "published": "Wed, 15 Apr 2026 14:49:15 +0100",
       "summary": "The new proposal outlines multi-year lockups and opt-in token burn, as the Trump-linked DeFi platform responds to pressure over delayed liquidity access.",
       "source": "cointelegraph",
-      "fetched_at": "2026-04-15T22:40:44.289168"
+      "fetched_at": "2026-04-16T00:08:17.755844"
     },
     {
       "title": "Only 4% of Danish citizens hold crypto, far below other European countries",
@@ -39,7 +71,7 @@
       "published": "Wed, 15 Apr 2026 14:23:49 +0100",
       "summary": "Only 4% of Danish citizens own crypto, far below other European countries, as banks, taxes and risk fears limit adoption, according to a new staff paper from the country's central bank.",
       "source": "cointelegraph",
-      "fetched_at": "2026-04-15T22:40:44.289173"
+      "fetched_at": "2026-04-16T00:08:17.755849"
     },
     {
       "title": "Fireblocks launches tool for institutions to earn yield on stablecoins",
@@ -47,40 +79,8 @@
       "published": "Wed, 15 Apr 2026 12:39:50 +0100",
       "summary": "Fireblocks launched Earn, giving institutions direct access to Aave and Morpho-based stablecoin lending as firms seek yield on idle balances.",
       "source": "cointelegraph",
-      "fetched_at": "2026-04-15T22:40:44.289179"
-    },
-    {
-      "title": "Virginia updates law to hold unclaimed crypto in-kind for at least one year",
-      "link": "https://cointelegraph.com/news/virginia-updates-law-in-kind-crypto-custody-delay-liquidation-one-year?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound",
-      "published": "Wed, 15 Apr 2026 12:02:59 +0100",
-      "summary": "Virginia signed a law bringing digital assets into unclaimed property rules, requiring in-kind transfer and limiting how quickly the state can sell them.",
-      "source": "cointelegraph",
-      "fetched_at": "2026-04-15T22:40:44.289184"
-    },
-    {
-      "title": "Pakistan allows banks to serve licensed crypto firms after years-long ban",
-      "link": "https://cointelegraph.com/news/pakistan-allows-banks-to-serve-licensed-crypto-firms?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound",
-      "published": "Wed, 15 Apr 2026 11:51:28 +0100",
-      "summary": "Pakistan\u2019s central bank has allowed banks to open accounts for licensed virtual asset service providers, ending years of restrictions and marking a shift toward a regulated framework.",
-      "source": "cointelegraph",
-      "fetched_at": "2026-04-15T22:40:44.289191"
-    },
-    {
-      "title": "EU adviser says \u2018MiCA 2\u2019 is likely as crypto market matures: PBW 2026",
-      "link": "https://cointelegraph.com/news/eu-adviser-says-mica-2-is-likely-as-crypto-market-matures-pbw-2026?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound",
-      "published": "Wed, 15 Apr 2026 11:43:52 +0100",
-      "summary": "EU officials plan to reassess MiCA as companies test its limits, with industry feedback set to shape potential changes to the bloc\u2019s crypto framework.",
-      "source": "cointelegraph",
-      "fetched_at": "2026-04-15T22:40:44.289197"
-    },
-    {
-      "title": "OKX rolls out X-Perps across Europe in regulated derivatives push",
-      "link": "https://cointelegraph.com/news/okx-europex-perps-regulated-crypto-derivatives?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound",
-      "published": "Wed, 15 Apr 2026 11:21:12 +0100",
-      "summary": "The exchange said the new product is available across the European Economic Area through its Malta-based MiFID business, with up to 10x leverage and multi-asset collateral.",
-      "source": "cointelegraph",
-      "fetched_at": "2026-04-15T22:40:44.289203"
+      "fetched_at": "2026-04-16T00:08:17.755854"
     }
   ],
-  "timestamp": "2026-04-15T22:40:44.289228"
+  "timestamp": "2026-04-16T00:08:17.755879"
 }

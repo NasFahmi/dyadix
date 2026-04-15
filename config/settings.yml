@@ -2,8 +2,8 @@ trading:
   pairs:
     # - BTCUSDT
     # - ETHUSDT
-    - SOLUSDT
-    # - XRPUSDT
+    # - SOLUSDT
+    - XRPUSDT
     # - HYPEUSDT
     # - ADAUSDT
     # - ARBUSDT

@@ -2,12 +2,28 @@
   "key": "rss_coindesk",
   "content": [
     {
+      "title": "Wall Street won\u2019t buy \u2018trustless\u2019 security promises",
+      "link": "https://www.coindesk.com/opinion/2026/04/15/wall-street-won-t-buy-trustless-security-promises",
+      "published": "Wed, 15 Apr 2026 16:35:00 +0000",
+      "summary": "",
+      "source": "coindesk",
+      "fetched_at": "2026-04-16T00:08:17.555626"
+    },
+    {
+      "title": "Crypto Long & Short: Fighting fraud in the digital age: why state-led identity is the future",
+      "link": "https://www.coindesk.com/coindesk-indices/2026/04/15/crypto-long-and-short-fighting-fraud-in-the-digital-age-why-state-led-identity-is-the-future",
+      "published": "Wed, 15 Apr 2026 16:00:44 +0000",
+      "summary": "",
+      "source": "coindesk",
+      "fetched_at": "2026-04-16T00:08:17.555640"
+    },
+    {
       "title": "Bitcoin developer Jameson Lopp says it's better to freeze 5.6 million BTC than let hackers have them",
       "link": "https://www.coindesk.com/business/2026/04/15/bitcoin-developer-jameson-lopp-says-it-s-better-to-freeze-5-6-million-btc-than-let-hackers-have-them",
       "published": "Wed, 15 Apr 2026 15:37:34 +0000",
       "summary": "",
       "source": "coindesk",
-      "fetched_at": "2026-04-15T22:40:44.086270"
+      "fetched_at": "2026-04-16T00:08:17.555647"
     },
     {
       "title": "Why Morgan Stanley's CFO sees tokenization as the next big step for its multi-trillion wealth business",
@@ -15,7 +31,7 @@
       "published": "Wed, 15 Apr 2026 15:17:03 +0000",
       "summary": "",
       "source": "coindesk",
-      "fetched_at": "2026-04-15T22:40:44.086284"
+      "fetched_at": "2026-04-16T00:08:17.555652"
     },
     {
       "title": "Allbirds abandons sneakers in pivot to AI computing, shares surge 400%",
@@ -23,7 +39,7 @@
       "published": "Wed, 15 Apr 2026 13:53:52 +0000",
       "summary": "",
       "source": "coindesk",
-      "fetched_at": "2026-04-15T22:40:44.086291"
+      "fetched_at": "2026-04-16T00:08:17.555657"
     },
     {
       "title": "TeraWulf stock declines on $900 million share sale to fund AI data center expansion",
@@ -31,7 +47,7 @@
       "published": "Wed, 15 Apr 2026 13:34:29 +0000",
       "summary": "",
       "source": "coindesk",
-      "fetched_at": "2026-04-15T22:40:44.086296"
+      "fetched_at": "2026-04-16T00:08:17.555661"
     },
     {
       "title": "CoinDesk 20 performance update: AAVE rises 4.3% as trades flat",
@@ -39,7 +55,15 @@
       "published": "Wed, 15 Apr 2026 13:27:06 +0000",
       "summary": "",
       "source": "coindesk",
-      "fetched_at": "2026-04-15T22:40:44.086301"
+      "fetched_at": "2026-04-16T00:08:17.555666"
+    },
+    {
+      "title": "Beyond \u2018digital gold,\u2019 Iran conflict forces a rethink of the nature of bitcoin",
+      "link": "https://www.coindesk.com/markets/2026/04/15/bitcoin-s-war-rally-is-forcing-a-rethink-beyond-digital-gold",
+      "published": "Wed, 15 Apr 2026 13:03:02 +0000",
+      "summary": "",
+      "source": "coindesk",
+      "fetched_at": "2026-04-16T00:08:17.555671"
     },
     {
       "title": "Pakistan lifts seven-year ban, allowing banks to service crypto providers",
@@ -47,7 +71,7 @@
       "published": "Wed, 15 Apr 2026 13:01:55 +0000",
       "summary": "",
       "source": "coindesk",
-      "fetched_at": "2026-04-15T22:40:44.086306"
+      "fetched_at": "2026-04-16T00:08:17.555675"
     },
     {
       "title": "Prediction market volumes to hit $1 trillion by 2030 with Robinhood, Coinbase as key players, Bernstein says",
@@ -55,32 +79,8 @@
       "published": "Wed, 15 Apr 2026 12:55:54 +0000",
       "summary": "",
       "source": "coindesk",
-      "fetched_at": "2026-04-15T22:40:44.086310"
-    },
-    {
-      "title": "Trump-backed WLFI moves to unlock 62 billion tokens after $75 million loan controversy",
-      "link": "https://www.coindesk.com/markets/2026/04/15/trump-backed-world-liberty-financial-proposes-unlocking-62-billion-tokens",
-      "published": "Wed, 15 Apr 2026 12:36:49 +0000",
-      "summary": "",
-      "source": "coindesk",
-      "fetched_at": "2026-04-15T22:40:44.086315"
-    },
-    {
-      "title": "Income ETFs could be bitcoin\u2019s volatility kill switch",
-      "link": "https://www.coindesk.com/daybook-us/2026/04/15/income-etfs-could-be-bitcoin-s-volatility-kill-switch",
-      "published": "Wed, 15 Apr 2026 11:43:09 +0000",
-      "summary": "",
-      "source": "coindesk",
-      "fetched_at": "2026-04-15T22:40:44.086319"
-    },
-    {
-      "title": "Bitcoin pulls back as $75,000 remains 'both the milestone and the ceiling'",
-      "link": "https://www.coindesk.com/markets/2026/04/15/bitcoin-pulls-back-as-usd75-000-remains-both-the-milestone-and-the-ceiling",
-      "published": "Wed, 15 Apr 2026 11:09:30 +0000",
-      "summary": "",
-      "source": "coindesk",
-      "fetched_at": "2026-04-15T22:40:44.086324"
+      "fetched_at": "2026-04-16T00:08:17.555680"
     }
   ],
-  "timestamp": "2026-04-15T22:40:44.086345"
+  "timestamp": "2026-04-16T00:08:17.555705"
 }

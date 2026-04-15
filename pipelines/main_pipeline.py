@@ -97,6 +97,9 @@ class MainPipeline:
             # Tambah last_candles ke context agar LLM bisa baca candlestick terbaru
             ctx = self._inject_last_candles(ctx, market_data.get(pair, {}))
 
+            # Tambah market snapshot (ringkasan candle M5/M15/H1 untuk precision entry)
+            ctx = self._inject_market_snapshot(ctx, market_data.get(pair, {}))
+
             logger.info(f"  ⚙  Calling Decision LLM for {pair}...")
             decision = self._call_decision_llm(ctx)
 
@@ -225,34 +228,55 @@ class MainPipeline:
 
     # ─────────────────────────────────────────────────────────────────
     #  DECISION LLM
+    def _inject_market_snapshot(self, ctx: Dict, tf_data: Dict) -> Dict:
+        """
+        Tambahkan MarketSnapshot ke context — ringkasan candle M3/M5/M15/H1
+        dengan last_candle, candle summary, RSI, ATR, dan trend regime.
+        """
+        try:
+            from features.snapshot.market_snapshot import build_market_snapshot
+            snapshot = build_market_snapshot(tf_data)
+            ctx["market_snapshot"] = snapshot
+        except Exception as e:
+            logger.warning(f"Market snapshot build failed: {e}")
+            ctx["market_snapshot"] = {}
+        return ctx
+
     # ─────────────────────────────────────────────────────────────────
 
     def _call_decision_llm(self, full_context: Dict) -> Dict:
         """Kirim full context ke Decision LLM dan parse hasilnya sebagai JSON."""
 
         system_prompt = (
-            'You are "Nova", a sharp and aggressive crypto proprietary trader with 9+ years experience. '
+            'You are "Nova", a disciplined and patient crypto proprietary trader with 9+ years experience. '
             "You specialize in intraday and short-term trading during London-NY session.\n\n"
-            "Your style is decisive and opportunistic. You actively look for high-probability setups "
-            "and are willing to take calculated risks when confluence is strong. "
-            "You do not hesitate to enter trades when the context supports it, "
-            "but you always respect risk management.\n\n"
+            "Your core philosophy:\n"
+            "- Capital preservation is priority number one.\n"
+            "- Only trade when probability is clearly in your favor.\n"
+            "- Do not force a trade just because you have data.\n"
+            "- If the setup is mediocre or unclear, choose WAIT — no trade is often the best decision.\n"
+            "- You are patient and willing to wait for the right setup with strong confluence.\n\n"
             "You are given complete market context including:\n"
             "- Technical analysis (trend, momentum, volatility, price action, daily bias)\n"
             "- Recent OHLCV candlesticks (last_candles) for 5m, 15m, 1h\n"
+            "- Market snapshot (market_snapshot): structured summary of last candles per timeframe "
+            "including current_price, last candle OHLC, bullish/bearish candle ratio, RSI, ATR, and H1 trend regime\n"
             "- Sentiment (news, social, Fear & Greed, economic calendar with dates)\n"
             "- Derivatives (funding rate, open interest)\n"
             "- Liquidity (pools, sweeps, PDH/PDL)\n"
             "- Correlation between pairs\n\n"
-            "Rules:\n"
-            "- Use last_candles to confirm entry timing and candle structure.\n"
+            "Strict Rules:\n"
+            "- BUY or SELL signals are ONLY given if at least 3 strongly supportive factors align "
+            "(e.g. technical bias + momentum + liquidity sweep + sentiment all pointing the same direction).\n"
+            "- If only 1-2 factors are supportive → use WAIT. Do not compromise.\n"
+            "- Never set an entry_zone that has already been passed by the current price.\n"
+            "- Use market_snapshot for precision entry: last candle OHLC, candle momentum summary, RSI, and ATR.\n"
+            "- Cross-check market_snapshot against technical.trend_h1 and technical.momentum_m15.\n"
             "- Check economic event dates in sentiment.components.economic — "
-            "if a high-impact event is UPCOMING (future date), be extra cautious. "
+            "if a high-impact event is UPCOMING (future date), strongly prefer WAIT. "
             "If it has ALREADY PASSED, incorporate its impact into your bias.\n"
-            "- Be aggressive but not reckless. If there is clear confluence, take the trade.\n"
-            '- Avoid being overly cautious — "WAIT" should only be used when setup is genuinely unclear.\n'
-            "- Always consider the possibility of liquidity sweeps and fakeouts.\n"
-            "- Focus on the next 4-24 hours.\n\n"
+            "- Always account for the risk of liquidity sweeps and fakeouts before committing to a direction.\n"
+            "- Focus on the next 4-24 hours. Do not over-trade.\n\n"
             "CRITICAL: Return ONLY a valid JSON object. No explanation, no markdown, no extra text.\n"
             "Required JSON format:\n"
             "{\n"
