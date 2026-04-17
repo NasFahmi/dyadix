@@ -3,7 +3,7 @@ features/sentiment/economic_analysis.py
 """
 
 from typing import Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class EconomicAnalysis:
@@ -19,7 +19,7 @@ class EconomicAnalysis:
 
         high_impact_count = len(events)
 
-        # Economic events high-impact biasanya memberikan tekanan negatif jangka pendek ke crypto
+        # High-impact economic events typically exert short-term negative pressure on crypto
         contribution = (
             -10
             if high_impact_count >= 3
@@ -30,7 +30,7 @@ class EconomicAnalysis:
             else 0
         )
 
-        today = datetime.utcnow().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         today_events_count = len([e for e in events if e.get("date") == today])
 
         detailed_events = [
