@@ -80,7 +80,11 @@ def build_sentiment_context(
     # 5. Fetch Economic Calendar
     try:
         logger.info("Fetching economic calendar...")
-        eco_service = EconomicCalendarService()
+        eco_service = EconomicCalendarService(
+            cache_dir="cache/economic",
+            cache_duration_hours=6,
+            force_refresh_if_week_changed=True,
+        )
         context["economic_calendar"] = eco_service.get_high_impact_events(
             days_ahead=eco_days_ahead, days_back=eco_days_back, countries=["USD"]
         )

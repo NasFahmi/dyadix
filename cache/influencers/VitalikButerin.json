@@ -1,5 +1,12 @@
 [
   {
+    "text": "ETH Rangers Program Recap: In late 2024, the Ethereum Foundation, together with Secureum, The Red Guild, and Security Alliance (SEAL), launched the ETH Rangers Program, an initiative to provide stipends for individuals doing pu",
+    "username": "VitalikButerin",
+    "published": "Thu, 16 Apr 2026 00:00:00 GMT",
+    "source": "RSS",
+    "url": "https://blog.ethereum.org/en/2026/04/16/eth-rangers-recap"
+  },
+  {
     "text": "Checkpoint #9: Apr 2026: Ethereum's All Core Developer calls can be a lot to keep up with, so this \"Checkpoint\" series aims for periodic high-level updates, depending on what's happening in core development. See the previous ",
     "username": "VitalikButerin",
     "published": "Fri, 10 Apr 2026 00:00:00 GMT",
@@ -26,12 +33,5 @@
     "published": "Fri, 27 Feb 2026 00:00:00 GMT",
     "source": "RSS",
     "url": "https://blog.ethereum.org/en/2026/02/27/project-odin"
-  },
-  {
-    "text": "Treasury Staking Initiative: The Ethereum Foundation has begun staking a portion of its treasury, in line with its Treasury Policy announced last year. Approximately 70,000 ETH is being staked with rewards directed back to the EF",
-    "username": "VitalikButerin",
-    "published": "Tue, 24 Feb 2026 00:00:00 GMT",
-    "source": "RSS",
-    "url": "https://blog.ethereum.org/en/2026/02/24/staking"
   }
 ]

@@ -30,14 +30,19 @@ logger = logging.getLogger(__name__)
 #  Label helpers
 # ─────────────────────────────────────────────
 
+
 def _sentiment_to_score(label: str) -> int:
     """Konversi label sentiment ke skor numerik 0-8."""
     mapping = {
-        "Very Bullish": 8, "Strong Bullish": 7,
-        "Bullish": 6, "Moderate Bullish": 5,
+        "Very Bullish": 8,
+        "Strong Bullish": 7,
+        "Bullish": 6,
+        "Moderate Bullish": 5,
         "Neutral": 4,
-        "Moderate Bearish": 3, "Bearish": 2,
-        "Strong Bearish": 1, "Very Bearish": 0,
+        "Moderate Bearish": 3,
+        "Bearish": 2,
+        "Strong Bearish": 1,
+        "Very Bearish": 0,
     }
     for key in mapping:
         if key.lower() in label.lower():
@@ -61,6 +66,7 @@ def _score_to_bias_label(score: float) -> str:
 # ─────────────────────────────────────────────
 #  ContextBuilder
 # ─────────────────────────────────────────────
+
 
 class ContextBuilder:
     """
@@ -344,10 +350,10 @@ class ContextBuilder:
     ) -> str:
         """
         Weighted final bias dari semua komponen:
-          Technical  40%
-          Sentiment  30%
-          Derivatives 20%
-          Liquidity  10%
+        Technical  40%
+        Sentiment  30%
+        Derivatives 20%
+        Liquidity  10%
         """
         tech_label = tech.get("overall_technical_bias", "Neutral")
         sent_label = sentiment.get("overall_sentiment", "Neutral")
@@ -427,6 +433,7 @@ class ContextBuilder:
 # ─────────────────────────────────────────────
 #  Module-level helpers
 # ─────────────────────────────────────────────
+
 
 def build_technical_context(market_data: Dict) -> Dict:
     """Helper backward-compatible untuk technical-only context."""
