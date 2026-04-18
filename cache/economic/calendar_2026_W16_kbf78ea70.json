@@ -1,0 +1,35 @@
+{
+  "metadata": {
+    "timestamp": "2026-04-18T16:49:11.010273+00:00",
+    "date": "2026-04-18",
+    "target_week": "2026_W16",
+    "days_ahead": 7,
+    "countries": [
+      "USD"
+    ],
+    "event_count": 2,
+    "cache_duration_hours": 6
+  },
+  "data": [
+    {
+      "title": "Core PPI m/m",
+      "country": "USD",
+      "date": "2026-04-14",
+      "time": "08:30:00",
+      "impact": "High",
+      "forecast": "0.4%",
+      "previous": "0.5%",
+      "timestamp": "2026-04-14T08:30:00-04:00"
+    },
+    {
+      "title": "PPI m/m",
+      "country": "USD",
+      "date": "2026-04-14",
+      "time": "08:30:00",
+      "impact": "High",
+      "forecast": "1.1%",
+      "previous": "0.7%",
+      "timestamp": "2026-04-14T08:30:00-04:00"
+    }
+  ]
+}

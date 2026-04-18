@@ -51,12 +51,12 @@ class EconomicCalendarService:
             cache_duration_hours: How long cache stays valid (default: 6 hours)
             force_refresh_if_week_changed: Force refresh if ISO week changed
         """
+        # Get the directory where THIS script is located
+        script_path = Path(__file__).resolve()
+        root_project_dir = script_path.parent.parent
+
         # Setup cache path relative to ROOT_PROJECT, not current working directory
         if cache_dir is None:
-            # Get the directory where THIS script is located
-            script_path = Path(__file__).resolve()
-            root_project_dir = script_path.parent.parent
-
             # Use absolute path for consistency
             cache_dir = f"{root_project_dir}/cache/economic"
 
@@ -64,9 +64,13 @@ class EconomicCalendarService:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
         print(f"[INIT] Using cache directory: {self.cache_dir}")
-        print(
-            f"[INIT] Relative path from script: {self.cache_dir.relative_to(script_path.parent.parent)}"
-        )
+        try:
+            print(
+                f"[INIT] Relative path from project root: {self.cache_dir.relative_to(root_project_dir)}"
+            )
+        except ValueError:
+            # Fallback jika cache_dir berada di luar root_project_dir
+            print(f"[INIT] Absolute cache path: {self.cache_dir.resolve()}")
 
         self.cache_duration_hours = cache_duration_hours
         self.force_refresh_if_week_changed = force_refresh_if_week_changed

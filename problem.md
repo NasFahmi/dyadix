@@ -19,3 +19,4 @@ news
 "bitcoinmagazine": "https://bitcoinmagazine.com/.rss/full/",
 "cryptonews": "https://cryptonews.com/news/feed/",
 
+2. AI memberikan signal yang kontra dengan jarak waktu 5 menit, contoh saat jam 22.45 AI memberikan signal buy, saat 22.50 AI memberikan signal sell, dan seterusnya, jadi AI nya tidak fokus, jadi perlu ada filterisasi agar AI tidak memberikan signal yang kontra dalam jarak waktu dekat
