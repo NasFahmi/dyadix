@@ -131,6 +131,18 @@ Return ONLY a valid JSON object. Do not add any explanation or markdown."""
         for sub, posts in list(reddit_data.items())[:5]:
             for post in posts[:3]:
                 reddit_text += f"[r/{sub}] {post.get('title', '')}\n"
+                # Add description if available (Increased limit to 3000 for full context)
+                if post.get("description"):
+                    desc = post.get("description", "").strip()
+                    if desc:
+                        reddit_text += f"   Context: {desc[:3000]}\n"
+                # Add top comments if available
+                if post.get("comments"):
+                    comments_list = post.get("comments", [])
+                    if comments_list:
+                        # Increased comment context as well
+                        comments_summary = " | ".join([c[:200] for c in comments_list])
+                        reddit_text += f"   Comments: {comments_summary[:500]}\n"
 
         fg_text = (
             f"Fear & Greed Index: {fear_greed.get('value')} ({fear_greed.get('classification')})"

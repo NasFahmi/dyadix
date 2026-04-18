@@ -10,3 +10,12 @@
 
 18/04/2026
 1. News masih belum bisa diandalkan karena di news dia hanya cuma summary, dan untuk dari social media dia cuma judul, tidak sampai keseluruhan isi, karena format RSS ini
+news 
+"coindesk": "https://www.coindesk.com/arc/outboundfeeds/rss/",
+"cointelegraph": "https://cointelegraph.com/rss",
+"decrypt": "https://decrypt.co/feed",
+"cryptoslate": "https://cryptoslate.com/feed/",
+"blockworks": "https://blockworks.co/feed/",
+"bitcoinmagazine": "https://bitcoinmagazine.com/.rss/full/",
+"cryptonews": "https://cryptonews.com/news/feed/",
+

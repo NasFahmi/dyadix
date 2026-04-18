@@ -1,8 +1,7 @@
 """
-Twitter/X Influencer Scraper (Alternative Sources)
-===================================================
-Since Twitter API requires paid access, this module aggregates
-crypto influencer content from free alternative sources:
+Influencer Content Aggregator (formerly Twitter Scraper)
+========================================================
+This module aggregates crypto influencer content from free alternative sources:
 - RSS blogs / newsletters
 - Reddit user posts
 """
@@ -20,10 +19,10 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
-class TwitterScraper:
+class InfluencherScraper:
     """
     Aggregates crypto influencer content from alternative free sources
-    (RSS feeds, Reddit posts) to approximate Twitter-like social data.
+    (RSS feeds, Reddit posts) to approximate social trend data.
     """
 
     # RSS feeds of crypto influencers / news blogs

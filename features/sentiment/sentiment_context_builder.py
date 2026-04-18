@@ -2,8 +2,8 @@ import logging
 from typing import Dict, Any
 
 from service.sentiment.news.enhanced_news_scraper import EnhancedNewsScraper
-from service.sentiment.news.reddit_scraper import RedditScraper
-from service.sentiment.news.twitter_scraper import TwitterScraper
+from service.sentiment.news.social_scrapper import SocialScrapper
+from service.sentiment.news.influencher_scraper import InfluencherScraper
 from service.sentiment.feer_greed.feer_greed_service import get_fear_and_greed_index
 from service.economic.economic_calendar_service import EconomicCalendarService
 
@@ -16,6 +16,8 @@ def build_sentiment_context(
     twitter_limit_per_user: int = 5,
     eco_days_ahead: int = 7,
     eco_days_back: int = 0,
+    include_comments: bool = True,
+    comments_limit: int = 3,
 ) -> Dict[str, Any]:
     """
     Aggregates sentiment and economic calendar data from various sources to build a context object.
@@ -43,25 +45,27 @@ def build_sentiment_context(
     except Exception as e:
         logger.error(f"Error fetching news: {e}")
 
-    # 2. Fetch Reddit
+    # 2. Fetch Social (Reddit Community)
     try:
-        logger.info("Fetching reddit data...")
-        reddit_scraper = RedditScraper()
-        context["social"]["reddit"] = reddit_scraper.scrape(
-            limit_per_subreddit=reddit_limit_per_sub
+        logger.info("Fetching social (reddit) data...")
+        social_scraper = SocialScrapper()
+        context["social"]["reddit"] = social_scraper.scrape(
+            limit_per_subreddit=reddit_limit_per_sub,
+            include_comments=include_comments,
+            comments_limit=comments_limit,
         )
     except Exception as e:
         logger.error(f"Error fetching reddit: {e}")
 
-    # 3. Fetch Twitter/Influencers
+    # 3. Fetch Influencers (RSS/Reddit User)
     try:
-        logger.info("Fetching twitter/influencer data...")
-        twitter_scraper = TwitterScraper()
-        context["social"]["twitter"] = twitter_scraper.scrape(
+        logger.info("Fetching influencer data...")
+        influencer_scraper = InfluencherScraper()
+        context["social"]["twitter"] = influencer_scraper.scrape(
             limit_per_user=twitter_limit_per_user
         )
     except Exception as e:
-        logger.error(f"Error fetching twitter: {e}")
+        logger.error(f"Error fetching influencers: {e}")
 
     # 4. Fetch Fear & Greed Index
     try:
