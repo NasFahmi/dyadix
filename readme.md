@@ -335,6 +335,15 @@ Dyadix returns structured JSON for each trading pair:
 > - Monitor the DSS in paper trading mode first
 > - Understand that LLMs can produce hallucinations
 
+### 🤖 Model Consistency Warning
+
+> [!WARNING]
+> **Different Models, Different Decisions.**
+> The resulting decisions depend heavily on the architecture and parameters of the LLM used.
+> 
+> *   **Fine-Tuned Models**: LLMs that have been specifically fine-tuned for financial data (such as `llama-open-finance-8b`) generally provide sharper analysis and signals compared to general-purpose LLMs.
+> *   **Variability**: Switching providers or models can result in different biases, entry zones, and confidence levels even when given the same market data.
+
 ### Current Limitations (April 2026)
 
 1. **Sentiment Analysis**: News analysis limited to RSS feed titles/summaries
