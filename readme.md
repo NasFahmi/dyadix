@@ -24,6 +24,15 @@ Dyadix acts as a disciplined algorithmic trader with 9+ years of market experien
 
 ---
 
+## 🚧 Project Status & Development
+
+Dyadix is currently under active development. We are constantly striving to enhance the intelligence, accuracy, and stability of the system.
+
+> [!IMPORTANT]
+> A comprehensive log of current challenges, development progress, and known issues can be found in [problem.md](problem.md). We maintain this document to track our daily hurdles and planned improvements.
+
+---
+
 ## 🏗️ Architecture
 
 ```
