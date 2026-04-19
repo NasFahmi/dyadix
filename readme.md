@@ -314,11 +314,12 @@ Dyadix returns structured JSON for each trading pair:
 
 ## 🔧 Supported LLM Providers
 
-| Provider | Model | Use Case |
-|----------|-------|---------|
-| **Groq** | llama-4-scout-17b-16e-instruct | Fast inference, recommended |
-| **Gemini** | gemini-pro | Google's model |
-| **Local** | llama-open-finance-8b | Privacy-first, offline |
+| Provider | Status | Model (Example) | Use Case |
+|----------|--------|-----------------|----------|
+| **Groq** | ✅ Supported | llama-3.3-70b-versatile | Fast inference, recommended |
+| **Local / Ollama** | ✅ Supported | llama-open-finance-8b | Privacy-first, offline local LLM |
+| **Gemini** | 🛠️ In Repair | gemini-1.5-flash | Google AI, under maintenance |
+| **OpenAI** | ⏳ Coming Soon | GPT-4o / o1 | Coming soon |
 
 ---
 
