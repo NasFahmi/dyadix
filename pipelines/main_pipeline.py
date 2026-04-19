@@ -12,7 +12,6 @@ Pipeline utama Dyadix:
 import json
 import logging
 import os
-import requests
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
@@ -31,8 +30,6 @@ class MainPipeline:
     market data → sentiment → full context → decision LLM.
     """
 
-    DECISION_LLM_URL = "http://localhost:1234/api/v1/chat"
-    DECISION_LLM_MODEL = os.getenv("DECISION_LLM_MODEL", "llama-open-finance-8b")
     MARKET_DATA_LIMIT = 250  # candle per timeframe
 
     def __init__(self):
@@ -104,7 +101,7 @@ class MainPipeline:
             print("\n" + "=" * 60)
             print(f" DEBUG: PROMPTING DECISION LLM FOR {pair}")
             print("=" * 60)
-            print(json.dumps(ctx, indent=2, default=str, ensure_ascii=False))
+            print(json.dumps(ctx, indent=2, default=str, ensure_ascii=True))
             print("=" * 60 + "\n")
 
             logger.info(f"  ⚙  Calling Decision LLM for {pair}...")
@@ -257,7 +254,8 @@ class MainPipeline:
     # ─────────────────────────────────────────────────────────────────
 
     def _call_decision_llm(self, full_context: Dict) -> Dict:
-        """Kirim full context ke Decision LLM dan parse hasilnya sebagai JSON."""
+        """Kirim full context ke Decision LLM via factory (Gemini / Groq / Local)."""
+        from llm.factory import get_decision_llm
 
         system_prompt = (
             'You are "Nova", a disciplined and patient crypto proprietary trader with 9+ years experience. '
@@ -313,46 +311,66 @@ class MainPipeline:
             f"{json.dumps(full_context, indent=2, ensure_ascii=False, default=str)}"
         )
 
-        payload = {
-            "model": self.DECISION_LLM_MODEL,
-            "system_prompt": system_prompt,
-            "input": user_input,
-            "temperature": 0.22,
-            "stream": False,
+        # JSON schema untuk structured output
+        decision_schema = {
+            "type": "object",
+            "properties": {
+                "decision": {"type": "string", "enum": ["BUY", "SELL", "HOLD", "WAIT"]},
+                "confidence": {"type": "number"},
+                "bias": {"type": "string"},
+                "recommended_timeframe": {"type": "string"},
+                "entry_zone": {"type": "string"},
+                "invalidated_if": {"type": "string"},
+                "target": {"type": "string"},
+                "stop_loss": {"type": "string"},
+                "risk_reward": {"type": "string"},
+                "expected_move": {"type": "string"},
+                "reason": {"type": "string"},
+                "key_risks": {"type": "array", "items": {"type": "string"}},
+            },
+            "required": ["decision", "confidence", "bias", "reason"],
         }
 
         try:
-            response = requests.post(
-                self.DECISION_LLM_URL,
-                headers={"Content-Type": "application/json"},
-                json=payload,
-                timeout=120,
-            )
+            llm = get_decision_llm()
+            provider = type(llm).__name__
+            logger.info(f"  🤖 Decision LLM provider: {provider}")
 
-            if response.status_code == 200:
-                result = response.json()
-                content = result.get("output", [{}])[0].get("content", "")
-                # Bersihkan markdown jika ada
-                content = content.strip()
-                if content.startswith("```"):
-                    content = content.split("```")[1]
-                    if content.startswith("json"):
-                        content = content[4:]
-                try:
-                    return json.loads(content.strip())
-                except json.JSONDecodeError:
-                    logger.error("Decision LLM tidak mengembalikan JSON yang valid")
-                    logger.debug(f"Raw LLM output: {content[:300]}")
-                    return self._fallback_decision()
-            else:
-                logger.error(
-                    f"Decision LLM API Error: {response.status_code} — {response.text[:200]}"
+            # Coba structured_generate dulu
+            try:
+                result = llm.structured_generate(
+                    system_prompt=system_prompt,
+                    user_input=user_input,
+                    json_schema=decision_schema,
                 )
+                if result and "error" not in result and "decision" in result:
+                    return result
+                logger.warning("structured_generate tidak mengembalikan keputusan valid, fallback ke generate()")
+            except Exception as e:
+                logger.warning(f"structured_generate gagal ({e}), fallback ke generate()")
+
+            # Fallback ke generate() biasa
+            raw = llm.generate(system_prompt=system_prompt, user_input=user_input)
+            content = raw.get("content", "").strip()
+
+            # Bersihkan markdown
+            if content.startswith("```"):
+                content = content.split("```")[1]
+                if content.startswith("json"):
+                    content = content[4:]
+            # Cari JSON object
+            start = content.find("{")
+            end = content.rfind("}")
+            if start != -1 and end != -1:
+                content = content[start : end + 1]
+
+            try:
+                return json.loads(content.strip())
+            except json.JSONDecodeError:
+                logger.error("Decision LLM tidak mengembalikan JSON yang valid")
+                logger.debug(f"Raw LLM output: {content[:300]}")
                 return self._fallback_decision()
 
-        except requests.exceptions.Timeout:
-            logger.error("Decision LLM request timeout")
-            return self._fallback_decision()
         except Exception as e:
             logger.error(f"Failed to call Decision LLM: {e}")
             return self._fallback_decision()

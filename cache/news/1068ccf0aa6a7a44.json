@@ -2,12 +2,44 @@
   "key": "rss_coindesk",
   "content": [
     {
-      "title": "Binance and Biget to probe RAVE\u2019s 4,500% token surge as claims of insider-orchestrated rally grow",
+      "title": "2026's biggest crypto exploit: $292 million gets drained from Kelp DAO with wrapped ether stranded across 20 chains",
+      "link": "https://www.coindesk.com/tech/2026/04/19/2026-s-biggest-crypto-exploit-kelp-dao-hit-for-usd292-million-with-wrapped-ether-stranded-across-20-chains",
+      "published": "Sat, 18 Apr 2026 20:53:55 +0000",
+      "summary": "",
+      "source": "coindesk",
+      "fetched_at": "2026-04-19T13:44:50.037276"
+    },
+    {
+      "title": "Why Michael Saylor's Strategy decided to make STRC's dividend bi-monthly",
+      "link": "https://www.coindesk.com/markets/2026/04/18/why-michael-saylor-s-strategy-decided-to-make-strc-s-dividend-bi-monthly",
+      "published": "Sat, 18 Apr 2026 20:27:21 +0000",
+      "summary": "",
+      "source": "coindesk",
+      "fetched_at": "2026-04-19T13:44:50.037290"
+    },
+    {
+      "title": "From smelters to servers: Alcoa to cash in on crypto\u2019s thirst for energy",
+      "link": "https://www.coindesk.com/business/2026/04/18/from-smelters-to-servers-alcoa-to-cash-in-on-crypto-s-thirst-for-energy",
+      "published": "Sat, 18 Apr 2026 20:21:00 +0000",
+      "summary": "",
+      "source": "coindesk",
+      "fetched_at": "2026-04-19T13:44:50.037296"
+    },
+    {
+      "title": "AI is increasingly eating into VC fundings and here is how crypto firms are adapting",
+      "link": "https://www.coindesk.com/business/2026/04/18/ai-is-increasingly-eating-into-vc-fundings-and-here-is-how-crypto-firms-are-adapting",
+      "published": "Sat, 18 Apr 2026 19:18:20 +0000",
+      "summary": "",
+      "source": "coindesk",
+      "fetched_at": "2026-04-19T13:44:50.037301"
+    },
+    {
+      "title": "Binance and Bitget to probe RAVE\u2019s 4,500% token surge as claims of insider-orchestrated rally grow",
       "link": "https://www.coindesk.com/business/2026/04/18/binance-and-biget-to-probe-rave-s-4-500-token-surge-as-claims-of-insider-orchestrated-rally-grow",
       "published": "Sat, 18 Apr 2026 16:46:46 +0000",
       "summary": "",
       "source": "coindesk",
-      "fetched_at": "2026-04-18T23:48:37.902508"
+      "fetched_at": "2026-04-19T13:44:50.037306"
     },
     {
       "title": "The Lightning Network isn\u2019t \u2018helplessly broken\u2019",
@@ -15,7 +47,7 @@
       "published": "Sat, 18 Apr 2026 16:30:00 +0000",
       "summary": "",
       "source": "coindesk",
-      "fetched_at": "2026-04-18T23:48:37.902523"
+      "fetched_at": "2026-04-19T13:44:50.037313"
     },
     {
       "title": "Zondacrypto under fire as Poland's prime minister links exchange to legislative interference",
@@ -23,7 +55,15 @@
       "published": "Sat, 18 Apr 2026 14:00:00 +0000",
       "summary": "",
       "source": "coindesk",
-      "fetched_at": "2026-04-18T23:48:37.902530"
+      "fetched_at": "2026-04-19T13:44:50.037317"
+    },
+    {
+      "title": "Bitcoin 'plebs eat first' mining pool Parasite finds its second BTC block",
+      "link": "https://www.coindesk.com/tech/2026/04/18/bitcoin-plebs-eat-first-mining-pool-parasite-finds-its-second-btc-block",
+      "published": "Sat, 18 Apr 2026 13:21:26 +0000",
+      "summary": "",
+      "source": "coindesk",
+      "fetched_at": "2026-04-19T13:44:50.037321"
     },
     {
       "title": "Wrapped XRP goes live on Solana, broadening DeFi access for Ripple-linked token",
@@ -31,7 +71,7 @@
       "published": "Sat, 18 Apr 2026 13:00:00 +0000",
       "summary": "",
       "source": "coindesk",
-      "fetched_at": "2026-04-18T23:48:37.902535"
+      "fetched_at": "2026-04-19T13:44:50.037326"
     },
     {
       "title": "Ethereum co-founder Joseph Lubin warns of the dangers of AI being controlled by a few big tech firms",
@@ -39,48 +79,8 @@
       "published": "Sat, 18 Apr 2026 13:00:00 +0000",
       "summary": "",
       "source": "coindesk",
-      "fetched_at": "2026-04-18T23:48:37.902540"
-    },
-    {
-      "title": "Former UK Prime Minister sees economy on 'very negative trajectory,' indicates support for bitcoin",
-      "link": "https://www.coindesk.com/markets/2026/04/18/former-uk-prime-minister-sees-economy-on-very-negative-trajectory-indicates-support-for-bitcoin",
-      "published": "Sat, 18 Apr 2026 12:00:00 +0000",
-      "summary": "",
-      "source": "coindesk",
-      "fetched_at": "2026-04-18T23:48:37.902545"
-    },
-    {
-      "title": "Bitcoin falls back to $76,000 as Iran shuts Hormuz again",
-      "link": "https://www.coindesk.com/markets/2026/04/18/bearish-bets-lose-usd593-million-as-bitcoin-jumps-with-iran-fully-opening-hormuz",
-      "published": "Sat, 18 Apr 2026 05:04:12 +0000",
-      "summary": "",
-      "source": "coindesk",
-      "fetched_at": "2026-04-18T23:48:37.902550"
-    },
-    {
-      "title": "XRP leads majors with 8% weekly outperformance, what next after breakout",
-      "link": "https://www.coindesk.com/markets/2026/04/18/xrp-leads-majors-with-8-weekly-outperformance-what-next-after-breakout",
-      "published": "Sat, 18 Apr 2026 04:54:49 +0000",
-      "summary": "",
-      "source": "coindesk",
-      "fetched_at": "2026-04-18T23:48:37.902554"
-    },
-    {
-      "title": "Stripe doubles down on blockchain and stablecoins, aiming to become 'AWS for money'",
-      "link": "https://www.coindesk.com/business/2026/04/18/stripe-doubles-down-on-blockchain-and-stablecoins-aiming-to-become-aws-for-money",
-      "published": "Sat, 18 Apr 2026 04:00:00 +0000",
-      "summary": "",
-      "source": "coindesk",
-      "fetched_at": "2026-04-18T23:48:37.902559"
-    },
-    {
-      "title": "How a quantum computer can be used to actually steal your bitcoin in '9 minutes'",
-      "link": "https://www.coindesk.com/tech/2026/04/18/how-a-quantum-computer-can-be-used-to-actually-steal-your-bitcoin-in-9-minutes",
-      "published": "Sat, 18 Apr 2026 03:51:35 +0000",
-      "summary": "",
-      "source": "coindesk",
-      "fetched_at": "2026-04-18T23:48:37.902563"
+      "fetched_at": "2026-04-19T13:44:50.037330"
     }
   ],
-  "timestamp": "2026-04-18T23:48:37.902593"
+  "timestamp": "2026-04-19T13:44:50.037360"
 }

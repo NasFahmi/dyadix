@@ -2,12 +2,20 @@
   "key": "rss_decrypt",
   "content": [
     {
+      "title": "GalaxyOne Head Wants Retail Investors to Stake More, Predict Less",
+      "link": "https://decrypt.co/364817/galaxyone-head-wants-retail-investors-stake-more-predict-less",
+      "published": "Sat, 18 Apr 2026 19:44:48 +0000",
+      "summary": "Zac Prince, head of Galaxy\u2019s retail platform, said he struggles to see prediction markets in diversified portfolios for long-term investors.",
+      "source": "decrypt",
+      "fetched_at": "2026-04-19T13:44:50.424219"
+    },
+    {
       "title": "What Is Q-Day? The Quantum Threat to Bitcoin Explained",
       "link": "https://decrypt.co/resources/what-q-day-quantum-threat-bitcoin-explained",
       "published": "Sat, 18 Apr 2026 15:53:16 +0000",
       "summary": "Experts warn quantum computers could someday forge Bitcoin\u2019s digital signatures, allowing unauthorized transactions.",
       "source": "decrypt",
-      "fetched_at": "2026-04-18T23:48:38.272504"
+      "fetched_at": "2026-04-19T13:44:50.424229"
     },
     {
       "title": "OpenAI's New AI Model Rosalind Could Shave Years Off Drug Discovery. You Probably Can't Use It",
@@ -15,7 +23,7 @@
       "published": "Sat, 18 Apr 2026 13:01:03 +0000",
       "summary": "GPT-Rosalind is OpenAI's first domain-specific model, built for drug discovery and life sciences\u2014and it's not for everyone.",
       "source": "decrypt",
-      "fetched_at": "2026-04-18T23:48:38.272516"
+      "fetched_at": "2026-04-19T13:44:50.424235"
     },
     {
       "title": "Bitcoin Cracks 7-Month Ceiling. Can Bulls Push It Higher?",
@@ -23,7 +31,7 @@
       "published": "Fri, 17 Apr 2026 21:11:36 +0000",
       "summary": "The price of Bitcoin breaks a seven-month downtrend as geopolitical shifts and prediction markets point to $84K next.",
       "source": "decrypt",
-      "fetched_at": "2026-04-18T23:48:38.272523"
+      "fetched_at": "2026-04-19T13:44:50.424241"
     },
     {
       "title": "You Can Now Use XRP on Solana\u2014Here's How",
@@ -31,7 +39,7 @@
       "published": "Fri, 17 Apr 2026 20:40:39 +0000",
       "summary": "More than $1.2 million worth of wrapped XRP tokens (wXRP) have been minted on Solana as the Ripple-linked asset gains greater DeFi utility.",
       "source": "decrypt",
-      "fetched_at": "2026-04-18T23:48:38.272531"
+      "fetched_at": "2026-04-19T13:44:50.424247"
     },
     {
       "title": "Rep. Sheri Biggs Doubles Down on Bitcoin, Buys Up to $250K of BlackRock's ETF",
@@ -39,7 +47,7 @@
       "published": "Fri, 17 Apr 2026 20:05:47 +0000",
       "summary": "Rep. Sheri Biggs purchased up to $250,000 worth of BlackRock's spot Bitcoin ETF last month, padding a position she entered into last July.",
       "source": "decrypt",
-      "fetched_at": "2026-04-18T23:48:38.272538"
+      "fetched_at": "2026-04-19T13:44:50.424253"
     },
     {
       "title": "Sam Altman's World Teams With Zoom, Tinder to Better Verify Humans in the AI Age",
@@ -47,7 +55,7 @@
       "published": "Fri, 17 Apr 2026 19:39:44 +0000",
       "summary": "Iris-scanning crypto project World expands with Tinder's U.S. human verification rollout and Zoom's Deep Face feature.",
       "source": "decrypt",
-      "fetched_at": "2026-04-18T23:48:38.272545"
+      "fetched_at": "2026-04-19T13:44:50.424259"
     },
     {
       "title": "Elizabeth Warren Accuses SEC Chair Paul Atkins of Potentially Lying to Congress",
@@ -55,7 +63,7 @@
       "published": "Fri, 17 Apr 2026 18:43:57 +0000",
       "summary": "Senator Elizabeth Warren said Paul Atkins may have intentionally misled Congress by pushing back over the SEC's dwindling enforcement actions.",
       "source": "decrypt",
-      "fetched_at": "2026-04-18T23:48:38.272552"
+      "fetched_at": "2026-04-19T13:44:50.424265"
     },
     {
       "title": "Crypto Trader Turns $2,500 Into $500K on Skyrocketing Ethereum Meme Coin",
@@ -63,7 +71,7 @@
       "published": "Fri, 17 Apr 2026 18:26:05 +0000",
       "summary": "A meme coin trader turned $2,500 into nearly $500,000 in a matter of hours via the Elon Musk-linked ASTEROID token on Ethereum.",
       "source": "decrypt",
-      "fetched_at": "2026-04-18T23:48:38.272559"
+      "fetched_at": "2026-04-19T13:44:50.424271"
     },
     {
       "title": "Anthropic\u2019s Alarming Mythos Findings Replicated With Off-the-Shelf AI, Researchers Say",
@@ -71,16 +79,8 @@
       "published": "Fri, 17 Apr 2026 18:00:42 +0000",
       "summary": "Security researchers used GPT-5.4 and Claude Opus 4.6 in an open-source harness to reproduce Anthropic's Mythos vulnerability findings for under $30 per scan.",
       "source": "decrypt",
-      "fetched_at": "2026-04-18T23:48:38.272566"
-    },
-    {
-      "title": "Strategy Shares Pop as Bitcoin Holdings Flip Green, Near $61 Billion",
-      "link": "https://decrypt.co/364756/strategy-shares-pop-bitcoin-holdings-flip-green-near-61-billion",
-      "published": "Fri, 17 Apr 2026 17:54:47 +0000",
-      "summary": "The Bitcoin-buying firm\u2019s stockpile had shown losses on paper since early February.",
-      "source": "decrypt",
-      "fetched_at": "2026-04-18T23:48:38.272573"
+      "fetched_at": "2026-04-19T13:44:50.424276"
     }
   ],
-  "timestamp": "2026-04-18T23:48:38.272597"
+  "timestamp": "2026-04-19T13:44:50.424295"
 }

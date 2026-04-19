@@ -1,13 +1,11 @@
 """
 features/sentiment/news_social_analysis.py
 
-Modul untuk mengirim data News + Social (Twitter + Reddit) ke LLM (DragonLLM via LM Studio)
-menggunakan API format yang kamu tunjukkan.
+Modul untuk mengirim data News + Social (Twitter + Reddit) ke LLM
+menggunakan llm/factory.py → mendukung Gemini, Groq, dan Local (LM Studio).
 """
 
 import json
-import os
-import requests
 import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
@@ -17,17 +15,38 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+# JSON schema untuk structured output (digunakan oleh Gemini & LocalClient)
+_NEWS_SOCIAL_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "overall_sentiment": {
+            "type": "string",
+            "enum": [
+                "Very Bullish", "Strong Bullish", "Bullish",
+                "Moderate Bullish", "Neutral",
+                "Moderate Bearish", "Bearish", "Strong Bearish", "Very Bearish",
+            ],
+        },
+        "sentiment_score": {"type": "integer"},
+        "confidence": {"type": "number"},
+        "dominant_narrative": {"type": "string"},
+        "news_impact": {"type": "string"},
+        "social_mood": {"type": "string"},
+        "key_insights": {"type": "array", "items": {"type": "string"}},
+        "trading_implication": {"type": "string"},
+    },
+    "required": [
+        "overall_sentiment", "sentiment_score", "confidence",
+        "dominant_narrative", "news_impact", "social_mood",
+        "key_insights", "trading_implication",
+    ],
+}
+
 
 class NewsSocialLLMAnalyzer:
     """
-    Mengirimkan data News + Social ke LLM via LM Studio API
-    dan mengembalikan hasil analisis sentiment yang terstruktur.
+    Mengirimkan data News + Social ke LLM via factory (Gemini / Groq / Local).
     """
-
-    def __init__(self, base_url: str = "http://localhost:1234"):
-        self.base_url = base_url.rstrip("/")
-        self.endpoint = f"{self.base_url}/api/v1/chat"
-        self.model = os.getenv("NEWS_SOCIAL_ANALYSIS_MODEL", "llama-open-finance-8b")
 
     def analyze(
         self,
@@ -37,71 +56,79 @@ class NewsSocialLLMAnalyzer:
         fear_greed: Optional[Dict] = None,
     ) -> Dict[str, Any]:
         """
-        Kirim data News + Social ke LLM dan dapatkan analisis sentiment.
+        Kirim data News + Social ke LLM dan dapatkan analisis sentiment terstruktur.
         """
-        # Siapkan prompt + data
-        system_prompt = self._build_system_prompt()
-        user_input = self._build_user_input(
-            news_list, twitter_data, reddit_data, fear_greed
-        )
+        from llm.factory import get_news_social_llm
 
-        payload = {
-            "model": self.model,
-            "system_prompt": system_prompt,
-            "input": user_input,
-            "temperature": 0.3,
-            "stream": False,
-        }
+        system_prompt = self._build_system_prompt()
+        user_input = self._build_user_input(news_list, twitter_data, reddit_data, fear_greed)
 
         try:
-            logger.info("Sending News + Social data to LLM...")
-            response = requests.post(
-                self.endpoint,
-                headers={"Content-Type": "application/json"},
-                json=payload,
-                timeout=600,
-            )
+            llm = get_news_social_llm()
+            provider = type(llm).__name__
 
-            if response.status_code != 200:
-                logger.error(f"LLM API error: {response.status_code} - {response.text}")
+            logger.info(f"[NewsSocialAnalyzer] Sending data to LLM via {provider}...")
+
+            # Coba structured_generate dulu (lebih terprediksi)
+            try:
+                result = llm.structured_generate(
+                    system_prompt=system_prompt,
+                    user_input=user_input,
+                    json_schema=_NEWS_SOCIAL_SCHEMA,
+                )
+                if result and "error" not in result and "overall_sentiment" in result:
+                    logger.info(
+                        f"[NewsSocialAnalyzer] ✅ structured_generate OK "
+                        f"| Sentiment: {result.get('overall_sentiment')} "
+                        f"| Provider: {result.get('provider', provider)}"
+                    )
+                    return result
+            except Exception as e:
+                logger.warning(
+                    f"[NewsSocialAnalyzer] structured_generate gagal ({e}), "
+                    "fallback ke generate()..."
+                )
+
+            # Fallback ke generate() biasa
+            raw = llm.generate(system_prompt=system_prompt, user_input=user_input)
+            content = raw.get("content", "")
+            cleaned = self._clean_llm_output(content)
+
+            try:
+                parsed = json.loads(cleaned)
+                logger.info(
+                    f"[NewsSocialAnalyzer] ✅ generate() OK "
+                    f"| Sentiment: {parsed.get('overall_sentiment')}"
+                )
+                return parsed
+            except json.JSONDecodeError:
+                logger.warning("[NewsSocialAnalyzer] LLM tidak mengembalikan JSON valid")
                 return self._fallback_response()
 
-            result = response.json()
-
-            # Ekstrak output dari response LM Studio
-            if "output" in result and len(result["output"]) > 0:
-                content = result["output"][0].get("content", "")
-
-                # Bersihkan jika ada markdown atau extra text
-                cleaned = self._clean_llm_output(content)
-
-                try:
-                    parsed = json.loads(cleaned)
-                    logger.info(
-                        f"LLM analysis successful | Sentiment: {parsed.get('overall_sentiment')}"
-                    )
-                    return parsed
-                except json.JSONDecodeError:
-                    logger.warning("LLM tidak mengembalikan JSON yang valid")
-                    return self._fallback_response()
-
-            return self._fallback_response()
-
-        except requests.exceptions.Timeout:
-            logger.error("LLM request timeout")
-            return self._fallback_response()
         except Exception as e:
-            logger.error(f"Error calling LLM: {e}")
+            logger.error(f"[NewsSocialAnalyzer] Error memanggil LLM: {e}")
             return self._fallback_response()
+
+    # ── Private helpers ────────────────────────────────────────────────────────
 
     def _build_system_prompt(self) -> str:
-        return """You are DragonLLM Open Finance - Crypto Sentiment Analyst.
-
-Analyze the provided news and social media data carefully.
-Focus on market sentiment impact for the next 24-48 hours.
-Be objective, concise, and trading-oriented.
-
-Return ONLY a valid JSON object. Do not add any explanation or markdown."""
+        return (
+            "You are a professional Crypto Sentiment Analyst.\n\n"
+            "Analyze the provided news and social media data carefully.\n"
+            "Focus on market sentiment impact for the next 24-48 hours.\n"
+            "Be objective, concise, and trading-oriented.\n\n"
+            "Return ONLY a valid JSON object with these exact fields:\n"
+            "- overall_sentiment: one of Very Bullish/Strong Bullish/Bullish/"
+            "Moderate Bullish/Neutral/Moderate Bearish/Bearish/Strong Bearish/Very Bearish\n"
+            "- sentiment_score: integer 0-100\n"
+            "- confidence: float 0.0-1.0\n"
+            "- dominant_narrative: string (main market narrative)\n"
+            "- news_impact: string (impact of news)\n"
+            "- social_mood: string (social media mood)\n"
+            "- key_insights: array of strings (max 5 items)\n"
+            "- trading_implication: string\n\n"
+            "Do not add any explanation, markdown, or extra text."
+        )
 
     def _build_user_input(
         self,
@@ -110,7 +137,6 @@ Return ONLY a valid JSON object. Do not add any explanation or markdown."""
         reddit_data: Dict,
         fear_greed: Optional[Dict] = None,
     ) -> str:
-
         news_text = (
             "\n".join(
                 [
@@ -131,16 +157,13 @@ Return ONLY a valid JSON object. Do not add any explanation or markdown."""
         for sub, posts in list(reddit_data.items())[:5]:
             for post in posts[:3]:
                 reddit_text += f"[r/{sub}] {post.get('title', '')}\n"
-                # Add description if available (Increased limit to 3000 for full context)
                 if post.get("description"):
                     desc = post.get("description", "").strip()
                     if desc:
                         reddit_text += f"   Context: {desc[:3000]}\n"
-                # Add top comments if available
                 if post.get("comments"):
                     comments_list = post.get("comments", [])
                     if comments_list:
-                        # Increased comment context as well
                         comments_summary = " | ".join([c[:200] for c in comments_list])
                         reddit_text += f"   Comments: {comments_summary[:500]}\n"
 
@@ -165,19 +188,23 @@ Return ONLY a valid JSON object. Do not add any explanation or markdown."""
 Analyze the sentiment and return JSON only."""
 
     def _clean_llm_output(self, text: str) -> str:
-        """Membersihkan output LLM dari markdown atau text ekstra"""
+        """Membersihkan output LLM dari markdown atau teks ekstra."""
         text = text.strip()
-        # Hapus ```json dan ```
         if text.startswith("```json"):
             text = text[7:]
         if text.startswith("```"):
             text = text[3:]
         if text.endswith("```"):
             text = text[:-3]
+        # Cari JSON object jika ada teks sebelumnya
+        start = text.find("{")
+        end = text.rfind("}")
+        if start != -1 and end != -1:
+            text = text[start : end + 1]
         return text.strip()
 
     def _fallback_response(self) -> Dict[str, Any]:
-        """Fallback jika LLM gagal"""
+        """Fallback jika LLM gagal."""
         return {
             "overall_sentiment": "Neutral",
             "sentiment_score": 50,
@@ -190,13 +217,14 @@ Analyze the sentiment and return JSON only."""
         }
 
 
-# Helper function
+# ── Module-level helper ────────────────────────────────────────────────────────
+
 def analyze_news_social_with_llm(
     news_list: List[Dict],
     twitter_data: Dict,
     reddit_data: Dict,
     fear_greed: Optional[Dict] = None,
 ) -> Dict[str, Any]:
-    """Fungsi mudah dipanggil dari luar"""
+    """Fungsi mudah dipanggil dari luar."""
     analyzer = NewsSocialLLMAnalyzer()
     return analyzer.analyze(news_list, twitter_data, reddit_data, fear_greed)

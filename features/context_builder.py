@@ -228,6 +228,7 @@ class ContextBuilder:
         df_1h = tf_data.get("1h", {}).get("aggregated", pd.DataFrame())
         df_15m = tf_data.get("15m", {}).get("aggregated", pd.DataFrame())
         df_5m = tf_data.get("5m", {}).get("aggregated", pd.DataFrame())
+        df_3m = tf_data.get("3m", {}).get("aggregated", pd.DataFrame())
         df_daily = tf_data.get("1d", {}).get("aggregated", pd.DataFrame())
 
         # Daily Bias
@@ -244,32 +245,57 @@ class ContextBuilder:
         )
 
         # Trend H1
-        _, trend_summary = (
+        df_1h_new, trend_summary = (
             calculate_trend_features(df_1h, timeframe="1h")
             if not df_1h.empty
-            else ({}, {})
+            else (pd.DataFrame(), {})
         )
+        if not df_1h_new.empty:
+            tf_data["1h"]["aggregated"] = df_1h_new
 
         # Momentum M15
-        _, momentum_summary = (
+        df_15m_new, momentum_summary = (
             calculate_momentum_features(df_15m, timeframe="15m")
             if not df_15m.empty
-            else ({}, {})
+            else (pd.DataFrame(), {})
         )
+        if not df_15m_new.empty:
+            tf_data["15m"]["aggregated"] = df_15m_new
 
         # Volatility M5
-        _, volatility_summary = (
+        df_5m_new, volatility_summary = (
             calculate_volatility_features(df_5m, timeframe="5m")
             if not df_5m.empty
-            else ({}, {})
+            else (pd.DataFrame(), {})
         )
+        if not df_5m_new.empty:
+            tf_data["5m"]["aggregated"] = df_5m_new
+
+        # Momentum M5 (Baru ditambahkan agar snapshot M5 punya RSI)
+        df_5m_mom, _ = (
+            calculate_momentum_features(tf_data["5m"]["aggregated"], timeframe="5m")
+            if not tf_data.get("5m", {}).get("aggregated", pd.DataFrame()).empty
+            else (pd.DataFrame(), {})
+        )
+        if not df_5m_mom.empty:
+            tf_data["5m"]["aggregated"] = df_5m_mom
 
         # Price Action M5
-        _, pa_summary = (
-            calculate_price_action_features(df_5m, timeframe="5m")
-            if not df_5m.empty
-            else ({}, {})
+        df_5m_pa, pa_summary = (
+            calculate_price_action_features(tf_data["5m"]["aggregated"], timeframe="5m")
+            if not tf_data.get("5m", {}).get("aggregated", pd.DataFrame()).empty
+            else (pd.DataFrame(), {})
         )
+        if not df_5m_pa.empty:
+            tf_data["5m"]["aggregated"] = df_5m_pa
+
+        # Optional: M3 Momentum/Volatility calculation (agar Snapshot tidak null)
+        if not df_3m.empty:
+            df_3m_new, _ = calculate_momentum_features(df_3m, timeframe="3m")
+            tf_data["3m"]["aggregated"] = df_3m_new
+            # Update volatility juga untuk ATR di M3 jika diperlukan
+            df_3m_vol, _ = calculate_volatility_features(tf_data["3m"]["aggregated"], timeframe="3m")
+            tf_data["3m"]["aggregated"] = df_3m_vol
 
         overall_bias = self._get_overall_technical_bias(
             daily_bias, trend_summary, momentum_summary, pa_summary
