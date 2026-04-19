@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**An AI-Driven Crypto Trading Bot with Multi-Layer Market Intelligence**
+**An AI-Driven Crypto Decision Support System (DSS) with Multi-Layer Market Intelligence**
 
 ![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
@@ -14,7 +14,7 @@
 
 ## 📌 Overview
 
-**Dyadix** is an intelligent cryptocurrency trading bot that combines multi-layered market analysis with Large Language Models (LLM) to generate structured trading decisions. Unlike traditional rule-based bots, Dyadix leverages the power of AI to analyze complex market dynamics.
+**Dyadix** is an intelligent cryptocurrency Decision Support System (DSS) that combines multi-layered market analysis with Large Language Models (LLM) to generate structured trading decisions. Unlike traditional rule-based systems, Dyadix leverages the power of AI to analyze complex market dynamics.
 
 ### Core Philosophy
 
@@ -36,7 +36,7 @@ Dyadix acts as a disciplined algorithmic trader with 9+ years of market experien
 ├─────────────────────────────────────────────────────────────────────┤
 │  2. BUILD SENTIMENT CONTEXT                                     │
 │     └─► News (RSS Feeds)                                       │
-│     └─► Social Media (Twitter/X, Reddit)                      │
+│     └─► Social Influencers                      │
 │     └─► Fear & Greed Index                                     │
 │     └─► Economic Calendar                                     │
 │     └─► LLM Analysis (News + Social)                          │
@@ -84,7 +84,7 @@ Dyadix acts as a disciplined algorithmic trader with 9+ years of market experien
 | Source | Description |
 |--------|-------------|
 | **News** | Coindesk, Cointelegraph, Decrypt, CryptoSlate, Blockworks, Bitcoin Magazine |
-| **Twitter/X** | Key influencers tracking (aantonop, VitalikButerin, etc.) |
+| **Social Influencers** | Key influencers tracking (aantonop, VitalikButerin, etc.) |
 | **Reddit** | Subreddit sentiment (r/cryptocurrency, r/Bitcoin) |
 | **Fear & Greed** | Alternative.me Crypto Fear & Greed Index |
 | **Economic** | High-impact economic events calendar |
@@ -322,7 +322,7 @@ Dyadix returns structured JSON for each trading pair:
 > This software does not constitute financial advice. Always:
 > - Use proper risk management (never risk more than 2% per trade)
 > - Backtest extensively before live trading
-> - Monitor the bot in paper trading mode first
+> - Monitor the DSS in paper trading mode first
 > - Understand that LLMs can produce hallucinations
 
 ### Current Limitations (April 2026)
@@ -366,7 +366,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Documentation**: [docs.dyadix.ai](https://docs.dyadix.ai) (coming soon)
 - **Discord**: [Join our community](https://discord.gg/dyadix) (coming soon)
-- **Twitter**: [@DyadixAI](https://twitter.com/DyadixAI)
 
 ---
 
