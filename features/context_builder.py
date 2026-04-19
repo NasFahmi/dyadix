@@ -110,6 +110,7 @@ class ContextBuilder:
         sentiment_result: Dict = None,
         derivatives_data: Dict = None,
         correlation_data: Dict = None,
+        target_pairs: Optional[List[str]] = None,
     ) -> Dict:
         """
         Membangun full context per pair dengan semua engine terintegrasi.
@@ -119,27 +120,17 @@ class ContextBuilder:
             sentiment_result : hasil SentimentEngine.aggregate() — bersifat global
             derivatives_data : {pair: {"funding_rate": df, "open_interest": df}}
             correlation_data : hasil CorrelationEngine.calculate()
+            target_pairs     : List pair yang ingin dibangun context-nya (jika None, semua di market_data)
 
         Returns:
-            {
-              "BTCUSDT": {
-                "timestamp": "...",
-                "pair": "BTCUSDT",
-                "technical": { ... },
-                "sentiment": { ... },
-                "derivatives": { ... },
-                "liquidity": { ... },
-                "correlation": { ... },
-                "overall_context_summary": "...",
-                "final_bias": "Moderate Bullish",
-                "key_levels": { ... }
-              },
-              ...
-            }
+            { ... }
         """
         full_context: Dict[str, Any] = {}
 
         for pair, tf_data in market_data.items():
+            # Filter hanya pair yang ingin ditradingkan (target_pairs)
+            if target_pairs is not None and pair not in target_pairs:
+                continue
             try:
                 # ── technical ─────────────────────────────────────────────
                 tech = self._build_pair_technical(pair, tf_data)
@@ -471,6 +462,7 @@ def build_full_context(
     sentiment_result: Dict = None,
     derivatives_data: Dict = None,
     correlation_data: Dict = None,
+    target_pairs: Optional[List[str]] = None,
 ) -> Dict:
     """Helper untuk full aggregated context."""
     return ContextBuilder().build_full_context(
@@ -478,4 +470,5 @@ def build_full_context(
         sentiment_result=sentiment_result,
         derivatives_data=derivatives_data,
         correlation_data=correlation_data,
+        target_pairs=target_pairs,
     )

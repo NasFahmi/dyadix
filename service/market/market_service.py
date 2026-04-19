@@ -31,6 +31,8 @@ class MarketService:
         # Ambil konfigurasi dari settings.yaml
         # YAML returns None jika semua pair dikomentari → fallback ke default
         self.pairs: List[str] = self.config.get("trading", {}).get("pairs") or ["BTCUSDT"]
+        self.correlation_pairs: List[str] = self.config.get("trading", {}).get("correlation_pairs", [])
+        
         self.timeframes: List[str] = self.config.get("trading", {}).get(
             "timeframes", ["5m", "15m", "1h"]
         ) or ["5m", "15m", "1h"]
@@ -66,7 +68,10 @@ class MarketService:
 
         all_data = {}
 
-        for pair in self.pairs:
+        # Gabungkan pairs aktif dan correlation pairs agar data tersedia untuk CorrelationEngine
+        fetch_list = list(set(self.pairs + self.correlation_pairs))
+
+        for pair in fetch_list:
             logger.info(f"Fetching OHLCV for {pair}...")
             pair_data = {}
 

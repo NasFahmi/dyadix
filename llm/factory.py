@@ -7,7 +7,6 @@ Mendukung environment variables dan settings.yaml
 
 import os
 import logging
-from typing import Dict, Any
 
 from llm.base import BaseLLMClient
 from llm.groq_client import GroqClient
@@ -40,20 +39,28 @@ def get_llm_client(provider_type: str = "decision") -> BaseLLMClient:
     config = get_config().get("llm", {})
     env = os.environ
 
-    # Tentukan provider
-    provider = config.get("provider", env.get("LLM_PROVIDER", "local")).lower()
+    # Tentukan provider: Prioritas Env > Config > "local"
+    provider = env.get("LLM_PROVIDER", config.get("provider", "local")).lower()
 
-    # Tentukan model per fungsi
-    default_model = config.get("model", "llama-open-finance-8b")
+    # Tentukan model:
+    # 1. Specific Env Var (NEWS_SOCIAL_ANALYSIS_MODEL / DECISION_LLM_MODEL)
+    # 2. Global Env Var (LLM_MODEL)
+    # 3. settings.yml specific (llm.news_social_model / llm.decision_model)
+    # 4. settings.yml generic (llm.model)
+    # 5. Hardcoded default
+    
+    global_env_model = env.get("LLM_MODEL")
+    generic_config_model = config.get("model", "llama-open-finance-8b")
+
     if provider_type == "news_social":
         model = env.get(
             "NEWS_SOCIAL_ANALYSIS_MODEL",
-            config.get("news_social_model", default_model),
+            global_env_model or config.get("news_social_model", generic_config_model),
         )
     else:  # decision
         model = env.get(
             "DECISION_LLM_MODEL",
-            config.get("decision_model", default_model),
+            global_env_model or config.get("decision_model", generic_config_model),
         )
 
     # Base URL untuk Local LLM
@@ -84,6 +91,7 @@ def get_llm_client(provider_type: str = "decision") -> BaseLLMClient:
 
 
 # ── Helper shortcuts ──────────────────────────────────────────────────────────
+
 
 def get_decision_llm() -> BaseLLMClient:
     """Shortcut: Decision Engine LLM"""

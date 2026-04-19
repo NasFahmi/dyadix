@@ -81,6 +81,7 @@ class MainPipeline:
             sentiment_result=sentiment_result,
             derivatives_data=derivatives_data,
             correlation_data=correlation_data,
+            target_pairs=self.market_service.pairs,
         )
 
         # ── Decision LLM per pair ─────────────────────────────────────

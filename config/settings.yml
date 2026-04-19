@@ -24,12 +24,6 @@ trading:
     - "1d"
 
 llm:
-  provider: "local" # groq, gemini, local
-  model: "llama-open-finance-8b" # default model
-
+  provider: "groq" # groq, gemini, local
   temperature: 0.25
   max_tokens: 1100
-
-  # Model khusus per fungsi (override via env: NEWS_SOCIAL_ANALYSIS_MODEL, DECISION_LLM_MODEL)
-  news_social_model: "llama-open-finance-8b"
-  decision_model: "llama-open-finance-8b:2"
