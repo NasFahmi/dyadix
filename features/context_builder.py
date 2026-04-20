@@ -11,7 +11,7 @@ Menggabungkan:
 """
 
 import pandas as pd
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import logging
 from datetime import datetime
 
@@ -285,7 +285,9 @@ class ContextBuilder:
             df_3m_new, _ = calculate_momentum_features(df_3m, timeframe="3m")
             tf_data["3m"]["aggregated"] = df_3m_new
             # Update volatility juga untuk ATR di M3 jika diperlukan
-            df_3m_vol, _ = calculate_volatility_features(tf_data["3m"]["aggregated"], timeframe="3m")
+            df_3m_vol, _ = calculate_volatility_features(
+                tf_data["3m"]["aggregated"], timeframe="3m"
+            )
             tf_data["3m"]["aggregated"] = df_3m_vol
 
         overall_bias = self._get_overall_technical_bias(

@@ -1,7 +1,7 @@
 trading:
   pairs:
     - BTCUSDT
-    # - ETHUSDT
+    # - XAUTUSDT
     # - SOLUSDT
     # - XRPUSDT
     # - HYPEUSDT
@@ -24,6 +24,6 @@ trading:
     - "1d"
 
 llm:
-  provider: "groq" # groq, gemini, local
+  provider: "local" # groq, gemini, local
   temperature: 0.25
   max_tokens: 1100

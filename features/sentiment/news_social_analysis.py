@@ -8,7 +8,6 @@ menggunakan llm/factory.py → mendukung Gemini, Groq, dan Local (LM Studio).
 import json
 import logging
 from typing import Dict, Any, List, Optional
-from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -22,9 +21,15 @@ _NEWS_SOCIAL_SCHEMA = {
         "overall_sentiment": {
             "type": "string",
             "enum": [
-                "Very Bullish", "Strong Bullish", "Bullish",
-                "Moderate Bullish", "Neutral",
-                "Moderate Bearish", "Bearish", "Strong Bearish", "Very Bearish",
+                "Very Bullish",
+                "Strong Bullish",
+                "Bullish",
+                "Moderate Bullish",
+                "Neutral",
+                "Moderate Bearish",
+                "Bearish",
+                "Strong Bearish",
+                "Very Bearish",
             ],
         },
         "sentiment_score": {"type": "integer"},
@@ -36,9 +41,14 @@ _NEWS_SOCIAL_SCHEMA = {
         "trading_implication": {"type": "string"},
     },
     "required": [
-        "overall_sentiment", "sentiment_score", "confidence",
-        "dominant_narrative", "news_impact", "social_mood",
-        "key_insights", "trading_implication",
+        "overall_sentiment",
+        "sentiment_score",
+        "confidence",
+        "dominant_narrative",
+        "news_impact",
+        "social_mood",
+        "key_insights",
+        "trading_implication",
     ],
 }
 
@@ -61,7 +71,9 @@ class NewsSocialLLMAnalyzer:
         from llm.factory import get_news_social_llm
 
         system_prompt = self._build_system_prompt()
-        user_input = self._build_user_input(news_list, twitter_data, reddit_data, fear_greed)
+        user_input = self._build_user_input(
+            news_list, twitter_data, reddit_data, fear_greed
+        )
 
         try:
             llm = get_news_social_llm()
@@ -102,7 +114,9 @@ class NewsSocialLLMAnalyzer:
                 )
                 return parsed
             except json.JSONDecodeError:
-                logger.warning("[NewsSocialAnalyzer] LLM tidak mengembalikan JSON valid")
+                logger.warning(
+                    "[NewsSocialAnalyzer] LLM tidak mengembalikan JSON valid"
+                )
                 return self._fallback_response()
 
         except Exception as e:
@@ -218,6 +232,7 @@ Analyze the sentiment and return JSON only."""
 
 
 # ── Module-level helper ────────────────────────────────────────────────────────
+
 
 def analyze_news_social_with_llm(
     news_list: List[Dict],

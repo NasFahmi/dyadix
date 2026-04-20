@@ -13,7 +13,6 @@ Konfigurasi pair aktif: config/settings.yml
 Konfigurasi model LLM : .env  (DECISION_LLM_MODEL, NEWS_SOCIAL_ANALYSIS_MODEL)
 """
 
-import json
 import logging
 import sys
 

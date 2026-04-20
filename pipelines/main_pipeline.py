@@ -11,11 +11,10 @@ Pipeline utama Dyadix:
 
 import json
 import logging
-import os
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
-from typing import Dict, Any
+from typing import List, Dict, Any
 
 from dotenv import load_dotenv
 
@@ -346,9 +345,13 @@ class MainPipeline:
                 )
                 if result and "error" not in result and "decision" in result:
                     return result
-                logger.warning("structured_generate tidak mengembalikan keputusan valid, fallback ke generate()")
+                logger.warning(
+                    "structured_generate tidak mengembalikan keputusan valid, fallback ke generate()"
+                )
             except Exception as e:
-                logger.warning(f"structured_generate gagal ({e}), fallback ke generate()")
+                logger.warning(
+                    f"structured_generate gagal ({e}), fallback ke generate()"
+                )
 
             # Fallback ke generate() biasa
             raw = llm.generate(system_prompt=system_prompt, user_input=user_input)

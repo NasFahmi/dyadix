@@ -20,6 +20,7 @@ from collections import defaultdict
 
 import requests
 import feedparser
+import yfinance as yf
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -65,7 +66,11 @@ class EnhancedCache:
     def set(self, key: str, content: Any):
         cache_file = self._get_cache_file(key)
         try:
-            data = {"key": key, "content": content, "timestamp": datetime.now().isoformat()}
+            data = {
+                "key": key,
+                "content": content,
+                "timestamp": datetime.now().isoformat(),
+            }
             with open(cache_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
         except Exception as e:
@@ -96,9 +101,9 @@ class ResilientHTTPSession:
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
-        self.session.headers.update({
-            "User-Agent": "DyadixBot/1.0 (Crypto News Aggregator)"
-        })
+        self.session.headers.update(
+            {"User-Agent": "DyadixBot/1.0 (Crypto News Aggregator)"}
+        )
 
         self.last_request_time: Dict[str, float] = defaultdict(float)
         self.min_interval = 1.0
@@ -120,7 +125,7 @@ class EnhancedNewsScraper:
     """Fetches crypto news from multiple RSS sources."""
 
     RSS_SOURCES = {
-        "coindesk": "https://www.coindesk.com/arc/outboundfeeds/rss/",
+        # "coindesk": "https://www.coindesk.com/arc/outboundfeeds/rss/",
         "cointelegraph": "https://cointelegraph.com/rss",
         "decrypt": "https://decrypt.co/feed",
         "cryptoslate": "https://cryptoslate.com/feed/",
@@ -173,13 +178,25 @@ class EnhancedNewsScraper:
             if len(all_articles) >= limit and successful_sources >= min_sources:
                 break
 
+        # Fetch from Yahoo Finance
+        try:
+            yf_articles = self._fetch_from_yahoo_finance("BTC-USD", max_articles=10)
+            if yf_articles:
+                all_articles.extend(yf_articles)
+                successful_sources += 1
+                logger.info(f"  yahoo_finance: {len(yf_articles)} articles")
+        except Exception as e:
+            logger.warning(f"  yahoo_finance failed: {e}")
+
         if deduplicate:
             all_articles = self._deduplicate(all_articles)
 
         all_articles.sort(key=lambda x: x.get("published", ""), reverse=True)
         all_articles = all_articles[:limit]
 
-        logger.info(f"Total: {len(all_articles)} articles from {successful_sources} sources")
+        logger.info(
+            f"Total: {len(all_articles)} articles from {successful_sources} sources"
+        )
         return all_articles
 
     def _fetch_from_rss(
@@ -202,16 +219,18 @@ class EnhancedNewsScraper:
                 if not title or not link:
                     continue
 
-                articles.append({
-                    "title": title,
-                    "link": link,
-                    "published": entry.get("published", entry.get("updated", "")),
-                    "summary": self._clean_html(
-                        entry.get("summary", entry.get("description", ""))
-                    ),
-                    "source": source_name,
-                    "fetched_at": datetime.now().isoformat(),
-                })
+                articles.append(
+                    {
+                        "title": title,
+                        "link": link,
+                        "published": entry.get("published", entry.get("updated", "")),
+                        "summary": self._clean_html(
+                            entry.get("summary", entry.get("description", ""))
+                        ),
+                        "source": source_name,
+                        "fetched_at": datetime.now().isoformat(),
+                    }
+                )
 
             if articles:
                 self.cache.set(f"rss_{source_name}", articles)
@@ -224,6 +243,67 @@ class EnhancedNewsScraper:
 
         except Exception as e:
             logger.warning(f"Error fetching {source_name}: {e}")
+            self.source_stats[source_name]["failures"] += 1
+            return []
+
+    def _fetch_from_yahoo_finance(
+        self, ticker_symbol: str, max_articles: int = 10
+    ) -> List[Dict[str, Any]]:
+        source_name = "yahoo_finance"
+        self.source_stats[source_name]["attempts"] += 1
+
+        cached = self.cache.get(f"yf_{ticker_symbol}")
+        if cached:
+            self.source_stats[source_name]["successes"] += 1
+            return cached
+
+        try:
+            ticker = yf.Ticker(ticker_symbol)
+            news = ticker.news
+            articles = []
+
+            for item in news[:max_articles]:
+                content = item.get("content", {})
+                title = content.get("title", "").strip()
+                link = content.get("canonicalUrl", {}).get("url", "")
+                if not title or not link:
+                    continue
+
+                pub_date_raw = content.get("pubDate")
+                pub_date_iso = ""
+                if isinstance(pub_date_raw, str):
+                    try:
+                        dt = datetime.fromisoformat(pub_date_raw.replace("Z", "+00:00"))
+                        pub_date_iso = dt.isoformat()
+                    except ValueError:
+                        pub_date_iso = pub_date_raw
+                elif isinstance(pub_date_raw, (int, float)):
+                    pub_date_iso = datetime.fromtimestamp(
+                        pub_date_raw / 1000
+                    ).isoformat()
+
+                articles.append(
+                    {
+                        "title": title,
+                        "link": link,
+                        "published": pub_date_iso,
+                        "summary": self._clean_html(content.get("summary", "")),
+                        "source": source_name,
+                        "fetched_at": datetime.now().isoformat(),
+                    }
+                )
+
+            if articles:
+                self.cache.set(f"yf_{ticker_symbol}", articles)
+                self.source_stats[source_name]["successes"] += 1
+                self.source_stats[source_name]["total_articles"] += len(articles)
+            else:
+                self.source_stats[source_name]["failures"] += 1
+
+            return articles
+
+        except Exception as e:
+            logger.warning(f"Error fetching Yahoo Finance ({ticker_symbol}): {e}")
             self.source_stats[source_name]["failures"] += 1
             return []
 

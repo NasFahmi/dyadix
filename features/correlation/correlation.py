@@ -6,10 +6,8 @@ Fokus: Korelasi pergerakan persentase (returns) antar pair dengan alignment wakt
 """
 
 import pandas as pd
-import numpy as np
-from typing import Dict, List, Tuple
+from typing import Dict, List
 import logging
-from datetime import datetime
 from config.settings import get_config
 
 logger = logging.getLogger(__name__)
@@ -22,7 +20,9 @@ class CorrelationEngine:
 
     def __init__(self):
         self.config = get_config()
-        self.pairs: List[str] = self.config.get("trading", {}).get("correlation_pairs", [])
+        self.pairs: List[str] = self.config.get("trading", {}).get(
+            "correlation_pairs", []
+        )
         self.benchmark = "BTCUSDT"
 
     def calculate(
@@ -44,31 +44,33 @@ class CorrelationEngine:
             # Filter menggunakan self.pairs, tapi pastikan benchmark tetap lulus
             if self.pairs and pair not in self.pairs and pair != self.benchmark:
                 continue
-                
+
             if timeframe in tf_data:
                 df = tf_data[timeframe].get("aggregated")
                 if df is not None and not df.empty and len(df) >= lookback:
                     # Pastikan index diset ke timestamp agar sejajar (time-aligned)
                     # Pada dyadix, umumnya timestamp ada sebagai kolom
-                    if 'timestamp' in df.columns:
-                        temp_df = df.set_index('timestamp')
+                    if "timestamp" in df.columns:
+                        temp_df = df.set_index("timestamp")
                     else:
                         temp_df = df
-                        
+
                     # Ambil tail lookback dan simpan Pandas Series ke dictionary
                     # Menggunakan re-indexing otomais dari Pandas pd.DataFrame(dict) nanti
-                    closes[pair] = temp_df['close'].tail(lookback)
+                    closes[pair] = temp_df["close"].tail(lookback)
 
         if len(closes) < 2:
-            logger.warning("Tidak cukup pair untuk menghitung correlation (butuh min 2)")
+            logger.warning(
+                "Tidak cukup pair untuk menghitung correlation (butuh min 2)"
+            )
             return {"error": "Not enough pairs for correlation"}
 
         # Buat DataFrame harga close (akan menggunakan outer join untuk menggabungkan index yang selaras)
         price_df = pd.DataFrame(closes)
-        
+
         # Isi gap kosong otomatis (kasus koin disuspend beberapa menit/baris data loss)
         price_df = price_df.ffill().bfill()
-        
+
         # Hitung Returns (Persentase Perubahan) - Cara terbaik di Analisa Kuantitatif Trading
         returns_df = price_df.pct_change().dropna()
 
@@ -102,10 +104,14 @@ class CorrelationEngine:
 
         # 1. Insight Benchmark Dominance (BTC)
         strong_with_btc = [
-            pair for pair, corr in btc_corr.items() if corr >= 0.75 and pair != self.benchmark
+            pair
+            for pair, corr in btc_corr.items()
+            if corr >= 0.75 and pair != self.benchmark
         ]
         weak_with_btc = [
-            pair for pair, corr in btc_corr.items() if corr < 0.75 and pair != self.benchmark
+            pair
+            for pair, corr in btc_corr.items()
+            if corr < 0.75 and pair != self.benchmark
         ]
 
         if strong_with_btc:
@@ -127,6 +133,7 @@ class CorrelationEngine:
             )
 
         return insights
+
 
 # Helper function
 def calculate_correlation(
