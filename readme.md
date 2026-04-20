@@ -92,7 +92,7 @@ Dyadix is currently under active development. We are constantly striving to enha
 ### 2. Comprehensive Sentiment Analysis
 | Source | Description |
 |--------|-------------|
-| **News** | Coindesk, Cointelegraph, Decrypt, CryptoSlate, Blockworks, Bitcoin Magazine |
+| **News** | Yahoo Finance, Cointelegraph, Decrypt, CryptoSlate, Blockworks, Bitcoin Magazine |
 | **Social Influencers** | Key influencers tracking (aantonop, VitalikButerin, etc.) |
 | **Reddit** | Subreddit sentiment (r/cryptocurrency, r/Bitcoin) |
 | **Fear & Greed** | Alternative.me Crypto Fear & Greed Index |
