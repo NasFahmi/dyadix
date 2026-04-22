@@ -149,41 +149,42 @@ class SignalDetector:
 
         # ── Trend H1 (max 0.15) ─────────────────────────────────────────
         trend = technical.get("trend_h1", {})
-        trend_regime = trend.get("trend_regime", "")
+        trend_regime = str(trend.get("trend_regime", "")).lower()
 
-        if "Strong Uptrend" in trend_regime:
+        if "strong" in trend_regime and "uptrend" in trend_regime:
             bull += 0.15
             br.append("Strong H1 Uptrend")
-        elif "Uptrend" in trend_regime:
+        elif "uptrend" in trend_regime or "bullish" in trend_regime:
             bull += 0.10
             br.append("H1 Uptrend")
-        elif "Strong Downtrend" in trend_regime:
+        elif "strong" in trend_regime and "downtrend" in trend_regime:
             bear += 0.15
             ber.append("Strong H1 Downtrend")
-        elif "Downtrend" in trend_regime:
+        elif "downtrend" in trend_regime or "bearish" in trend_regime:
             bear += 0.10
             ber.append("H1 Downtrend")
 
         # ── Momentum M15 (max 0.12) ─────────────────────────────────────
         momentum = technical.get("momentum_m15", {})
-        mom_bias = momentum.get("momentum_bias", "Neutral")
+        mom_bias = str(momentum.get("momentum_bias", "Neutral")).lower()
         rsi = momentum.get("rsi", 50)
 
-        if mom_bias == "Bullish" and rsi < 70:
+        # Removed strict RSI boundaries that penalized strong trends
+        if "bullish" in mom_bias:
             bull += 0.12
             br.append(f"Bullish momentum M15 (RSI {rsi:.0f})")
-        elif mom_bias == "Bearish" and rsi > 30:
+        elif "bearish" in mom_bias:
             bear += 0.12
             ber.append(f"Bearish momentum M15 (RSI {rsi:.0f})")
 
         # ── Price Action M5 (max 0.08) ──────────────────────────────────
         pa = technical.get("price_action_m5", {})
-        pa_bias = pa.get("pa_bias", "Neutral")
+        pa_bias = str(pa.get("pa_bias", "Neutral")).lower()
 
-        if "Bullish" in pa_bias:
+        if "bullish" in pa_bias:
             bull += 0.08
             br.append("Bullish price action M5")
-        elif "Bearish" in pa_bias:
+        elif "bearish" in pa_bias:
             bear += 0.08
             ber.append("Bearish price action M5")
 
@@ -197,12 +198,12 @@ class SignalDetector:
 
         # ── Daily Bias (max 0.05) ───────────────────────────────────────
         daily = technical.get("daily_bias", {})
-        daily_bias = daily.get("bias", "Neutral")
+        daily_bias = str(daily.get("bias", "Neutral")).lower()
 
-        if daily_bias == "Bullish":
+        if "bullish" in daily_bias:
             bull += 0.05
             br.append("Daily bias Bullish")
-        elif daily_bias == "Bearish":
+        elif "bearish" in daily_bias:
             bear += 0.05
             ber.append("Daily bias Bearish")
 
@@ -217,20 +218,21 @@ class SignalDetector:
         br: List[str] = []
         ber: List[str] = []
 
-        liq_sent = liquidity.get("liquidity_sentiment", "Neutral")
+        liq_sent_raw = liquidity.get("liquidity_sentiment", "Neutral")
+        liq_sent = str(liq_sent_raw).lower()
 
-        if liq_sent in ("Bullish (PDL Sweep)", "Bullish Pressure (Near Low Pool)"):
+        if "pdl sweep" in liq_sent or "near low pool" in liq_sent:
             bull += 0.20
-            br.append(f"Liquidity: {liq_sent}")
-        elif liq_sent in ("Bearish (PDH Sweep)", "Bearish Pressure (Near High Pool)"):
+            br.append(f"Liquidity: {liq_sent_raw}")
+        elif "pdh sweep" in liq_sent or "near high pool" in liq_sent:
             bear += 0.20
-            ber.append(f"Liquidity: {liq_sent}")
-        elif "Bullish" in liq_sent:
+            ber.append(f"Liquidity: {liq_sent_raw}")
+        elif "bullish" in liq_sent:
             bull += 0.10
-            br.append(f"Liquidity: {liq_sent}")
-        elif "Bearish" in liq_sent:
+            br.append(f"Liquidity: {liq_sent_raw}")
+        elif "bearish" in liq_sent:
             bear += 0.10
-            ber.append(f"Liquidity: {liq_sent}")
+            ber.append(f"Liquidity: {liq_sent_raw}")
 
         return bull, bear, br, ber
 
@@ -245,16 +247,17 @@ class SignalDetector:
 
         sent_score = sentiment.get("sentiment_score", 50)
 
-        if sent_score >= 75:
+        # Relaxed slightly to capture more signals
+        if sent_score >= 70:
             bull += 0.15
             br.append(f"Strong Bullish sentiment (score {sent_score})")
-        elif sent_score >= 62:
+        elif sent_score >= 58:
             bull += 0.08
             br.append(f"Bullish sentiment (score {sent_score})")
-        elif sent_score <= 25:
+        elif sent_score <= 30:
             bear += 0.15
             ber.append(f"Strong Bearish sentiment (score {sent_score})")
-        elif sent_score <= 38:
+        elif sent_score <= 42:
             bear += 0.08
             ber.append(f"Bearish sentiment (score {sent_score})")
 
@@ -269,20 +272,21 @@ class SignalDetector:
         br: List[str] = []
         ber: List[str] = []
 
-        deriv_sent = derivatives.get("derivatives_sentiment", "Neutral")
+        deriv_sent_raw = derivatives.get("derivatives_sentiment", "Neutral")
+        deriv_sent = str(deriv_sent_raw).lower()
 
-        if deriv_sent == "Strong Bullish":
+        if "strong bullish" in deriv_sent:
             bull += 0.15
             br.append("Derivatives: Strong Bullish")
-        elif deriv_sent == "Moderate Bullish":
+        elif "moderate bullish" in deriv_sent or "bullish" in deriv_sent:
             bull += 0.08
-            br.append("Derivatives: Moderate Bullish")
-        elif deriv_sent == "Strong Bearish":
+            br.append("Derivatives: Bullish")
+        elif "strong bearish" in deriv_sent:
             bear += 0.15
             ber.append("Derivatives: Strong Bearish")
-        elif deriv_sent == "Moderate Bearish":
+        elif "moderate bearish" in deriv_sent or "bearish" in deriv_sent:
             bear += 0.08
-            ber.append("Derivatives: Moderate Bearish")
+            ber.append("Derivatives: Bearish")
 
         return bull, bear, br, ber
 
@@ -300,17 +304,18 @@ class SignalDetector:
 
         trend = technical.get("trend_h1", {})
         momentum = technical.get("momentum_m15", {})
-        trend_regime = trend.get("trend_regime", "")
+        trend_regime = str(trend.get("trend_regime", "")).lower()
         rsi = momentum.get("rsi", 50)
 
         # Bullish divergence: downtrend tapi RSI mulai naik (oversold)
-        if "Downtrend" in trend_regime and rsi < 35:
-            bull += 0.10
+        # Increased to 0.15 to better overcome the negative trend penalty
+        if ("downtrend" in trend_regime or "bearish" in trend_regime) and rsi < 35:
+            bull += 0.15
             br.append(f"Bullish divergence (downtrend + RSI oversold {rsi:.0f})")
 
         # Bearish divergence: uptrend tapi RSI mulai turun (overbought)
-        if "Uptrend" in trend_regime and rsi > 65:
-            bear += 0.10
+        if ("uptrend" in trend_regime or "bullish" in trend_regime) and rsi > 65:
+            bear += 0.15
             ber.append(f"Bearish divergence (uptrend + RSI overbought {rsi:.0f})")
 
         # Extreme RSI bonus
