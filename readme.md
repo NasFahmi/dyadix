@@ -74,9 +74,17 @@ Dyadix is currently under active development. We are constantly striving to enha
 │     │   └─ Liquidity: 10%                                      │
 │     └─► Market Snapshot (M3/M5/M15/H1 precision)              │
 ├─────────────────────────────────────────────────────────────────────┤
-│  5. DECISION LLM                                                │
-│     └─► Structured JSON Output                                │
+│  5. FAST SIGNAL DETECTION (PRE-FILTER)                          │
+│     └─► Confluence Scoring (Technical, Liquidity, Sentiment)   │
+│     └─► Gatekeeper: Only trigger LLM if confidence >= threshold│
+├─────────────────────────────────────────────────────────────────────┤
+│  6. DECISION LLM                                                │
+│     └─► Structured JSON Output                                 │
 │         { BUY | SELL | HOLD | WAIT }                           │
+├─────────────────────────────────────────────────────────────────────┤
+│  7. NOTIFICATIONS (TELEGRAM)                                    │
+│     └─► Signal Detected Alerts                                 │
+│     └─► Final Decision Delivery                                │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -115,6 +123,16 @@ Dyadix is currently under active development. We are constantly striving to enha
 - **Multi-Provider LLM Support**: Groq, Gemini, Local (Ollama)
 - **Structured JSON Output**: Type-safe decision parsing
 - **Confluence-Based Signals**: 3+ aligned factors required for BUY/SELL
+
+### 6. Fast Signal Detection (Pre-filter)
+- **Token Optimization**: Fast confluence-based scoring system filters out noise before invoking the LLM, effectively reducing API costs.
+- **Confluence Scoring**: Evaluates Technicals, Liquidity, Sentiment, and Derivatives.
+- **Cooldown Logic**: Prevents API spamming by implementing cooldown periods per pair.
+
+### 7. Telegram Bot Integration
+- **Real-time Notifications**: Get instantly alerted when a potential signal is detected or a final trading decision is generated.
+- **Detailed Alerts**: Messages include confidence scores, dominant bias, reasonings, and formatted entry/exit targets.
+- **Easy Setup**: Simply configure `TELEGRAM_BOT` and `TELEGRAM_CHAT_ID` in your environment variables.
 
 ---
 
@@ -226,6 +244,10 @@ LLM_PROVIDER=groq  # groq, gemini, or local
 GROQ_API_KEY=your_groq_key
 # GEMINI_API_KEY=your_gemini_key
 # LOCAL_BASE_URL_LLM=http://localhost:1234
+
+# Telegram Notifications (Optional)
+TELEGRAM_BOT=your_bot_token
+TELEGRAM_CHAT_ID=your_chat_id
 ```
 
 Edit `config/settings.yml` to configure trading pairs:
