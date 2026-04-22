@@ -1,18 +1,17 @@
 """
-main.py — Entry point Dyadix Trading Bot
+main.py — Entry point Dyadix Trading DSS
 
-Menjalankan pipeline lengkap:
-  1. Fetch market data (OHLCV)
-  2. Build sentiment context (news, social, F&G, economic calendar)
-  3. Analyze sentiment via LLM
-  4. Aggregate full context (technical + sentiment + derivatives + liquidity + correlation)
-  5. Inject candlestick terakhir
-  6. Kirim ke Decision LLM → structured trading decision
+Dua mode operasi:
+  1. Loop mode (default): Berjalan terus-menerus dengan signal detection
+     → python main.py
+  2. One-shot mode: Jalankan pipeline sekali lalu exit
+     → python main.py --once
 
 Konfigurasi pair aktif: config/settings.yml
 Konfigurasi model LLM : .env  (DECISION_LLM_MODEL, NEWS_SOCIAL_ANALYSIS_MODEL)
 """
 
+import argparse
 import logging
 import sys
 
@@ -25,7 +24,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def run():
+def run_once():
+    """Mode one-shot: jalankan pipeline lengkap sekali lalu exit."""
     from pipelines.main_pipeline import MainPipeline
 
     pipeline = MainPipeline()
@@ -68,5 +68,26 @@ def run():
     print("=" * 60)
 
 
+def run_loop():
+    """Mode loop: jalankan DSS secara continuous dengan signal detection."""
+    from pipelines.loop_scheduler import LoopScheduler
+
+    scheduler = LoopScheduler()
+    scheduler.start()
+
+
 if __name__ == "__main__":
-    run()
+    parser = argparse.ArgumentParser(
+        description="Dyadix Trading DSS — Decision Support System"
+    )
+    parser.add_argument(
+        "--once",
+        action="store_true",
+        help="Run pipeline once then exit (one-shot mode)",
+    )
+    args = parser.parse_args()
+
+    if args.once:
+        run_once()
+    else:
+        run_loop()

@@ -1,19 +1,15 @@
 trading:
   pairs:
     - BTCUSDT
-    # - XAUTUSDT
-    # - SOLUSDT
-    # - XRPUSDT
-    # - HYPEUSDT
-    # - ADAUSDT
-    # - ARBUSDT
+    - XAUTUSDT
+    - SOLUSDT
+    - ETHUSDT
+    - BNBUSDT
   correlation_pairs:
     - BTCUSDT
     - ETHUSDT
     - SOLUSDT
-    - XRPUSDT
-    - HYPEUSDT
-    - ADAUSDT
+    - BNBUSDT
     - ARBUSDT
   active_session: "london_ny" # marker untuk logic session
   timeframes:
@@ -27,3 +23,19 @@ llm:
   provider: "local" # groq, gemini, local
   temperature: 0.25
   max_tokens: 1100
+
+scheduler:
+  tick_interval: 60  # detik, main loop tick
+  intervals:
+    ohlcv_fast: 60       # M3 & M5 OHLCV (detik)
+    ohlcv_m15: 90        # M15 OHLCV
+    ohlcv_h1: 180        # H1 OHLCV (3 menit)
+    ohlcv_daily: 3600    # Daily OHLCV (1 jam)
+    funding_rate: 60     # Funding Rate
+    open_interest: 120   # Open Interest (2 menit)
+    correlation: 120     # Correlation (2 menit)
+    sentiment: 900       # Sentiment/News/Social (15 menit)
+
+signal_detector:
+  min_confidence: 0.65   # Threshold minimum untuk memanggil LLM
+  cooldown_seconds: 900  # 15 menit cooldown per pair setelah LLM call

@@ -203,7 +203,7 @@ class ContextBuilder:
                 )
 
             except Exception as e:
-                logger.error(f"❌ Failed to build full context for {pair}: {e}")
+                logger.error(f"❌ Failed to build full context for {pair}: {e}", exc_info=True)
                 full_context[pair] = {
                     "timestamp": datetime.utcnow().isoformat(),
                     "pair": pair,
@@ -215,12 +215,26 @@ class ContextBuilder:
     # ── Private helpers ───────────────────────────────────────────────────────
 
     def _build_pair_technical(self, pair: str, tf_data: Dict) -> Dict:
-        """Hitung semua engine teknikal untuk satu pair."""
-        df_1h = tf_data.get("1h", {}).get("aggregated", pd.DataFrame())
-        df_15m = tf_data.get("15m", {}).get("aggregated", pd.DataFrame())
-        df_5m = tf_data.get("5m", {}).get("aggregated", pd.DataFrame())
-        df_3m = tf_data.get("3m", {}).get("aggregated", pd.DataFrame())
-        df_daily = tf_data.get("1d", {}).get("aggregated", pd.DataFrame())
+        """Hitung semua engine teknikal untuk satu pair.
+        
+        PENTING: Jangan mutate tf_data (cache) — selalu pakai copy OHLCV-only
+        agar tidak terjadi duplikasi kolom indikator saat loop.
+        """
+        # Kolom asli OHLCV saja — strip indikator dari cycle sebelumnya
+        _ohlcv_cols = ["open", "high", "low", "close", "volume"]
+
+        def _clean_df(key: str) -> pd.DataFrame:
+            raw = tf_data.get(key, {}).get("aggregated", pd.DataFrame())
+            if raw.empty:
+                return pd.DataFrame()
+            cols = [c for c in _ohlcv_cols if c in raw.columns]
+            return raw[cols].copy()
+
+        df_1h = _clean_df("1h")
+        df_15m = _clean_df("15m")
+        df_5m = _clean_df("5m")
+        df_3m = _clean_df("3m")
+        df_daily = _clean_df("1d")
 
         # Daily Bias
         daily_bias = (
@@ -241,8 +255,6 @@ class ContextBuilder:
             if not df_1h.empty
             else (pd.DataFrame(), {})
         )
-        if not df_1h_new.empty:
-            tf_data["1h"]["aggregated"] = df_1h_new
 
         # Momentum M15
         df_15m_new, momentum_summary = (
@@ -250,8 +262,6 @@ class ContextBuilder:
             if not df_15m.empty
             else (pd.DataFrame(), {})
         )
-        if not df_15m_new.empty:
-            tf_data["15m"]["aggregated"] = df_15m_new
 
         # Volatility M5
         df_5m_new, volatility_summary = (
@@ -259,36 +269,26 @@ class ContextBuilder:
             if not df_5m.empty
             else (pd.DataFrame(), {})
         )
-        if not df_5m_new.empty:
-            tf_data["5m"]["aggregated"] = df_5m_new
 
-        # Momentum M5 (Baru ditambahkan agar snapshot M5 punya RSI)
+        # Momentum M5 (agar snapshot M5 punya RSI)
         df_5m_mom, _ = (
-            calculate_momentum_features(tf_data["5m"]["aggregated"], timeframe="5m")
-            if not tf_data.get("5m", {}).get("aggregated", pd.DataFrame()).empty
+            calculate_momentum_features(df_5m_new, timeframe="5m")
+            if not df_5m_new.empty
             else (pd.DataFrame(), {})
         )
-        if not df_5m_mom.empty:
-            tf_data["5m"]["aggregated"] = df_5m_mom
 
         # Price Action M5
+        df_5m_final = df_5m_mom if not df_5m_mom.empty else df_5m_new
         df_5m_pa, pa_summary = (
-            calculate_price_action_features(tf_data["5m"]["aggregated"], timeframe="5m")
-            if not tf_data.get("5m", {}).get("aggregated", pd.DataFrame()).empty
+            calculate_price_action_features(df_5m_final, timeframe="5m")
+            if not df_5m_final.empty
             else (pd.DataFrame(), {})
         )
-        if not df_5m_pa.empty:
-            tf_data["5m"]["aggregated"] = df_5m_pa
 
-        # Optional: M3 Momentum/Volatility calculation (agar Snapshot tidak null)
+        # Optional: M3 Momentum/Volatility (agar Snapshot tidak null)
         if not df_3m.empty:
             df_3m_new, _ = calculate_momentum_features(df_3m, timeframe="3m")
-            tf_data["3m"]["aggregated"] = df_3m_new
-            # Update volatility juga untuk ATR di M3 jika diperlukan
-            df_3m_vol, _ = calculate_volatility_features(
-                tf_data["3m"]["aggregated"], timeframe="3m"
-            )
-            tf_data["3m"]["aggregated"] = df_3m_vol
+            df_3m_vol, _ = calculate_volatility_features(df_3m_new, timeframe="3m")
 
         overall_bias = self._get_overall_technical_bias(
             daily_bias, trend_summary, momentum_summary, pa_summary

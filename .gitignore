@@ -4,3 +4,11 @@ venv
 __pycache__
 .vscode
 .idea
+
+cache/economic/*
+cache/influencers/*
+cache/news/*
+
+data/logs/decisions/*
+data/processed/daily_bias/*
+data/processed/signals/*

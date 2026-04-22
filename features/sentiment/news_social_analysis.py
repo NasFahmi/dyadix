@@ -9,6 +9,7 @@ import json
 import logging
 from typing import Dict, Any, List, Optional
 from dotenv import load_dotenv
+from llm.system_prompt import SystemPrompt
 
 load_dotenv()
 
@@ -126,23 +127,8 @@ class NewsSocialLLMAnalyzer:
     # ── Private helpers ────────────────────────────────────────────────────────
 
     def _build_system_prompt(self) -> str:
-        return (
-            "You are a professional Crypto Sentiment Analyst.\n\n"
-            "Analyze the provided news and social media data carefully.\n"
-            "Focus on market sentiment impact for the next 24-48 hours.\n"
-            "Be objective, concise, and trading-oriented.\n\n"
-            "Return ONLY a valid JSON object with these exact fields:\n"
-            "- overall_sentiment: one of Very Bullish/Strong Bullish/Bullish/"
-            "Moderate Bullish/Neutral/Moderate Bearish/Bearish/Strong Bearish/Very Bearish\n"
-            "- sentiment_score: integer 0-100\n"
-            "- confidence: float 0.0-1.0\n"
-            "- dominant_narrative: string (main market narrative)\n"
-            "- news_impact: string (impact of news)\n"
-            "- social_mood: string (social media mood)\n"
-            "- key_insights: array of strings (max 5 items)\n"
-            "- trading_implication: string\n\n"
-            "Do not add any explanation, markdown, or extra text."
-        )
+
+        return SystemPrompt().get_system_prompt_news_social_sentiment()
 
     def _build_user_input(
         self,

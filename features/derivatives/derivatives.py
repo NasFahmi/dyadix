@@ -81,27 +81,28 @@ class DerivativesEngine:
             and not derivatives_data["open_interest"].empty
         ):
             df_oi = derivatives_data["open_interest"].tail(20)
+            n_oi = len(df_oi)
 
             latest_oi = df_oi["open_interest"].iloc[-1]
             oi_change_1h = (
                 (latest_oi - df_oi["open_interest"].iloc[-2])
                 / df_oi["open_interest"].iloc[-2]
                 * 100
-                if len(df_oi) > 1
+                if n_oi >= 2
                 else 0
             )
             oi_change_4h = (
                 (latest_oi - df_oi["open_interest"].iloc[-5])
                 / df_oi["open_interest"].iloc[-5]
                 * 100
-                if len(df_oi) > 4
+                if n_oi >= 5
                 else 0
             )
 
-            # Price vs OI Divergence
+            # Price vs OI Divergence (need at least 5 data points)
             price_up = (
                 df_oi["close"].iloc[-1] > df_oi["close"].iloc[-5]
-                if "close" in df_oi.columns
+                if "close" in df_oi.columns and n_oi >= 5
                 else False
             )
             oi_up = oi_change_4h > 0
