@@ -42,6 +42,7 @@ class SystemPrompt:
             "Required JSON format:\n"
             "{\n"
             '  "decision": "BUY" or "SELL" or "HOLD" or "WAIT",\n'
+            '  "rr_calculation": "Step 1: Entry is X. Step 2: ATR is Y. Step 3: SL distance is 1.5*Y=Z. SL is X-Z. Step 4: Target distance is 2.5*Y=W. Target is X+W",\n'
             '  "confidence": 0.0 to 1.0,\n'
             '  "bias": "Strong Bullish" or "Moderate Bullish" or "Neutral" or "Moderate Bearish" or "Strong Bearish",\n'
             '  "recommended_timeframe": "M5" or "M15" or "H1" or "Swing",\n'

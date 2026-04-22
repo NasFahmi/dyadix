@@ -282,20 +282,94 @@ class LoopScheduler:
                 "decision": {
                     "type": "string",
                     "enum": ["BUY", "SELL", "HOLD", "WAIT"],
+                    "description": "Trading decision"
                 },
-                "confidence": {"type": "number"},
-                "bias": {"type": "string"},
-                "recommended_timeframe": {"type": "string"},
-                "entry_zone": {"type": "string"},
-                "invalidated_if": {"type": "string"},
-                "target": {"type": "string"},
-                "stop_loss": {"type": "string"},
-                "risk_reward": {"type": "string"},
-                "expected_move": {"type": "string"},
-                "reason": {"type": "string"},
-                "key_risks": {"type": "array", "items": {"type": "string"}},
+                "rr_calculation": {
+                    "type": "string",
+                    "description": "Step-by-step mathematical calculation for SL and Target based on ATR to ensure minimum 1:1.5 Risk/Reward ratio."
+                },
+                "confidence": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": "Confidence level from 0.0 to 1.0"
+                },
+                "bias": {
+                    "type": "string",
+                    "enum": [
+                        "Strong Bullish",
+                        "Moderate Bullish",
+                        "Neutral",
+                        "Moderate Bearish",
+                        "Strong Bearish"
+                    ]
+                },
+                "recommended_timeframe": {
+                    "type": "string",
+                    "enum": ["M5", "M15", "H1", "Swing"]
+                },
+                "entry_zone": {
+                    "type": "string",
+                    "maxLength": 80,
+                    "description": "Entry zone or condition"
+                },
+                "invalidated_if": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "description": "Condition that invalidates the setup"
+                },
+                "target": {
+                    "type": "string",
+                    "maxLength": 80,
+                    "description": "Target price or zone"
+                },
+                "stop_loss": {
+                    "type": "string",
+                    "maxLength": 80,
+                    "description": "Stop loss level"
+                },
+                "risk_reward": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "description": "Risk to reward ratio (example: 1:2.5)"
+                },
+                "expected_move": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "description": "Expected price movement with timeframe (example: '+2.8% to +4.2% dalam 12 jam')"
+                },
+                "reason": {
+                    "type": "string",
+                    "maxLength": 75,
+                    "description": "Short, clear, and professional reasoning"
+                },
+                "key_risks": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "maxLength": 80
+                    },
+                    "minItems": 1,
+                    "maxItems": 3,
+                    "description": "List of key risks (maximum 3)"
+                }
             },
-            "required": ["decision", "confidence", "bias", "reason"],
+            "required": [
+                "decision",
+                "rr_calculation",
+                "confidence",
+                "bias",
+                "recommended_timeframe",
+                "entry_zone",
+                "invalidated_if",
+                "target",
+                "stop_loss",
+                "risk_reward",
+                "expected_move",
+                "reason",
+                "key_risks"
+            ],
+            "additionalProperties": False
         }
 
         try:
