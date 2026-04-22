@@ -322,6 +322,11 @@ class MainPipeline:
                     "maxLength": 20,
                     "description": "Risk to reward ratio (example: 1:2.5)"
                 },
+                "execution_type": {
+                    "type": "string",
+                    "enum": ["MARKET", "LIMIT"],
+                    "description": "MARKET if realtime_price is inside entry_zone, LIMIT if entry_zone requires a pullback"
+                },
                 "expected_move": {
                     "type": "string",
                     "maxLength": 100,
@@ -354,6 +359,7 @@ class MainPipeline:
                 "target",
                 "stop_loss",
                 "risk_reward",
+                "execution_type",
                 "expected_move",
                 "reason",
                 "key_risks"

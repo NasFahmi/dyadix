@@ -198,13 +198,23 @@ class LoopScheduler:
             # Notify Telegram: signal detected
             self.telegram.notify_signal_detected(pair, signal_result)
 
+            # Inject realtime price & signal detector result into context
+            realtime_price = self._fetch_realtime_price(pair)
+            ctx["realtime_price"] = realtime_price
+            ctx["signal_detector_result"] = {
+                "suggested_bias": signal_result.get("suggested_bias"),
+                "signal_type": signal_result.get("signal_type"),
+                "confidence": signal_result.get("confidence"),
+                "reasons": signal_result.get("reasons", []),
+            }
+
             decision = self._call_decision_llm(ctx)
             llm_calls += 1
 
             self.decision_logger.log_decision(pair, signal_result, decision)
 
-            # Notify Telegram: decision result
-            self.telegram.notify_decision(pair, signal_result, decision)
+            # Notify Telegram: decision result (with realtime price)
+            self.telegram.notify_decision(pair, signal_result, decision, realtime_price)
 
             # Print decision
             self._print_decision(pair, signal_result, decision)
@@ -333,6 +343,11 @@ class LoopScheduler:
                     "maxLength": 20,
                     "description": "Risk to reward ratio (example: 1:2.5)"
                 },
+                "execution_type": {
+                    "type": "string",
+                    "enum": ["MARKET", "LIMIT"],
+                    "description": "MARKET if realtime_price is inside entry_zone, LIMIT if entry_zone requires a pullback"
+                },
                 "expected_move": {
                     "type": "string",
                     "maxLength": 100,
@@ -367,7 +382,8 @@ class LoopScheduler:
                 "risk_reward",
                 "expected_move",
                 "reason",
-                "key_risks"
+                "key_risks",
+                "execution_type"
             ],
             "additionalProperties": False
         }
@@ -433,6 +449,7 @@ class LoopScheduler:
             "expected_move": "N/A",
             "reason": "LLM response invalid or timeout — manual review required",
             "key_risks": ["LLM unavailable", "Low confidence"],
+            "execution_type": "LIMIT",
         }
 
     # ─────────────────────────────────────────────────────────────────────
@@ -456,6 +473,7 @@ class LoopScheduler:
         print(f"  Target    : {decision.get('target', 'N/A')}")
         print(f"  Stop Loss : {decision.get('stop_loss', 'N/A')}")
         print(f"  RR Ratio  : {decision.get('risk_reward', 'N/A')}")
+        print(f"  Exec Type : {decision.get('execution_type', 'N/A')}")
         print(f"  Reason    : {decision.get('reason', 'N/A')}")
         key_risks = decision.get("key_risks", [])
         if key_risks:
@@ -482,6 +500,24 @@ class LoopScheduler:
     # ─────────────────────────────────────────────────────────────────────
     #  UTILITIES
     # ─────────────────────────────────────────────────────────────────────
+
+    def _fetch_realtime_price(self, pair: str) -> float:
+        """
+        Ambil harga terbaru secara langsung dari exchange (bukan dari cache)
+        untuk mengurangi latency pada entry zone.
+        """
+        try:
+            exchange = self.data_manager.market_service.binance.exchange
+            # Convert BTCUSDT → BTC/USDT format for ccxt
+            base = pair.replace("USDT", "")
+            symbol = f"{base}/USDT"
+            ticker = exchange.fetch_ticker(symbol)
+            price = ticker.get("last", 0.0)
+            logger.debug(f"Realtime price for {pair}: {price}")
+            return float(price)
+        except Exception as e:
+            logger.warning(f"Failed to fetch realtime price for {pair}: {e}")
+            return 0.0
 
     def _handle_shutdown(self, signum, frame):
         """Handle Ctrl+C gracefully."""

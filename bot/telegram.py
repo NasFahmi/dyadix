@@ -116,7 +116,8 @@ class TelegramNotifier:
         return self.send_message(text)
 
     def notify_decision(
-        self, pair: str, signal_result: Dict, decision: Dict
+        self, pair: str, signal_result: Dict, decision: Dict,
+        realtime_price: float = 0.0
     ) -> bool:
         """
         Kirim notifikasi hasil Decision LLM.
@@ -129,6 +130,7 @@ class TelegramNotifier:
         target = decision.get("target", "N/A")
         stop_loss = decision.get("stop_loss", "N/A")
         risk_reward = decision.get("risk_reward", "N/A")
+        execution_type = decision.get("execution_type", "N/A")
         expected_move = decision.get("expected_move", "N/A")
         reason = decision.get("reason", "N/A")
         invalidated_if = decision.get("invalidated_if", "N/A")
@@ -144,10 +146,21 @@ class TelegramNotifier:
         else:
             action_emoji = "⏸ WAIT"
 
+        # Emoji berdasarkan execution type
+        if execution_type == "MARKET":
+            exec_emoji = "⚡ MARKET (Execute Now)"
+        elif execution_type == "LIMIT":
+            exec_emoji = "📋 LIMIT (Place Order & Wait)"
+        else:
+            exec_emoji = execution_type
+
         signal_conf = signal_result.get("confidence", 0)
         signal_bias = signal_result.get("suggested_bias", "N/A")
 
         risks_text = " | ".join(key_risks[:3]) if key_risks else "N/A"
+
+        # Format realtime price
+        price_text = f"${realtime_price:,.2f}" if realtime_price else "N/A"
 
         text = (
             f"📊 <b>DECISION — {pair}</b>\n"
@@ -157,7 +170,9 @@ class TelegramNotifier:
             f"<b>Confidence:</b> {confidence}\n"
             f"<b>Bias:</b> {bias}\n"
             f"<b>Timeframe:</b> {timeframe}\n"
+            f"<b>Execution:</b> {exec_emoji}\n"
             f"\n"
+            f"<b>Realtime Price:</b> {price_text}\n"
             f"<b>Entry Zone:</b> {entry_zone}\n"
             f"<b>Target:</b> {target}\n"
             f"<b>Stop Loss:</b> {stop_loss}\n"
