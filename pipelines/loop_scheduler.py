@@ -214,7 +214,9 @@ class LoopScheduler:
             self.decision_logger.log_decision(pair, signal_result, decision)
 
             # Notify Telegram: decision result (with realtime price)
-            self.telegram.notify_decision(pair, signal_result, decision, realtime_price)
+            telegram_sent = self.telegram.notify_decision(pair, signal_result, decision, realtime_price)
+            if telegram_sent:
+                self.decision_logger.log_telegram_sent(pair, signal_result, decision, realtime_price)
 
             # Print decision
             self._print_decision(pair, signal_result, decision)

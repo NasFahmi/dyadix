@@ -70,33 +70,68 @@ class DecisionLogger:
             f"(confidence {decision.get('confidence')})"
         )
 
-    def log_skip(self, pair: str, signal_result: Dict) -> None:
-        """Log ketika pair di-skip karena signal terlalu lemah."""
+    def log_telegram_sent(self, pair: str, signal_result: Dict, decision: Dict, realtime_price: float = 0.0) -> None:
+        """Log decision yang berhasil dikirim ke Telegram (file terpisah) dengan format sedetail Telegram."""
+        now = datetime.utcnow()
         entry = {
-            "type": "SKIP",
-            "timestamp": datetime.utcnow().isoformat(),
+            "type": "TELEGRAM_SENT",
+            "timestamp": now.isoformat(),
             "pair": pair,
             "signal": {
-                "confidence": signal_result.get("confidence"),
-                "reasons": signal_result.get("reasons"),
-                "scores": signal_result.get("scores"),
+                "type": signal_result.get("signal_type", "N/A"),
+                "bias": signal_result.get("suggested_bias", "N/A"),
+                "confidence": signal_result.get("confidence", 0),
+                "bull_score": signal_result.get("scores", {}).get("bullish", 0),
+                "bear_score": signal_result.get("scores", {}).get("bearish", 0),
+                "reasons": signal_result.get("reasons", [])
             },
+            "decision": {
+                "action": decision.get("decision", "N/A"),
+                "confidence": decision.get("confidence", "N/A"),
+                "bias": decision.get("bias", "N/A"),
+                "timeframe": decision.get("recommended_timeframe", "N/A"),
+                "execution_type": decision.get("execution_type", "N/A"),
+                "realtime_price": realtime_price,
+                "entry_zone": decision.get("entry_zone", "N/A"),
+                "target": decision.get("target", "N/A"),
+                "stop_loss": decision.get("stop_loss", "N/A"),
+                "risk_reward": decision.get("risk_reward", "N/A"),
+                "expected_move": decision.get("expected_move", "N/A"),
+                "reason": decision.get("reason", "N/A"),
+                "invalidated_if": decision.get("invalidated_if", "N/A"),
+                "key_risks": decision.get("key_risks", [])
+            }
         }
 
-        self._append_entry(entry)
+        date_str = now.strftime("%Y%m%d")
+        filepath = os.path.join(self.LOG_DIR, f"telegram_sent_{date_str}.json")
+
+        entries = []
+        if os.path.exists(filepath):
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    entries = json.load(f)
+            except Exception:
+                pass
+
+        entries.append(entry)
+
+        try:
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(entries, f, indent=2, ensure_ascii=False, default=str)
+        except Exception as e:
+            logger.error(f"Failed to write telegram sent log: {e}")
+
+    def log_skip(self, pair: str, signal_result: Dict) -> None:
+        """Log ketika pair di-skip karena signal terlalu lemah."""
+        logger.debug(
+            f"⏭️ Skipped {pair} - Confidence: {signal_result.get('confidence')} "
+            f"(Reason: {signal_result.get('reasons')})"
+        )
 
     def log_cooldown_skip(self, pair: str) -> None:
         """Log ketika pair di-skip karena masih dalam cooldown."""
-        entry = {
-            "type": "COOLDOWN_SKIP",
-            "timestamp": datetime.utcnow().isoformat(),
-            "pair": pair,
-            "last_call": self._last_llm_call.get(pair, "").isoformat()
-            if self._last_llm_call.get(pair)
-            else None,
-        }
-
-        self._append_entry(entry)
+        logger.debug(f"⏳ Skipped {pair} - Still in cooldown")
 
     def is_in_cooldown(self, pair: str) -> bool:
         """Cek apakah pair masih dalam cooldown period setelah LLM call terakhir."""
