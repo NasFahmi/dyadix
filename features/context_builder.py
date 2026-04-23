@@ -20,6 +20,7 @@ from features.technical.trend import calculate_trend_features
 from features.technical.momentum import calculate_momentum_features
 from features.technical.volatility import calculate_volatility_features
 from features.technical.price_action import calculate_price_action_features
+from features.technical.order_block import calculate_order_block_features
 from features.derivatives.derivatives import DerivativesEngine
 from features.liquidity.liquidity import LiquidityEngine
 
@@ -181,9 +182,12 @@ class ContextBuilder:
                 full_context[pair] = {
                     "timestamp": datetime.utcnow().isoformat(),
                     "pair": pair,
+                    "current_price": tech.get("current_price"),
                     "technical": {
                         "daily_bias": tech.get("daily_bias"),
                         "trend_h1": tech.get("trend_h1"),
+                        "order_block_h1": tech.get("order_block_h1"),
+                        "order_block_m15": tech.get("order_block_m15"),
                         "momentum_m15": tech.get("momentum_m15"),
                         "volatility_m5": tech.get("volatility_m5"),
                         "price_action_m5": tech.get("price_action_m5"),
@@ -235,6 +239,8 @@ class ContextBuilder:
         df_5m = _clean_df("5m")
         df_3m = _clean_df("3m")
         df_daily = _clean_df("1d")
+        
+        current_price = float(df_5m["close"].iloc[-1]) if not df_5m.empty else None
 
         # Daily Bias
         daily_bias = (
@@ -256,9 +262,23 @@ class ContextBuilder:
             else (pd.DataFrame(), {})
         )
 
+        # Order Block H1
+        _, ob_summary_h1 = (
+            calculate_order_block_features(df_1h, timeframe="1h")
+            if not df_1h.empty
+            else (pd.DataFrame(), {})
+        )
+
         # Momentum M15
         df_15m_new, momentum_summary = (
             calculate_momentum_features(df_15m, timeframe="15m")
+            if not df_15m.empty
+            else (pd.DataFrame(), {})
+        )
+
+        # Order Block M15
+        _, ob_summary_m15 = (
+            calculate_order_block_features(df_15m, timeframe="15m")
             if not df_15m.empty
             else (pd.DataFrame(), {})
         )
@@ -297,6 +317,7 @@ class ContextBuilder:
         return {
             "pair": pair,
             "timestamp": datetime.utcnow().isoformat(),
+            "current_price": current_price,
             "daily_bias": {
                 "bias": daily_bias.get("bias", "Neutral"),
                 "strength": daily_bias.get("strength", "Unknown"),
@@ -307,6 +328,8 @@ class ContextBuilder:
                 "previous_day_range": daily_bias.get("previous_day_range"),
             },
             "trend_h1": trend_summary,
+            "order_block_h1": ob_summary_h1,
+            "order_block_m15": ob_summary_m15,
             "momentum_m15": momentum_summary,
             "volatility_m5": volatility_summary,
             "price_action_m5": pa_summary,
@@ -316,6 +339,10 @@ class ContextBuilder:
                 "pd_low": daily_bias.get("previous_day_low"),
                 "last_swing_high": pa_summary.get("last_swing_high"),
                 "last_swing_low": pa_summary.get("last_swing_low"),
+                "nearest_bullish_ob": ob_summary_h1.get("nearest_bullish_ob"),
+                "nearest_bearish_ob": ob_summary_h1.get("nearest_bearish_ob"),
+                "nearest_bullish_ob_m15": ob_summary_m15.get("nearest_bullish_ob"),
+                "nearest_bearish_ob_m15": ob_summary_m15.get("nearest_bearish_ob"),
             },
         }
 
@@ -403,6 +430,10 @@ class ContextBuilder:
             "pd_low": tech_levels.get("pd_low"),
             "last_swing_high": tech_levels.get("last_swing_high"),
             "last_swing_low": tech_levels.get("last_swing_low"),
+            "nearest_bullish_ob": tech_levels.get("nearest_bullish_ob"),
+            "nearest_bearish_ob": tech_levels.get("nearest_bearish_ob"),
+            "nearest_bullish_ob_m15": tech_levels.get("nearest_bullish_ob_m15"),
+            "nearest_bearish_ob_m15": tech_levels.get("nearest_bearish_ob_m15"),
             "liquidity_pdh": liq_levels.get("pdh"),
             "liquidity_pdl": liq_levels.get("pdl"),
             "resistance_pools": [p["price"] for p in liq_pools.get("highs", [])],
@@ -424,7 +455,20 @@ class ContextBuilder:
         # Technical
         t_bias = tech.get("overall_technical_bias", "Neutral")
         trend = tech.get("trend_h1", {}).get("trend_regime", "Unknown")
-        parts.append(f"{pair} secara teknikal {t_bias} dengan trend H1 {trend}")
+        ob_h1 = tech.get("order_block_h1", {})
+        ob_m15 = tech.get("order_block_m15", {})
+        
+        ob_str = ""
+        ob_parts = []
+        if ob_h1.get("nearest_bullish_ob"): ob_parts.append(f"Bull OB H1 {ob_h1['nearest_bullish_ob']['top']}")
+        if ob_h1.get("nearest_bearish_ob"): ob_parts.append(f"Bear OB H1 {ob_h1['nearest_bearish_ob']['bottom']}")
+        if ob_m15.get("nearest_bullish_ob"): ob_parts.append(f"Bull OB M15 {ob_m15['nearest_bullish_ob']['top']}")
+        if ob_m15.get("nearest_bearish_ob"): ob_parts.append(f"Bear OB M15 {ob_m15['nearest_bearish_ob']['bottom']}")
+        
+        if ob_parts:
+            ob_str = f" | {' & '.join(ob_parts)}"
+                
+        parts.append(f"{pair} secara teknikal {t_bias} dengan trend H1 {trend}{ob_str}")
 
         # Sentiment
         s_label = sentiment.get("overall_sentiment", "Neutral")

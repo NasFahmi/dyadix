@@ -86,6 +86,14 @@ class SignalDetector:
         bullish_reasons.extend(br)
         bearish_reasons.extend(ber)
 
+        # ── 6. Order Block Spacial Filter (max ±0.20) ───────────────────
+        current_price = context.get("current_price")
+        b, be, br, ber = self._score_order_block(technical, current_price)
+        bullish_score += b
+        bearish_score += be
+        bullish_reasons.extend(br)
+        bearish_reasons.extend(ber)
+
         # ── Determine dominant direction ────────────────────────────────
         if bullish_score >= bearish_score:
             dominant_score = bullish_score
@@ -327,3 +335,59 @@ class SignalDetector:
             ber.append(f"Extreme RSI overbought ({rsi:.0f})")
 
         return bull, bear, br, ber
+
+    def _score_order_block(
+        self, technical: Dict, current_price: float
+    ) -> Tuple[float, float, List[str], List[str]]:
+        """Score if price is inside or very close to an unmitigated Order Block."""
+        bull = 0.0
+        bear = 0.0
+        br: List[str] = []
+        ber: List[str] = []
+
+        if not current_price:
+            return bull, bear, br, ber
+
+        ob_h1 = technical.get("order_block_h1", {})
+        bull_ob_h1 = ob_h1.get("nearest_bullish_ob")
+        bear_ob_h1 = ob_h1.get("nearest_bearish_ob")
+        
+        ob_m15 = technical.get("order_block_m15", {})
+        bull_ob_m15 = ob_m15.get("nearest_bullish_ob")
+        bear_ob_m15 = ob_m15.get("nearest_bearish_ob")
+
+        # Threshold to consider "in or near" OB (e.g. within 0.2% of the OB boundary)
+        threshold_pct = 0.002
+        
+        if bull_ob_h1:
+            top = bull_ob_h1["top"]
+            bottom = bull_ob_h1["bottom"]
+            # If price is inside the OB or very close to the top
+            if (current_price >= bottom) and (current_price <= top * (1 + threshold_pct)):
+                bull += 0.20
+                br.append(f"Price in Bullish OB H1 ({bottom}-{top})")
+                
+        if bear_ob_h1:
+            top = bear_ob_h1["top"]
+            bottom = bear_ob_h1["bottom"]
+            # If price is inside the OB or very close to the bottom
+            if (current_price <= top) and (current_price >= bottom * (1 - threshold_pct)):
+                bear += 0.20
+                ber.append(f"Price in Bearish OB H1 ({bottom}-{top})")
+
+        if bull_ob_m15:
+            top = bull_ob_m15["top"]
+            bottom = bull_ob_m15["bottom"]
+            if (current_price >= bottom) and (current_price <= top * (1 + threshold_pct)):
+                bull += 0.10
+                br.append(f"Price in Bullish OB M15 ({bottom}-{top})")
+                
+        if bear_ob_m15:
+            top = bear_ob_m15["top"]
+            bottom = bear_ob_m15["bottom"]
+            if (current_price <= top) and (current_price >= bottom * (1 - threshold_pct)):
+                bear += 0.10
+                ber.append(f"Price in Bearish OB M15 ({bottom}-{top})")
+
+        return bull, bear, br, ber
+
