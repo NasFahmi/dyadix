@@ -12,6 +12,7 @@ from llm.base import BaseLLMClient
 from llm.groq_client import GroqClient
 from llm.gemini_client import GeminiClient
 from llm.local_client import LocalClient
+from llm.deepseek_client import DeepseekClient
 from config.settings import get_config
 
 logger = logging.getLogger(__name__)
@@ -48,7 +49,7 @@ def get_llm_client(provider_type: str = "decision") -> BaseLLMClient:
     # 3. settings.yml specific (llm.news_social_model / llm.decision_model)
     # 4. settings.yml generic (llm.model)
     # 5. Hardcoded default
-    
+
     global_env_model = env.get("LLM_MODEL")
     generic_config_model = config.get("model", "llama-open-finance-8b")
 
@@ -82,6 +83,8 @@ def get_llm_client(provider_type: str = "decision") -> BaseLLMClient:
 
     elif provider == "local":
         return LocalClient(base_url=local_base_url, model=model)
+    elif provider == "deepseek":
+        return DeepseekClient(model=model)
 
     else:
         logger.warning(

@@ -120,7 +120,7 @@ Dyadix is currently under active development. We are constantly striving to enha
 - **Sweep Detection**: Liquidity sweep/fakeout detection
 
 ### 5. AI-Powered Decision Engine
-- **Multi-Provider LLM Support**: Groq, Gemini, Local (Ollama)
+- **Multi-Provider LLM Support**: Groq, DeepSeek, Gemini, Local (Ollama)
 - **Structured JSON Output**: Type-safe decision parsing
 - **Confluence-Based Signals**: 3+ aligned factors required for BUY/SELL
 
@@ -240,8 +240,9 @@ BYBIT_API_KEY=your_api_key
 BYBIT_SECRET_KEY=your_secret
 
 # LLM Configuration (choose one)
-LLM_PROVIDER=groq  # groq, gemini, or local
+LLM_PROVIDER=groq  # groq, deepseek, gemini, or local
 GROQ_API_KEY=your_groq_key
+# DEEPSEEK_API_KEY=your_deepseek_key
 # GEMINI_API_KEY=your_gemini_key
 # LOCAL_BASE_URL_LLM=http://localhost:1234
 
@@ -339,6 +340,7 @@ Dyadix returns structured JSON for each trading pair:
 | Provider | Status | Model (Example) | Use Case |
 |----------|--------|-----------------|----------|
 | **Groq** | ✅ Supported | llama-3.3-70b-versatile | Fast inference, recommended |
+| **DeepSeek** | ✅ Supported | deepseek-chat | High reasoning capability |
 | **Local / Ollama** | ✅ Supported | llama-open-finance-8b | Privacy-first, offline local LLM |
 | **Gemini** | 🛠️ In Repair | gemini-1.5-flash | Google AI, under maintenance |
 | **OpenAI** | ⏳ Coming Soon | GPT-4o / o1 | Coming soon |
