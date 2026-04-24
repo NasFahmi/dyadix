@@ -10,6 +10,10 @@ from typing import Dict, Any
 import logging
 from datetime import datetime
 
+from features.technical.momentum import MomentumEngine
+from features.technical.volatility import VolatilityEngine
+from features.technical.trend import TrendEngine
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,6 +40,7 @@ class MarketSnapshotBuilder:
         # ==================== M3 (Precision Entry) ====================
         df_m3 = MarketSnapshotBuilder._get_dataframe(market_data, "3m")
         if df_m3 is not None and not df_m3.empty:
+            df_m3 = MomentumEngine.calculate(df_m3, "3m")
             last = df_m3.iloc[-1]
             snapshot["current_price"] = round(float(last["close"]), 4)
             snapshot["m3"] = {
@@ -56,6 +61,8 @@ class MarketSnapshotBuilder:
         # ==================== M5 (Short-term Confirmation) ====================
         df_m5 = MarketSnapshotBuilder._get_dataframe(market_data, "5m")
         if df_m5 is not None and not df_m5.empty:
+            df_m5 = MomentumEngine.calculate(df_m5, "5m")
+            df_m5 = VolatilityEngine.calculate(df_m5, "5m")
             last = df_m5.iloc[-1]
             snapshot["m5"] = {
                 "last_candle": {
@@ -78,6 +85,7 @@ class MarketSnapshotBuilder:
         # ==================== M15 (Momentum) ====================
         df_m15 = MarketSnapshotBuilder._get_dataframe(market_data, "15m")
         if df_m15 is not None and not df_m15.empty:
+            df_m15 = MomentumEngine.calculate(df_m15, "15m")
             last = df_m15.iloc[-1]
             snapshot["m15"] = {
                 "last_candle_close": round(float(last["close"]), 4),
@@ -93,6 +101,7 @@ class MarketSnapshotBuilder:
         # ==================== H1 (Trend & Bias) ====================
         df_h1 = MarketSnapshotBuilder._get_dataframe(market_data, "1h")
         if df_h1 is not None and not df_h1.empty:
+            df_h1 = TrendEngine.calculate(df_h1, "1h")
             last = df_h1.iloc[-1]
             snapshot["h1"] = {
                 "last_candle_close": round(float(last["close"]), 4),

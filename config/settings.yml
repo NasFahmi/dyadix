@@ -1,10 +1,10 @@
 trading:
   pairs:
     - BTCUSDT
-    - XAUTUSDT
-    - SOLUSDT
-    - ETHUSDT
-    - BNBUSDT
+    # - XAUTUSDT
+    # - SOLUSDT
+    # - ETHUSDT
+    # - BNBUSDT
   correlation_pairs:
     - BTCUSDT
     - ETHUSDT
