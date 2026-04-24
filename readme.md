@@ -72,7 +72,8 @@ Dyadix is currently under active development. We are constantly striving to enha
 │     │   ├─ Sentiment: 30%                                      │
 │     │   ├─ Derivatives: 20%                                   │
 │     │   └─ Liquidity: 10%                                      │
-│     └─► Market Snapshot (M3/M5/M15/H1 precision)              │
+│     ├─► Market Snapshot (M3/M5/M15/H1 precision)              │
+│     └─► Candle Summary (LLM Narrative of recent OHLCV)         │
 ├─────────────────────────────────────────────────────────────────────┤
 │  5. FAST SIGNAL DETECTION (PRE-FILTER)                          │
 │     └─► Confluence Scoring (Technical, Liquidity, Sentiment)   │
@@ -120,6 +121,10 @@ Dyadix is currently under active development. We are constantly striving to enha
 - **Sweep Detection**: Liquidity sweep/fakeout detection
 
 ### 5. AI-Powered Decision Engine
+- **Multi-Layer LLM Architecture**: Uses up to 3 distinct LLMs to split workload efficiently:
+  - **News & Social LLM**: Analyzes market sentiment.
+  - **Candle Summary LLM**: Translates raw candlestick arrays into factual narratives to save tokens.
+  - **Decision LLM**: Acts as the main brain combining all contexts for the final decision.
 - **Multi-Provider LLM Support**: Groq, DeepSeek, Gemini, Local (Ollama)
 - **Structured JSON Output**: Type-safe decision parsing
 - **Confluence-Based Signals**: 3+ aligned factors required for BUY/SELL
@@ -241,6 +246,14 @@ BYBIT_SECRET_KEY=your_secret
 
 # LLM Configuration (choose one)
 LLM_PROVIDER=groq  # groq, deepseek, gemini, or local
+# Base model for everything
+LLM_MODEL=meta-llama/llama-4-scout-17b-16e-instruct
+
+# Optional Override for specific tasks (3-LLM Architecture)
+NEWS_SOCIAL_ANALYSIS_MODEL=meta-llama/llama-4-scout-17b-16e-instruct
+DECISION_LLM_MODEL=meta-llama/llama-4-scout-17b-16e-instruct
+LLM_SUMMARY_CANDLE_MODEL=meta-llama/llama-8b-instruct
+
 GROQ_API_KEY=your_groq_key
 # DEEPSEEK_API_KEY=your_deepseek_key
 # GEMINI_API_KEY=your_gemini_key

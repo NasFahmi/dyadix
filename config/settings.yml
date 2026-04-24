@@ -20,7 +20,6 @@ trading:
     - "1d"
 
 llm:
-  provider: "groq" # groq, gemini, local
   temperature: 0.25
   max_tokens: 1100
 

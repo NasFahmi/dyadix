@@ -179,10 +179,13 @@ class ContextBuilder:
                     pair, tech, sentiment, derivatives, liquidity, final_bias
                 )
 
+                current_market_session = self._get_market_session()
+
                 full_context[pair] = {
                     "timestamp": datetime.utcnow().isoformat(),
                     "pair": pair,
                     "current_price": tech.get("current_price"),
+                    "current_market_session": current_market_session,
                     "technical": {
                         "daily_bias": tech.get("daily_bias"),
                         "trend_h1": tech.get("trend_h1"),
@@ -207,7 +210,9 @@ class ContextBuilder:
                 )
 
             except Exception as e:
-                logger.error(f"❌ Failed to build full context for {pair}: {e}", exc_info=True)
+                logger.error(
+                    f"❌ Failed to build full context for {pair}: {e}", exc_info=True
+                )
                 full_context[pair] = {
                     "timestamp": datetime.utcnow().isoformat(),
                     "pair": pair,
@@ -220,7 +225,7 @@ class ContextBuilder:
 
     def _build_pair_technical(self, pair: str, tf_data: Dict) -> Dict:
         """Hitung semua engine teknikal untuk satu pair.
-        
+
         PENTING: Jangan mutate tf_data (cache) — selalu pakai copy OHLCV-only
         agar tidak terjadi duplikasi kolom indikator saat loop.
         """
@@ -239,7 +244,7 @@ class ContextBuilder:
         df_5m = _clean_df("5m")
         df_3m = _clean_df("3m")
         df_daily = _clean_df("1d")
-        
+
         current_price = float(df_5m["close"].iloc[-1]) if not df_5m.empty else None
 
         # Daily Bias
@@ -457,17 +462,21 @@ class ContextBuilder:
         trend = tech.get("trend_h1", {}).get("trend_regime", "Unknown")
         ob_h1 = tech.get("order_block_h1", {})
         ob_m15 = tech.get("order_block_m15", {})
-        
+
         ob_str = ""
         ob_parts = []
-        if ob_h1.get("nearest_bullish_ob"): ob_parts.append(f"Bull OB H1 {ob_h1['nearest_bullish_ob']['top']}")
-        if ob_h1.get("nearest_bearish_ob"): ob_parts.append(f"Bear OB H1 {ob_h1['nearest_bearish_ob']['bottom']}")
-        if ob_m15.get("nearest_bullish_ob"): ob_parts.append(f"Bull OB M15 {ob_m15['nearest_bullish_ob']['top']}")
-        if ob_m15.get("nearest_bearish_ob"): ob_parts.append(f"Bear OB M15 {ob_m15['nearest_bearish_ob']['bottom']}")
-        
+        if ob_h1.get("nearest_bullish_ob"):
+            ob_parts.append(f"Bull OB H1 {ob_h1['nearest_bullish_ob']['top']}")
+        if ob_h1.get("nearest_bearish_ob"):
+            ob_parts.append(f"Bear OB H1 {ob_h1['nearest_bearish_ob']['bottom']}")
+        if ob_m15.get("nearest_bullish_ob"):
+            ob_parts.append(f"Bull OB M15 {ob_m15['nearest_bullish_ob']['top']}")
+        if ob_m15.get("nearest_bearish_ob"):
+            ob_parts.append(f"Bear OB M15 {ob_m15['nearest_bearish_ob']['bottom']}")
+
         if ob_parts:
             ob_str = f" | {' & '.join(ob_parts)}"
-                
+
         parts.append(f"{pair} secara teknikal {t_bias} dengan trend H1 {trend}{ob_str}")
 
         # Sentiment
@@ -491,6 +500,24 @@ class ContextBuilder:
 
         parts.append(f"→ Final Bias: {final_bias}")
         return " | ".join(parts)
+
+    def _get_market_session(self) -> str:
+        """Mengidentifikasi sesi market global saat ini berdasarkan UTC."""
+        hour = datetime.utcnow().hour
+        if 1 <= hour < 7:
+            return "Asia"
+        elif 7 <= hour < 8:
+            return "Out Asia to London"
+        elif 8 <= hour < 12:
+            return "London"
+        elif 12 <= hour < 14:
+            return "Out London to NY"
+        elif 14 <= hour < 17:
+            return "New York & London Overlap"
+        elif 17 <= hour < 21:
+            return "New York"
+        else:
+            return "Out NY to Asia"
 
 
 # ─────────────────────────────────────────────

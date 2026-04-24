@@ -58,6 +58,11 @@ def get_llm_client(provider_type: str = "decision") -> BaseLLMClient:
             "NEWS_SOCIAL_ANALYSIS_MODEL",
             global_env_model or config.get("news_social_model", generic_config_model),
         )
+    elif provider_type == "candle_summary":
+        model = env.get(
+            "LLM_SUMMARY_CANDLE_MODEL",
+            global_env_model or config.get("candle_summary_model", generic_config_model),
+        )
     else:  # decision
         model = env.get(
             "DECISION_LLM_MODEL",
@@ -104,3 +109,8 @@ def get_decision_llm() -> BaseLLMClient:
 def get_news_social_llm() -> BaseLLMClient:
     """Shortcut: News + Social Analysis LLM"""
     return get_llm_client(provider_type="news_social")
+
+
+def get_candle_summary_llm() -> BaseLLMClient:
+    """Shortcut: Candlestick Data Summarizer LLM"""
+    return get_llm_client(provider_type="candle_summary")

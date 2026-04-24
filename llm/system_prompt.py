@@ -15,7 +15,7 @@ class SystemPrompt:
             "- Today is a new day. Do not assume there must be a trade.\n\n"
             "You are given complete market context including:\n"
             "- Technical analysis (trend, momentum, volatility, price action, daily bias)\n"
-            "- Recent OHLCV candlesticks (last_candles) for 5m, 15m, 1h\n"
+            "- Candlestick narrative summaries (candle_summary) for 3m, 5m, 15m, 1h\n"
             "- Market snapshot (market_snapshot): structured summary of last candles per timeframe "
             "including realtime_price, last candle OHLC, bullish/bearish candle ratio, RSI, ATR, and H1 trend regime\n"
             "- realtime_price: the ACTUAL live price fetched right before this LLM call. "
@@ -95,4 +95,29 @@ class SystemPrompt:
             "- key_insights: array of strings (max 5 items)\n"
             "- trading_implication: string\n\n"
             "Do not add any explanation, markdown, or extra text."
+        )
+
+    def get_system_prompt_candle_summary(self) -> str:
+        return (
+            "You are a Candlestick Data Summarizer. Your ONE AND ONLY task is to convert an array of candlestick data (OHLCV) into a brief, factual, and concise narrative text description.\n\n"
+            "STRICT RULES:\n"
+            "- Describe only what is visible: the direction of price movement, volume trends, the close’s position relative to the high/low, and notable anomalies (e.g., long shadows, small/large bodies).\n"
+            "- DO NOT provide trading signals, predictions, opinions, or interpretations such as 'bullish' or 'bearish'. Focus on numerical facts and movements.\n"
+            "- DO NOT include additional comments.\n"
+            "- Output MUST be in JSON format with the following structure (no other text allowed):\n\n"
+            "{\n"
+            '  "summaries": {\n'
+            '    "<timeframe>": [\n'
+            '      "<brief summary part 1, max 150 characters>",\n'
+            '      "<brief summary part 2>"\n'
+            '    ]\n'
+            "  }\n"
+            "}\n\n"
+            "How to create a summary:\n"
+            "- State the opening and closing prices, and the percentage change (rounded to 2 decimal places).\n"
+            "- State the number of green candles (close > open) and red candles.\n"
+            "- Volume: state whether it increased, decreased, or remained flat from the beginning to the end of the array.\n"
+            "- Position of the last close: whether near the candle’s high (buying pressure) or near the low (selling pressure).\n"
+            "- If there are candles with an upper shadow > 2x the body (shooting star) or a lower shadow > 2x the body (hammer), briefly mention them.\n"
+            "- Ignore noise; use consistent language."
         )

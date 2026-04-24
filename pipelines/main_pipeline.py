@@ -92,8 +92,8 @@ class MainPipeline:
                 results[pair] = ctx
                 continue
 
-            # Tambah last_candles ke context agar LLM bisa baca candlestick terbaru
-            ctx = self._inject_last_candles(ctx, market_data.get(pair, {}))
+            # Tambah LLM-generated candle summary
+            ctx = self._inject_candle_summary(ctx, market_data.get(pair, {}))
 
             # Tambah market snapshot (ringkasan candle M5/M15/H1 untuk precision entry)
             ctx = self._inject_market_snapshot(ctx, market_data.get(pair, {}))
@@ -210,30 +210,20 @@ class MainPipeline:
             }
         return derivatives
 
-    def _inject_last_candles(self, ctx: Dict, tf_data: Dict, n: int = 10) -> Dict:
+    def _inject_candle_summary(self, ctx: Dict, tf_data: Dict) -> Dict:
         """
-        Tambahkan data candlestick terbaru (OHLCV) ke dalam context
-        agar decision LLM bisa membaca struktur candle terakhir.
+        Panggil LLM summarizer untuk mengubah 10 raw candles terakhir
+        menjadi narasi singkat per timeframe.
         """
-        last_candles: Dict[str, Any] = {}
-        for tf in ["3m", "5m", "15m", "1h"]:
-            df = tf_data.get(tf, {}).get("aggregated", pd.DataFrame())
-            if df.empty:
-                continue
-            tail = df.tail(n).copy()
-            # Pastikan serializable
-            for col in ["timestamp"]:
-                if col in tail.columns:
-                    tail[col] = tail[col].astype(str)
-            cols = [
-                c
-                for c in ["timestamp", "open", "high", "low", "close", "volume"]
-                if c in tail.columns
-            ]
-            last_candles[tf] = tail[cols].to_dict(orient="records")
-
-        ctx["last_candles"] = last_candles
+        try:
+            from features.candle.candles_summary import CandleSummaryEngine
+            summary_result = CandleSummaryEngine.summarize(tf_data, n=10)
+            ctx["candle_summary"] = summary_result.get("summaries", {})
+        except Exception as e:
+            logger.warning(f"Candle summary build failed: {e}")
+            ctx["candle_summary"] = {}
         return ctx
+
 
     # ─────────────────────────────────────────────────────────────────
     #  DECISION LLM
@@ -271,17 +261,17 @@ class MainPipeline:
                 "decision": {
                     "type": "string",
                     "enum": ["BUY", "SELL", "HOLD", "WAIT"],
-                    "description": "Trading decision"
+                    "description": "Trading decision",
                 },
                 "rr_calculation": {
                     "type": "string",
-                    "description": "Step-by-step mathematical calculation for SL and Target based on ATR to ensure minimum 1:1.5 Risk/Reward ratio."
+                    "description": "Step-by-step mathematical calculation for SL and Target based on ATR to ensure minimum 1:1.5 Risk/Reward ratio.",
                 },
                 "confidence": {
                     "type": "number",
                     "minimum": 0,
                     "maximum": 1,
-                    "description": "Confidence level from 0.0 to 1.0"
+                    "description": "Confidence level from 0.0 to 1.0",
                 },
                 "bias": {
                     "type": "string",
@@ -290,63 +280,60 @@ class MainPipeline:
                         "Moderate Bullish",
                         "Neutral",
                         "Moderate Bearish",
-                        "Strong Bearish"
-                    ]
+                        "Strong Bearish",
+                    ],
                 },
                 "recommended_timeframe": {
                     "type": "string",
-                    "enum": ["M5", "M15", "H1", "Swing"]
+                    "enum": ["M5", "M15", "H1", "Swing"],
                 },
                 "entry_zone": {
                     "type": "string",
                     "maxLength": 80,
-                    "description": "Entry zone or condition"
+                    "description": "Entry zone or condition",
                 },
                 "invalidated_if": {
                     "type": "string",
                     "maxLength": 100,
-                    "description": "Condition that invalidates the setup"
+                    "description": "Condition that invalidates the setup",
                 },
                 "target": {
                     "type": "string",
                     "maxLength": 80,
-                    "description": "Target price or zone"
+                    "description": "Target price or zone",
                 },
                 "stop_loss": {
                     "type": "string",
                     "maxLength": 80,
-                    "description": "Stop loss level"
+                    "description": "Stop loss level",
                 },
                 "risk_reward": {
                     "type": "string",
                     "maxLength": 20,
-                    "description": "Risk to reward ratio (example: 1:2.5)"
+                    "description": "Risk to reward ratio (example: 1:2.5)",
                 },
                 "execution_type": {
                     "type": "string",
                     "enum": ["MARKET", "LIMIT"],
-                    "description": "MARKET if realtime_price is inside entry_zone, LIMIT if entry_zone requires a pullback"
+                    "description": "MARKET if realtime_price is inside entry_zone, LIMIT if entry_zone requires a pullback",
                 },
                 "expected_move": {
                     "type": "string",
                     "maxLength": 100,
-                    "description": "Expected price movement with timeframe (example: '+2.8% to +4.2% dalam 12 jam')"
+                    "description": "Expected price movement with timeframe (example: '+2.8% to +4.2% dalam 12 jam')",
                 },
                 "reason": {
                     "type": "string",
                     "maxLength": 75,
-                    "description": "Short, clear, and professional reasoning"
+                    "description": "Short, clear, and professional reasoning",
                 },
                 "key_risks": {
                     "type": "array",
-                    "items": {
-                        "type": "string",
-                        "maxLength": 80
-                    },
+                    "items": {"type": "string", "maxLength": 80},
                     "minItems": 1,
                     "maxItems": 3,
-                    "description": "List of key risks (maximum 3)"
-                }
+                    "description": "List of key risks (maximum 3)",
+                },
             },
             "required": [
                 "decision",
@@ -362,9 +349,9 @@ class MainPipeline:
                 "execution_type",
                 "expected_move",
                 "reason",
-                "key_risks"
+                "key_risks",
             ],
-            "additionalProperties": False
+            "additionalProperties": False,
         }
 
         try:
