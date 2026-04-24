@@ -25,7 +25,9 @@ class SystemPrompt:
             "- Sentiment (news, social, Fear & Greed, economic calendar with dates)\n"
             "- Derivatives (funding rate, open interest)\n"
             "- Liquidity (pools, sweeps, PDH/PDL)\n"
-            "- Correlation between pairs\n\n"
+            "- Correlation between pairs\n"
+            "Note: you do NOT receive raw OHLCV arrays. All candle information is pre-summarized in `candle_summary` "
+            "and `market_snapshot` (last candle OHLC only). This pre-processing eliminates noise and is sufficient for precise entry/exit.\n\n"
             "Strict Rules:\n"
             "- BUY or SELL signals are ONLY given if at least 3 strongly supportive factors align "
             "(e.g. technical bias + momentum + liquidity sweep + sentiment all pointing the same direction).\n"
@@ -44,13 +46,17 @@ class SystemPrompt:
             "If it has ALREADY PASSED, incorporate its impact into your bias.\n"
             "- Always account for the risk of liquidity sweeps and fakeouts before committing to a direction.\n"
             "- ALWAYS calculate your Stop Loss (SL) and Target (TP) distances using the ATR value from the market_snapshot.\n"
-            "- For example, set SL distance to 1.5x ATR, and set Target distance to at least 2.25x ATR. "
-            "This mathematically guarantees a 1:1.5 Risk/Reward ratio.\n"
-            "- CRITICAL: When defining an 'entry_zone' range, ensure your 1:1.5 RR ratio STILL HOLDS "
-            "at the worst possible price within that range. If it doesn't, narrow your entry zone or move your Target.\n"
-            "- In your 'rr_calculation', explicitly calculate the final ratio: Ratio = (Target Distance) / (SL Distance). It must be >= 1.5.\n"
+            "- The standard Risk/Reward framework: SL distance = 1.5x ATR, Target distance = 2.5x ATR. "
+            "This yields a Risk/Reward ratio of ≈1.67, which is above the 1.5 minimum.\n"
+            "- CRITICAL: When defining an 'entry_zone' range, use the WORST-CASE entry price within that range "
+            "(lowest price for BUY, highest for SELL) as the basis for SL/TP calculation. "
+            "The ratio must still be ≥1.5 at that worst-case price. If it isn't, narrow the entry zone until the condition is met.\n"
+            "- In your 'rr_calculation', explicitly show the steps using the worst-case entry. "
+            "Ratio = (Target Distance) / (SL Distance). It must be >= 1.5.\n"
             "- Do NOT force your Stop Loss to match the 'invalidated_if' level if it ruins your RR. "
             "SL MUST follow ATR calculation.\n"
+            "- 'invalidated_if' must describe a technical or market condition (e.g. 'price closes below 77650' or "
+            "'bearish engulfing on 5m'), not merely an ATR level. It can reference key_levels but does NOT override your ATR-based SL.\n"
             "- If market structure blocks the ATR-based Target, force the decision to WAIT.\n"
             "- execution_type: set to MARKET if realtime_price is already inside or very close to your entry_zone "
             "(user should execute immediately). Set to LIMIT if your entry_zone requires a pullback from realtime_price "
@@ -60,8 +66,9 @@ class SystemPrompt:
             "Required JSON format:\n"
             "{\n"
             '  "decision": "BUY" or "SELL" or "HOLD" or "WAIT",\n'
-            '  "rr_calculation": "Step 1: realtime_price is X. Step 2: ATR is Y. '
-            "Step 3: SL = X - 1.5*Y = Z. Step 4: Target = X + 2.5*Y = W. "
+            '  "rr_calculation": "Step 1: worst-case entry in zone = X. Step 2: ATR = Y. '
+            "Step 3: SL = X - 1.5*Y = Z (BUY) or X + 1.5*Y = Z (SELL). "
+            "Step 4: Target = X + 2.5*Y = W (BUY) or X - 2.5*Y = W (SELL). "
             'Step 5: Ratio = (W-X)/(X-Z) = R. R >= 1.5? Yes/No",\n'
             '  "confidence": 0.0 to 1.0,\n'
             '  "bias": "Strong Bullish" or "Moderate Bullish" or "Neutral" or "Moderate Bearish" or "Strong Bearish",\n'
@@ -110,7 +117,7 @@ class SystemPrompt:
             '    "<timeframe>": [\n'
             '      "<brief summary part 1, max 150 characters>",\n'
             '      "<brief summary part 2>"\n'
-            '    ]\n'
+            "    ]\n"
             "  }\n"
             "}\n\n"
             "How to create a summary:\n"
