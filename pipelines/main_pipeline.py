@@ -38,6 +38,9 @@ class MainPipeline:
 
         self.market_service = MarketService()
         self.context_builder = ContextBuilder()
+        
+        from pipelines.decision_logger import DecisionLogger
+        self.decision_logger = DecisionLogger()
 
         # Pastikan timeframe 1d selalu ada untuk daily bias
         if "1d" not in self.market_service.timeframes:
@@ -113,6 +116,9 @@ class MainPipeline:
                 "decision": decision,
             }
 
+            # ── Save Decision to Database ─────────────────────────────
+            self.decision_logger.log_decision(pair, ctx.get("signal_detector_result", {}), decision)
+
             logger.info(
                 f"  ✅ {pair} → {decision.get('decision')} | "
                 f"Confidence: {decision.get('confidence')} | "
@@ -147,11 +153,20 @@ class MainPipeline:
             fear_greed=sentiment_ctx.get("fear_and_greed"),
         )
 
-        return SentimentEngine.aggregate(
+        result = SentimentEngine.aggregate(
             llm_result=llm_result,
             fear_greed_data=sentiment_ctx.get("fear_and_greed"),
             economic_data=sentiment_ctx.get("economic_calendar"),
         )
+
+        # ── Save to Database (Modular via Repository) ─────────────
+        try:
+            from db.repository.sentiment_repository import SentimentRepository
+            SentimentRepository.save_sentiment(result, asset="BTC")
+        except Exception as e:
+            logger.warning(f"Failed to use SentimentRepository: {e}")
+
+        return result
 
     def _build_correlation(self, market_data: Dict) -> Dict:
         """Hitung return-based correlation antar pair."""

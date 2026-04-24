@@ -160,6 +160,11 @@ class LoopScheduler:
                 logger.error(f"  ❌ {pair} context error: {ctx.get('error')}")
                 continue
 
+            # ── Check if pair already has a running trade in DB ──
+            if self._has_active_trade(pair):
+                logger.info(f"  🚫 {pair} → Skipped: Active trade still running in database")
+                continue
+
             # Inject last candles dan market snapshot
             ctx = self._inject_extra_context(ctx, market_data.get(pair, {}))
 
@@ -531,3 +536,24 @@ class LoopScheduler:
         end_time = time.time() + seconds
         while time.time() < end_time and self.running:
             time.sleep(min(1.0, end_time - time.time()))
+
+    def _has_active_trade(self, pair: str) -> bool:
+        """Cek ke database apakah ada trade yang statusnya RUNNING untuk pair ini."""
+        try:
+            from db.database import SessionLocal
+            from db.models import Trade, TradeStatus
+            
+            db = SessionLocal()
+            try:
+                active_trade = db.query(Trade).filter(
+                    Trade.pair == pair,
+                    Trade.status == TradeStatus.RUNNING
+                ).first()
+                return active_trade is not None
+            except Exception as e:
+                logger.error(f"Error checking active trade in DB: {e}")
+                return False
+            finally:
+                db.close()
+        except ImportError:
+            return False

@@ -38,3 +38,8 @@ scheduler:
 signal_detector:
   min_confidence: 0.40 # Threshold minimum untuk memanggil LLM
   cooldown_seconds: 900 # 15 menit cooldown per pair setelah LLM call
+
+database:
+  pool_size: 5
+  max_overflow: 10
+  pool_timeout: 30

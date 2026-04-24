@@ -18,7 +18,7 @@ Hanya data yang sudah expired akan di-refetch, sisanya pakai cache.
 import time
 import logging
 import pandas as pd
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from datetime import datetime
 
 from config.settings import get_config
@@ -34,14 +34,14 @@ class DataManager:
 
     # Default intervals (bisa di-override dari settings.yml)
     DEFAULT_INTERVALS = {
-        "ohlcv_fast": 60,        # M3 & M5: setiap 60 detik
-        "ohlcv_m15": 90,         # M15: setiap 90 detik
-        "ohlcv_h1": 180,         # H1: setiap 3 menit
-        "ohlcv_daily": 3600,     # Daily: setiap 1 jam
-        "funding_rate": 60,      # Funding Rate: setiap 60 detik
-        "open_interest": 120,    # OI: setiap 2 menit
-        "correlation": 120,      # Correlation: setiap 2 menit
-        "sentiment": 900,        # Sentiment: setiap 15 menit
+        "ohlcv_fast": 60,  # M3 & M5: setiap 60 detik
+        "ohlcv_m15": 90,  # M15: setiap 90 detik
+        "ohlcv_h1": 180,  # H1: setiap 3 menit
+        "ohlcv_daily": 3600,  # Daily: setiap 1 jam
+        "funding_rate": 60,  # Funding Rate: setiap 60 detik
+        "open_interest": 120,  # OI: setiap 2 menit
+        "correlation": 120,  # Correlation: setiap 2 menit
+        "sentiment": 900,  # Sentiment: setiap 15 menit
     }
 
     MARKET_DATA_LIMIT = 250  # candle per timeframe
@@ -66,15 +66,16 @@ class DataManager:
         trading_config = config.get("trading", {})
         self.pairs: List[str] = trading_config.get("pairs") or ["BTCUSDT"]
         self.correlation_pairs: List[str] = trading_config.get("correlation_pairs", [])
-        self.timeframes: List[str] = trading_config.get("timeframes", ["3m", "5m", "15m", "1h"])
+        self.timeframes: List[str] = trading_config.get(
+            "timeframes", ["3m", "5m", "15m", "1h"]
+        )
 
         # Pastikan 1d ada untuk daily bias
         if "1d" not in self.timeframes:
             self.timeframes.append("1d")
 
         logger.info(
-            f"DataManager initialized | "
-            f"pairs={self.pairs} | intervals={self.intervals}"
+            f"DataManager initialized | pairs={self.pairs} | intervals={self.intervals}"
         )
 
     # ─────────────────────────────────────────────────────────────────────
@@ -85,13 +86,17 @@ class DataManager:
     def market_service(self):
         if self._market_service is None:
             from service.market.market_service import MarketService
+
             self._market_service = MarketService()
         return self._market_service
 
     @property
     def derivatives_service(self):
         if self._derivatives_service is None:
-            from service.market.binance.binance_derivatives import BinanceDerivativesService
+            from service.market.binance.binance_derivatives import (
+                BinanceDerivativesService,
+            )
+
             self._derivatives_service = BinanceDerivativesService()
         return self._derivatives_service
 
@@ -240,9 +245,7 @@ class DataManager:
                 "age_seconds": round(age, 1) if age >= 0 else None,
                 "interval_seconds": interval,
                 "is_stale": self.is_stale(key),
-                "next_refresh_in": round(max(0, interval - age), 1)
-                if age >= 0
-                else 0,
+                "next_refresh_in": round(max(0, interval - age), 1) if age >= 0 else 0,
             }
         return status
 
@@ -287,7 +290,9 @@ class DataManager:
                         "last_updated": datetime.utcnow(),
                     }
 
-                    logger.debug(f"✓ {pair} {tf} refreshed | Rows: {len(df_aggregated)}")
+                    logger.debug(
+                        f"✓ {pair} {tf} refreshed | Rows: {len(df_aggregated)}"
+                    )
 
                 except Exception as e:
                     logger.error(f"❌ Failed to fetch {pair} {tf}: {e}")
@@ -374,9 +379,7 @@ class DataManager:
                 logger.warning("No market data for correlation calculation")
                 return
 
-            result = calculate_correlation(
-                market_data, timeframe="1h", lookback=120
-            )
+            result = calculate_correlation(market_data, timeframe="1h", lookback=120)
 
             if result.get("error"):
                 logger.warning(f"Correlation skipped: {result['error']}")
@@ -425,6 +428,13 @@ class DataManager:
 
             self._cache["sentiment_result"] = result
             self.set_cache("sentiment", True)
+
+            # ── Save to Database (Modular via Repository) ─────────────
+            try:
+                from db.repository.sentiment_repository import SentimentRepository
+                SentimentRepository.save_sentiment(result, asset="BTC")
+            except Exception as e:
+                logger.warning(f"Failed to use SentimentRepository: {e}")
 
             logger.info(
                 f"✅ Sentiment refreshed → {result.get('overall_sentiment')} "
