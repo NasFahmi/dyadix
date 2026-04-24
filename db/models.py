@@ -1,7 +1,8 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Enum, ForeignKey
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Column, String, Float, DateTime, Enum, ForeignKey
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 import enum
+import uuid
 from datetime import datetime
 from db.database import Base
 
@@ -23,7 +24,7 @@ class TradeStatus(enum.Enum):
 class Sentiment(Base):
     __tablename__ = "sentiments"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     timestamp = Column(DateTime, default=datetime.utcnow, index=True)
     asset = Column(String, index=True)
     source_type = Column(Enum(SourceType))
@@ -34,7 +35,7 @@ class Sentiment(Base):
 class Decision(Base):
     __tablename__ = "decisions"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     timestamp = Column(DateTime, default=datetime.utcnow, index=True)
     pair = Column(String, index=True)
     action = Column(Enum(ActionType))
@@ -49,8 +50,8 @@ class Decision(Base):
 class Trade(Base):
     __tablename__ = "trades"
 
-    id = Column(Integer, primary_key=True, index=True)
-    decision_id = Column(Integer, ForeignKey("decisions.id"))
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    decision_id = Column(UUID(as_uuid=True), ForeignKey("decisions.id"))
     exchange_order_id = Column(String, nullable=True, index=True)
     pair = Column(String, index=True)
     status = Column(Enum(TradeStatus), default=TradeStatus.RUNNING, index=True)
