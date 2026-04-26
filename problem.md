@@ -26,3 +26,8 @@ news
 1. di segment sentiment News masih tidak terlalu bagus dikarenakan dia cuma analysis by judul saja, bukan context yang mendalam, utnung utnung ada beberapa sumber yang memberikan summary, maka kedepannya akan ada project next khsusus untuk get news dan analysis by LLM
 
 2. ketika menggunakan non local AI selalu kena max token, karena memang perlu banyak token yang digunakna untuk sekali analysis
+
+
+
+26 04 2026
+setelah ada pair yang running misalakan dari 5 ada 1 pair yang running looping tidak berjalan, stuck menunggu hasil dari pair yang running itu selesai, baru looping di lanjutkan

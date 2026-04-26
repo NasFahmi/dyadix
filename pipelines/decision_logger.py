@@ -35,7 +35,7 @@ class DecisionLogger:
         os.makedirs(self.LOG_DIR, exist_ok=True)
 
     def log_decision(
-        self, pair: str, signal_result: Dict, decision: Dict
+        self, pair: str, signal_result: Dict, decision: Dict, full_context: Optional[Dict] = None
     ) -> None:
         """Log ketika LLM dipanggil dan memberikan decision."""
         now = datetime.utcnow()
@@ -72,6 +72,18 @@ class DecisionLogger:
             
             db = SessionLocal()
             try:
+                # Prepare rich context for autopsy
+                autopsy_context = {
+                    "signal_detector_result": entry.get("signal"),
+                    "technical": full_context.get("technical") if full_context else None,
+                    "sentiment": full_context.get("sentiment") if full_context else None,
+                    "market_snapshot": full_context.get("market_snapshot") if full_context else None,
+                    "candle_summary": full_context.get("candle_summary") if full_context else None,
+                    "derivatives": full_context.get("derivatives") if full_context else None,
+                    "liquidity": full_context.get("liquidity") if full_context else None,
+                    "rr_calculation": decision.get("rr_calculation")
+                }
+
                 # 1. Save Decision
                 new_decision = Decision(
                     pair=pair,
@@ -80,7 +92,7 @@ class DecisionLogger:
                     stop_loss=float(decision.get("stop_loss")) if decision.get("stop_loss") and str(decision.get("stop_loss")).replace('.','',1).isdigit() else None,
                     take_profit=float(decision.get("target")) if decision.get("target") and str(decision.get("target")).replace('.','',1).isdigit() else None,
                     entry_reason=decision.get("reason"),
-                    llm_context=entry.get("signal") # Log signal metadata as context
+                    llm_context=autopsy_context # Log rich context for autopsy
                 )
                 db.add(new_decision)
                 db.flush() # Get ID for FK
@@ -98,7 +110,7 @@ class DecisionLogger:
                     logger.info(f"🚀 New RUNNING trade created for {pair}")
 
                 db.commit()
-                logger.info("✅ Decision saved to PostgreSQL")
+                logger.info("✅ Decision with rich context saved to PostgreSQL")
             except Exception as db_err:
                 logger.error(f"Failed to save decision to DB: {db_err}")
                 db.rollback()

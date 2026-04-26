@@ -1,16 +1,16 @@
 trading:
   pairs:
     - BTCUSDT
-    # - XAUTUSDT
-    # - SOLUSDT
+    - LTCUSDT
+    - SOLUSDT
     # - ETHUSDT
-    # - BNBUSDT
+    # - XRPUSDT
   correlation_pairs:
     - BTCUSDT
     - ETHUSDT
     - SOLUSDT
-    - BNBUSDT
-    - ARBUSDT
+    # - XRPUSDT
+    # - LTCUSDT
   active_session: "london_ny" # marker untuk logic session
   timeframes:
     - "3m"

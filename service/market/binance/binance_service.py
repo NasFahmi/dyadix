@@ -24,6 +24,7 @@ class BinanceService:
             'secret': self.secret_key,
             'enableRateLimit': True,
             'options': {
+                'defaultType': 'future', # Set to USDT-M Futures
                 'adjustForTimeDifference': True,
                 'recvWindow': 60000,
             }

@@ -44,6 +44,7 @@ class LoopScheduler:
         from pipelines.signal_detector import SignalDetector
         from pipelines.decision_logger import DecisionLogger
         from bot.telegram import TelegramNotifier
+        from service.trade_monitor import TradeMonitor
 
         config = get_config()
         scheduler_config = config.get("scheduler", {})
@@ -60,6 +61,7 @@ class LoopScheduler:
             cooldown_seconds=detector_config.get("cooldown_seconds", 900)
         )
         self.telegram = TelegramNotifier()
+        self.trade_monitor = TradeMonitor()
 
         self.running = True
         self.cycle_count = 0
@@ -122,6 +124,12 @@ class LoopScheduler:
             f"  Cycle #{self.cycle_count} started at {datetime.utcnow().strftime('%H:%M:%S')} UTC"
         )
         logger.info(f"{'─' * 50}")
+
+        # ── Step 0: Monitor running trades ──────────────────────────
+        try:
+            self.trade_monitor.check_trades()
+        except Exception as e:
+            logger.error(f"Trade monitor error: {e}")
 
         # ── Step 1: Refresh stale data ────────────────────────────────
         refreshed = self.data_manager.refresh_stale_data()
@@ -216,7 +224,7 @@ class LoopScheduler:
             decision = self._call_decision_llm(ctx)
             llm_calls += 1
 
-            self.decision_logger.log_decision(pair, signal_result, decision)
+            self.decision_logger.log_decision(pair, signal_result, decision, ctx)
 
             # Notify Telegram: decision result (with realtime price)
             telegram_sent = self.telegram.notify_decision(pair, signal_result, decision, realtime_price)
