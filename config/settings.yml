@@ -1,17 +1,19 @@
 trading:
   pairs:
     - BTCUSDT
-    - LTCUSDT
+    - LINKUSDT
     - SOLUSDT
-    # - ETHUSDT
-    # - XRPUSDT
+    - ETHUSDT
+    - XRPUSDT
   correlation_pairs:
     - BTCUSDT
     - ETHUSDT
     - SOLUSDT
-    # - XRPUSDT
-    # - LTCUSDT
+    - XRPUSDT
+    - LINKUSDT
   active_session: "london_ny" # marker untuk logic session
+  risk_per_trade: 0.01 # 1% dari saldo
+  leverage: 1          # Default 1x (tanpa leverage)
   timeframes:
     - "3m"
     - "5m"
