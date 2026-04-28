@@ -44,7 +44,7 @@ class LoopScheduler:
         from pipelines.signal_detector import SignalDetector
         from pipelines.decision_logger import DecisionLogger
         from bot.telegram import TelegramNotifier
-        from service.trade_monitor import TradeMonitor
+
 
         config = get_config()
         scheduler_config = config.get("scheduler", {})
@@ -61,7 +61,7 @@ class LoopScheduler:
             cooldown_seconds=detector_config.get("cooldown_seconds", 900)
         )
         self.telegram = TelegramNotifier()
-        self.trade_monitor = TradeMonitor()
+
 
         self.running = True
         self.cycle_count = 0
@@ -125,11 +125,7 @@ class LoopScheduler:
         )
         logger.info(f"{'─' * 50}")
 
-        # ── Step 0: Monitor running trades ──────────────────────────
-        try:
-            self.trade_monitor.check_trades()
-        except Exception as e:
-            logger.error(f"Trade monitor error: {e}")
+
 
         # ── Step 1: Refresh stale data ────────────────────────────────
         refreshed = self.data_manager.refresh_stale_data()
@@ -168,10 +164,7 @@ class LoopScheduler:
                 logger.error(f"  ❌ {pair} context error: {ctx.get('error')}")
                 continue
 
-            # ── Check if pair already has a running trade in DB ──
-            if self._has_active_trade(pair):
-                logger.info(f"  🚫 {pair} → Skipped: Active trade still running in database")
-                continue
+
 
             # Inject last candles dan market snapshot
             ctx = self._inject_extra_context(ctx, market_data.get(pair, {}))
@@ -547,23 +540,4 @@ class LoopScheduler:
         while time.time() < end_time and self.running:
             time.sleep(min(1.0, end_time - time.time()))
 
-    def _has_active_trade(self, pair: str) -> bool:
-        """Cek ke database apakah ada trade yang statusnya RUNNING untuk pair ini."""
-        try:
-            from db.database import SessionLocal
-            from db.models import Trade, TradeStatus
-            
-            db = SessionLocal()
-            try:
-                active_trade = db.query(Trade).filter(
-                    Trade.pair == pair,
-                    Trade.status == TradeStatus.RUNNING
-                ).first()
-                return active_trade is not None
-            except Exception as e:
-                logger.error(f"Error checking active trade in DB: {e}")
-                return False
-            finally:
-                db.close()
-        except ImportError:
-            return False
+

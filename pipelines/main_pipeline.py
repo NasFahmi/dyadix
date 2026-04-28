@@ -159,12 +159,7 @@ class MainPipeline:
             economic_data=sentiment_ctx.get("economic_calendar"),
         )
 
-        # ── Save to Database (Modular via Repository) ─────────────
-        try:
-            from db.repository.sentiment_repository import SentimentRepository
-            SentimentRepository.save_sentiment(result, asset="BTC")
-        except Exception as e:
-            logger.warning(f"Failed to use SentimentRepository: {e}")
+
 
         return result
 

@@ -65,59 +65,7 @@ class DecisionLogger:
 
         self._append_entry(entry)
 
-        # ── Save to Database ──────────────────────────────────────
-        try:
-            from db.database import SessionLocal
-            from db.models import Decision, Trade, ActionType, TradeStatus
-            
-            db = SessionLocal()
-            try:
-                # Prepare rich context for autopsy
-                autopsy_context = {
-                    "signal_detector_result": entry.get("signal"),
-                    "technical": full_context.get("technical") if full_context else None,
-                    "sentiment": full_context.get("sentiment") if full_context else None,
-                    "market_snapshot": full_context.get("market_snapshot") if full_context else None,
-                    "candle_summary": full_context.get("candle_summary") if full_context else None,
-                    "derivatives": full_context.get("derivatives") if full_context else None,
-                    "liquidity": full_context.get("liquidity") if full_context else None,
-                    "rr_calculation": decision.get("rr_calculation")
-                }
 
-                # 1. Save Decision
-                new_decision = Decision(
-                    pair=pair,
-                    action=ActionType(decision.get("decision", "HOLD")),
-                    confidence=float(decision.get("confidence", 0)),
-                    stop_loss=float(decision.get("stop_loss")) if decision.get("stop_loss") and str(decision.get("stop_loss")).replace('.','',1).isdigit() else None,
-                    take_profit=float(decision.get("target")) if decision.get("target") and str(decision.get("target")).replace('.','',1).isdigit() else None,
-                    entry_reason=decision.get("reason"),
-                    llm_context=autopsy_context # Log rich context for autopsy
-                )
-                db.add(new_decision)
-                db.flush() # Get ID for FK
-                
-                # 2. If Decision is BUY/SELL, create a RUNNING Trade
-                if new_decision.action in [ActionType.BUY, ActionType.SELL]:
-                    new_trade = Trade(
-                        decision_id=new_decision.id,
-                        pair=pair,
-                        status=TradeStatus.RUNNING,
-                        entry_price=0.0, # Will be updated by execution service later
-                        opened_at=now
-                    )
-                    db.add(new_trade)
-                    logger.info(f"🚀 New RUNNING trade created for {pair}")
-
-                db.commit()
-                logger.info("✅ Decision with rich context saved to PostgreSQL")
-            except Exception as db_err:
-                logger.error(f"Failed to save decision to DB: {db_err}")
-                db.rollback()
-            finally:
-                db.close()
-        except ImportError:
-            logger.warning("Database module not found, skipping DB save")
 
         logger.info(
             f"📝 Decision logged: {pair} → {decision.get('decision')} "
