@@ -25,12 +25,11 @@ class DeepseekClient(BaseLLMClient):
     def __init__(self, model: str = "deepseek-chat"):
         api_key = os.getenv("DEEPSEEK_API_KEY")
         if not api_key:
-            raise ValueError("DEEPSEEK_API_KEY tidak ditemukan di environment variables")
+            raise ValueError(
+                "DEEPSEEK_API_KEY tidak ditemukan di environment variables"
+            )
 
-        self.client = OpenAI(
-            api_key=api_key, 
-            base_url="https://api.deepseek.com"
-        )
+        self.client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
         self.model = model
 
     def generate(self, system_prompt: str, user_input: str) -> Dict[str, Any]:
@@ -44,10 +43,13 @@ class DeepseekClient(BaseLLMClient):
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_input},
                 ],
+                extra_body={
+                    "thinking": {"type": "disabled"}  # ⚡ Nonaktifkan mode Thinking
+                },
                 temperature=0.25,
                 max_tokens=1000,
                 top_p=0.95,
-                stream=False
+                stream=False,
             )
 
             return {
@@ -73,6 +75,9 @@ class DeepseekClient(BaseLLMClient):
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_input},
                 ],
+                extra_body={
+                    "thinking": {"type": "disabled"}  # ⚡ Nonaktifkan mode Thinking
+                },
                 temperature=0.2,
                 max_tokens=1000,
                 response_format={"type": "json_object"},
@@ -112,6 +117,9 @@ class DeepseekClient(BaseLLMClient):
                 model=self.model,
                 messages=[{"role": "user", "content": "Hello"}],
                 max_tokens=10,
+                extra_body={
+                    "thinking": {"type": "disabled"}  # ⚡ Nonaktifkan mode Thinking
+                },
             )
             return bool(response.choices)
         except Exception as e:

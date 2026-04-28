@@ -1,7 +1,6 @@
 trading:
   pairs:
     - BTCUSDT
-    - LINKUSDT
     - SOLUSDT
     - ETHUSDT
     - XRPUSDT
@@ -10,10 +9,9 @@ trading:
     - ETHUSDT
     - SOLUSDT
     - XRPUSDT
-    - LINKUSDT
   active_session: "london_ny" # marker untuk logic session
   risk_per_trade: 0.01 # 1% dari saldo
-  leverage: 1          # Default 1x (tanpa leverage)
+  leverage: 1 # Default 1x (tanpa leverage)
   timeframes:
     - "3m"
     - "5m"
@@ -35,11 +33,11 @@ scheduler:
     funding_rate: 60 # Funding Rate
     open_interest: 120 # Open Interest (2 menit)
     correlation: 120 # Correlation (2 menit)
-    sentiment: 900 # Sentiment/News/Social (15 menit)
+    sentiment: 1200 # Sentiment/News/Social (15 menit)
 
 signal_detector:
   min_confidence: 0.40 # Threshold minimum untuk memanggil LLM
-  cooldown_seconds: 900 # 15 menit cooldown per pair setelah LLM call
+  cooldown_seconds: 1200 # 15 menit cooldown per pair setelah LLM call
 
 database:
   pool_size: 5
