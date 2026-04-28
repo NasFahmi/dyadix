@@ -124,7 +124,14 @@ class DecisionLogger:
             f"(confidence {decision.get('confidence')})"
         )
 
-    def log_telegram_sent(self, pair: str, signal_result: Dict, decision: Dict, realtime_price: float = 0.0) -> None:
+    def log_telegram_sent(
+        self,
+        pair: str,
+        signal_result: Dict,
+        decision: Dict,
+        realtime_price: float = 0.0,
+        payload: Optional[Dict] = None,
+    ) -> None:
         """Log decision yang berhasil dikirim ke Telegram (file terpisah) dengan format sedetail Telegram."""
         now = datetime.utcnow()
         entry = {
@@ -137,7 +144,7 @@ class DecisionLogger:
                 "confidence": signal_result.get("confidence", 0),
                 "bull_score": signal_result.get("scores", {}).get("bullish", 0),
                 "bear_score": signal_result.get("scores", {}).get("bearish", 0),
-                "reasons": signal_result.get("reasons", [])
+                "reasons": signal_result.get("reasons", []),
             },
             "decision": {
                 "action": decision.get("decision", "N/A"),
@@ -153,8 +160,9 @@ class DecisionLogger:
                 "expected_move": decision.get("expected_move", "N/A"),
                 "reason": decision.get("reason", "N/A"),
                 "invalidated_if": decision.get("invalidated_if", "N/A"),
-                "key_risks": decision.get("key_risks", [])
-            }
+                "key_risks": decision.get("key_risks", []),
+            },
+            "payload": payload if payload else {},
         }
 
         date_str = now.strftime("%Y%m%d")

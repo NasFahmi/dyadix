@@ -1,9 +1,9 @@
 trading:
   pairs:
     - BTCUSDT
-    - SOLUSDT
-    - ETHUSDT
-    - XRPUSDT
+    # - SOLUSDT
+    # - ETHUSDT
+    # - XRPUSDT
   correlation_pairs:
     - BTCUSDT
     - ETHUSDT
