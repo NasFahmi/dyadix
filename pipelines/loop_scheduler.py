@@ -127,6 +127,18 @@ class LoopScheduler:
 
 
 
+        # ── Step 0: Check Active Session ──────────────────────────────
+        from config.settings import get_config
+        from utils.session_checker import is_active_session
+        
+        config = get_config()
+        trading_config = config.get("trading", {})
+        active_session = trading_config.get("active_session", "all")
+        
+        if not is_active_session(active_session):
+            logger.info(f"⏳ Outside active session ('{active_session}'). Sleeping...")
+            return
+
         # ── Step 1: Refresh stale data ────────────────────────────────
         refreshed = self.data_manager.refresh_stale_data()
 
