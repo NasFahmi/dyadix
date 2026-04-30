@@ -128,7 +128,7 @@ class EnhancedNewsScraper:
         # "coindesk": "https://www.coindesk.com/arc/outboundfeeds/rss/",
         "cointelegraph": "https://cointelegraph.com/rss",
         "decrypt": "https://decrypt.co/feed",
-        "cryptoslate": "https://cryptoslate.com/feed/",
+        # "cryptoslate": "https://cryptoslate.com/feed/",
         "blockworks": "https://blockworks.co/feed/",
         "bitcoinmagazine": "https://bitcoinmagazine.com/.rss/full/",
         "cryptonews": "https://cryptonews.com/news/feed/",
@@ -258,37 +258,35 @@ class EnhancedNewsScraper:
             return cached
 
         try:
-            # Biarkan yfinance menggunakan internal curl_cffi session mereka sendiri
-            ticker = yf.Ticker(ticker_symbol)
-            news = ticker.news
+            # Menggunakan RSS Feed Yahoo Finance dan curl_cffi untuk bypass rate-limiting API yfinance
+            from curl_cffi import requests as curl_requests
+
+            url = f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={ticker_symbol}&region=US&lang=en-US"
+
+            response = curl_requests.get(url, impersonate="chrome110", timeout=15)
+
+            if response.status_code != 200:
+                raise Exception(f"HTTP {response.status_code} - {response.reason}")
+
+            feed = feedparser.parse(response.content)
             articles = []
 
-            for item in news[:max_articles]:
-                content = item.get("content", {})
-                title = content.get("title", "").strip()
-                link = content.get("canonicalUrl", {}).get("url", "")
+            for entry in feed.entries[:max_articles]:
+                title = entry.get("title", "").strip()
+                link = entry.get("link", "")
                 if not title or not link:
                     continue
 
-                pub_date_raw = content.get("pubDate")
-                pub_date_iso = ""
-                if isinstance(pub_date_raw, str):
-                    try:
-                        dt = datetime.fromisoformat(pub_date_raw.replace("Z", "+00:00"))
-                        pub_date_iso = dt.isoformat()
-                    except ValueError:
-                        pub_date_iso = pub_date_raw
-                elif isinstance(pub_date_raw, (int, float)):
-                    pub_date_iso = datetime.fromtimestamp(
-                        pub_date_raw / 1000
-                    ).isoformat()
+                published = entry.get("published", entry.get("updated", ""))
 
                 articles.append(
                     {
                         "title": title,
                         "link": link,
-                        "published": pub_date_iso,
-                        "summary": self._clean_html(content.get("summary", "")),
+                        "published": published,
+                        "summary": self._clean_html(
+                            entry.get("summary", entry.get("description", ""))
+                        ),
                         "source": source_name,
                         "fetched_at": datetime.now().isoformat(),
                     }
