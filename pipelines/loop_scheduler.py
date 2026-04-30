@@ -64,6 +64,8 @@ class LoopScheduler:
 
 
         self.running = True
+        self.paused = False
+        self.force_start = False
         self.cycle_count = 0
         self._start_time = None
 
@@ -78,6 +80,9 @@ class LoopScheduler:
         signal_module.signal(signal_module.SIGTERM, self._handle_shutdown)
 
         self._start_time = time.time()
+
+        # Start Telegram polling
+        self.telegram.start_polling(self._handle_telegram_command)
 
         print("\n" + "=" * 60)
         print("  🚀 DYADIX DSS — Continuous Mode Started")
@@ -127,17 +132,22 @@ class LoopScheduler:
 
 
 
-        # ── Step 0: Check Active Session ──────────────────────────────
-        from config.settings import get_config
-        from utils.session_checker import is_active_session
-        
-        config = get_config()
-        trading_config = config.get("trading", {})
-        active_session = trading_config.get("active_session", "all")
-        
-        if not is_active_session(active_session):
-            logger.info(f"⏳ Outside active session ('{active_session}'). Sleeping...")
+        # ── Step 0: Check Active Session / State ──────────────────────
+        if self.paused:
+            logger.info("⏸️ Bot is stopped via Telegram command. Sleeping...")
             return
+
+        if not self.force_start:
+            from config.settings import get_config
+            from utils.session_checker import is_active_session
+            
+            config = get_config()
+            trading_config = config.get("trading", {})
+            active_session = trading_config.get("active_session", "all")
+            
+            if not is_active_session(active_session):
+                logger.info(f"⏳ Outside active session ('{active_session}'). Sleeping...")
+                return
 
         # ── Step 1: Refresh stale data ────────────────────────────────
         refreshed = self.data_manager.refresh_stale_data()
@@ -545,6 +555,53 @@ class LoopScheduler:
         """Handle Ctrl+C gracefully."""
         logger.info("\n⚠️  Shutdown signal received. Finishing current cycle...")
         self.running = False
+        self.telegram.stop_polling()
+
+    def _handle_telegram_command(self, command: str):
+        """Handle telegram command asynchronously."""
+        if command == "start":
+            self.paused = False
+            self.force_start = True
+            logger.info("Bot started via Telegram (Force Start)")
+            self.telegram.send_message("▶️ <b>Bot Started (Forced)</b>\nSiklus trading berjalan mengabaikan jadwal sesi.")
+        elif command == "stop":
+            self.paused = True
+            self.force_start = False
+            logger.info("Bot stopped via Telegram")
+            self.telegram.send_message("⏸️ <b>Bot Stopped</b>\nSiklus trading dihentikan sementara.")
+        elif command == "auto":
+            self.paused = False
+            self.force_start = False
+            logger.info("Bot set to auto via Telegram")
+            self.telegram.send_message("🔄 <b>Bot Set to Auto</b>\nSiklus trading berjalan mengikuti jadwal sesi.")
+        elif command == "status":
+            uptime = time.time() - self._start_time if self._start_time else 0
+            summary = self.decision_logger.get_today_summary()
+            
+            hours, rem = divmod(uptime, 3600)
+            minutes, seconds = divmod(rem, 60)
+            uptime_str = f"{int(hours)}h {int(minutes)}m {int(seconds)}s"
+            
+            if self.paused:
+                state_str = "⏸️ Paused"
+            elif self.force_start:
+                state_str = "▶️ Forced Start"
+            else:
+                state_str = "🔄 Auto (Session)"
+                
+            msg = (
+                f"📊 <b>DYADIX STATUS</b>\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"<b>State:</b> {state_str}\n"
+                f"<b>Uptime:</b> {uptime_str}\n"
+                f"<b>Total Cycles:</b> {self.cycle_count}\n"
+                f"\n"
+                f"<b>LLM Calls:</b> {summary.get('llm_calls', 0)}\n"
+                f"<b>Decisions:</b> {summary.get('decisions', 0)}\n"
+                f"<b>Skipped:</b> {summary.get('skips', 0)}\n"
+                f"<b>Cooldown Skip:</b> {summary.get('cooldown_skips', 0)}\n"
+            )
+            self.telegram.send_message(msg)
 
     def _interruptible_sleep(self, seconds: float):
         """Sleep yang bisa di-interrupt oleh shutdown signal."""

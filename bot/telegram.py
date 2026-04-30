@@ -19,7 +19,9 @@ Cara mendapatkan CHAT_ID:
 import os
 import logging
 import requests
-from typing import Dict, Optional
+import threading
+import time
+from typing import Dict, Optional, Callable
 from datetime import datetime
 
 from dotenv import load_dotenv
@@ -41,6 +43,10 @@ class TelegramNotifier:
         self.token = os.getenv("TELEGRAM_BOT", "")
         self.chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
         self.enabled = bool(self.token and self.chat_id)
+        
+        self.polling_thread = None
+        self.stop_event = threading.Event()
+        self.last_update_id = 0
 
         if not self.enabled:
             if not self.token:
@@ -81,6 +87,83 @@ class TelegramNotifier:
         except Exception as e:
             logger.error(f"Failed to send Telegram message: {e}")
             return False
+
+    # ─────────────────────────────────────────────────────────────────────
+    #  POLLING FOR COMMANDS
+    # ─────────────────────────────────────────────────────────────────────
+
+    def start_polling(self, command_callback: Callable[[str], None]):
+        """
+        Mulai polling di background thread untuk mendengarkan command.
+        """
+        if not self.enabled:
+            return
+
+        self.stop_event.clear()
+        self.polling_thread = threading.Thread(
+            target=self._poll,
+            args=(command_callback,),
+            daemon=True,
+            name="TelegramPollingThread"
+        )
+        self.polling_thread.start()
+        logger.info("Telegram polling started")
+
+    def stop_polling(self):
+        """
+        Berhentikan polling thread.
+        """
+        if self.polling_thread and self.polling_thread.is_alive():
+            self.stop_event.set()
+            # Tidak perlu join karena thread daemon dan bisa memblokir exit
+            logger.info("Telegram polling stopped")
+
+    def _poll(self, command_callback: Callable[[str], None]):
+        """
+        Loop polling untuk mengambil updates dari Telegram API.
+        """
+        url = f"https://api.telegram.org/bot{self.token}/getUpdates"
+        
+        while not self.stop_event.is_set():
+            try:
+                payload = {
+                    "offset": self.last_update_id + 1,
+                    "timeout": 5  # long polling timeout
+                }
+                resp = requests.post(url, json=payload, timeout=10)
+                
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if data.get("ok"):
+                        updates = data.get("result", [])
+                        for update in updates:
+                            self.last_update_id = update["update_id"]
+                            
+                            message = update.get("message", {})
+                            text = message.get("text", "").strip()
+                            chat_id = str(message.get("chat", {}).get("id", ""))
+                            
+                            # Pastikan hanya memproses dari CHAT_ID yang valid
+                            if chat_id != self.chat_id:
+                                continue
+                                
+                            if text == "/start":
+                                command_callback("start")
+                            elif text == "/stop":
+                                command_callback("stop")
+                            elif text == "/auto":
+                                command_callback("auto")
+                            elif text == "/status":
+                                command_callback("status")
+                                
+            except requests.exceptions.Timeout:
+                pass  # Wajar karena long polling
+            except Exception as e:
+                logger.error(f"Error in Telegram polling: {e}")
+                time.sleep(2)  # Hindari spam log jika ada error jaringan
+                
+            # Beri jeda sedikit agar tidak over-request jika tidak ada timeout
+            time.sleep(0.5)
 
     # ─────────────────────────────────────────────────────────────────────
     #  FORMATTED MESSAGES

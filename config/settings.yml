@@ -9,7 +9,7 @@ trading:
     - ETHUSDT
     - SOLUSDT
     - XRPUSDT
-  active_session: "london_ny" # Opsi: "all", "ny", "london", "asia", "asia_london", "london_ny", "asia_ny"
+  active_session: "ny" # Opsi: "all", "ny", "london", "asia", "asia_london", "london_ny", "asia_ny"
   timeframes:
     - "3m"
     - "5m"
@@ -35,7 +35,7 @@ scheduler:
 
 signal_detector:
   min_confidence: 0.40 # Threshold minimum untuk memanggil LLM
-  cooldown_seconds: 600 # 15 menit cooldown per pair setelah LLM call
+  cooldown_seconds: 1200 # 15 menit cooldown per pair setelah LLM call
 
 database:
   pool_size: 5
