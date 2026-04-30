@@ -3,8 +3,9 @@ data/models.py
 
 SQLAlchemy ORM models untuk tabel PostgreSQL Dyadix.
 Tabel:
-  - decisions : Setiap output Decision LLM
-  - trades    : Setiap order yang dieksekusi di Binance Futures
+  - sentiments : Hasil analisis sentimen LLM (news + social)
+  - decisions   : Setiap output Decision LLM
+  - trades      : Setiap order yang dieksekusi di Binance Futures
 """
 
 import uuid
@@ -20,6 +21,36 @@ from data.database import Base
 
 def _new_uuid() -> str:
     return str(uuid.uuid4())
+
+
+class SentimentRecord(Base):
+    """
+    Menyimpan hasil analisis sentimen dari LLM.
+    Dibuat setiap kali News + Social dikirim ke LLM untuk dianalisis.
+    """
+    __tablename__ = "sentiments"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=_new_uuid)
+    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    asset = Column(String(20), default="CRYPTO", index=True)  # e.g. BTC, CRYPTO (general)
+    source_type = Column(String(20), default="news_social")   # 'news', 'social', 'news_social'
+
+    # Hasil analisis LLM
+    overall_sentiment = Column(String(30))      # e.g. "Strong Bullish", "Neutral"
+    sentiment_score = Column(Float)             # 0-100
+    confidence = Column(Float)                  # 0.0 - 1.0
+    dominant_narrative = Column(Text)
+    news_impact = Column(Text)
+    social_mood = Column(String(50))
+    trading_implication = Column(Text)
+    key_insights = Column(JSONB)                # Array of strings
+
+    # Data mentah / summary
+    summary = Column(Text)                      # Ringkasan teks
+    raw_data = Column(JSONB)                    # Seluruh output LLM mentah
+
+    def __repr__(self):
+        return f"<Sentiment {self.overall_sentiment} score={self.sentiment_score} @ {self.timestamp}>"
 
 
 class DecisionRecord(Base):

@@ -51,7 +51,7 @@ def init_db():
     Buat semua tabel yang belum ada di database.
     Dipanggil saat bot pertama kali start.
     """
-    from data.models import DecisionRecord, TradeRecord  # noqa: F401
+    from data.models import SentimentRecord, DecisionRecord, TradeRecord  # noqa: F401
 
     engine = get_engine()
     Base.metadata.create_all(bind=engine)

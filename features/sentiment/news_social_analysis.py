@@ -95,6 +95,7 @@ class NewsSocialLLMAnalyzer:
                         f"| Sentiment: {result.get('overall_sentiment')} "
                         f"| Provider: {result.get('provider', provider)}"
                     )
+                    self._save_to_db(result)
                     return result
             except Exception as e:
                 logger.warning(
@@ -113,6 +114,7 @@ class NewsSocialLLMAnalyzer:
                     f"[NewsSocialAnalyzer] ✅ generate() OK "
                     f"| Sentiment: {parsed.get('overall_sentiment')}"
                 )
+                self._save_to_db(parsed)
                 return parsed
             except json.JSONDecodeError:
                 logger.warning(
@@ -215,6 +217,35 @@ Analyze the sentiment and return JSON only."""
             "key_insights": ["LLM analysis failed or timed out"],
             "trading_implication": "Proceed with caution",
         }
+
+    def _save_to_db(self, result: Dict[str, Any]):
+        """Simpan hasil analisis sentimen LLM ke tabel sentiments di PostgreSQL."""
+        try:
+            from data.database import SessionFactory
+            from data.models import SentimentRecord
+
+            record = SentimentRecord(
+                asset="CRYPTO",
+                source_type="news_social",
+                overall_sentiment=result.get("overall_sentiment"),
+                sentiment_score=float(result.get("sentiment_score", 0)),
+                confidence=float(result.get("confidence", 0)),
+                dominant_narrative=result.get("dominant_narrative"),
+                news_impact=result.get("news_impact"),
+                social_mood=result.get("social_mood"),
+                trading_implication=result.get("trading_implication"),
+                key_insights=result.get("key_insights", []),
+                summary=result.get("dominant_narrative", ""),
+                raw_data=result,
+            )
+
+            with SessionFactory() as session:
+                session.add(record)
+                session.commit()
+                logger.info(f"[NewsSocialAnalyzer] Sentiment saved to DB (id={record.id})")
+
+        except Exception as e:
+            logger.warning(f"[NewsSocialAnalyzer] Failed to save sentiment to DB: {e}")
 
 
 # ── Module-level helper ────────────────────────────────────────────────────────
