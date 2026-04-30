@@ -429,12 +429,7 @@ class DataManager:
             self._cache["sentiment_result"] = result
             self.set_cache("sentiment", True)
 
-            # ── Save to Database (Modular via Repository) ─────────────
-            try:
-                from db.repository.sentiment_repository import SentimentRepository
-                SentimentRepository.save_sentiment(result, asset="BTC")
-            except Exception as e:
-                logger.warning(f"Failed to use SentimentRepository: {e}")
+
 
             logger.info(
                 f"✅ Sentiment refreshed → {result.get('overall_sentiment')} "

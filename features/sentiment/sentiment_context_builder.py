@@ -46,16 +46,23 @@ def build_sentiment_context(
         logger.error(f"Error fetching news: {e}")
 
     # 2. Fetch Social (Reddit Community)
-    try:
-        logger.info("Fetching social (reddit) data...")
-        social_scraper = SocialScrapper()
-        context["social"]["reddit"] = social_scraper.scrape(
-            limit_per_subreddit=reddit_limit_per_sub,
-            include_comments=include_comments,
-            comments_limit=comments_limit,
-        )
-    except Exception as e:
-        logger.error(f"Error fetching reddit: {e}")
+    from config.settings import get_config
+    config = get_config()
+    enable_reddit = config.get("features", {}).get("enable_reddit_scraper", False)
+
+    if enable_reddit:
+        try:
+            logger.info("Fetching social (reddit) data...")
+            social_scraper = SocialScrapper()
+            context["social"]["reddit"] = social_scraper.scrape(
+                limit_per_subreddit=reddit_limit_per_sub,
+                include_comments=include_comments,
+                comments_limit=comments_limit,
+            )
+        except Exception as e:
+            logger.error(f"Error fetching reddit: {e}")
+    else:
+        logger.info("Skipping reddit scraping (disabled in config).")
 
     # 3. Fetch Influencers (RSS/Reddit User)
     try:

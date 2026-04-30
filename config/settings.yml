@@ -6,12 +6,10 @@ trading:
     # - XRPUSDT
   correlation_pairs:
     - BTCUSDT
-    - ETHUSDT
-    - SOLUSDT
-    - XRPUSDT
-  active_session: "london_ny" # marker untuk logic session
-  risk_per_trade: 0.01 # 1% dari saldo
-  leverage: 1 # Default 1x (tanpa leverage)
+    # - ETHUSDT
+    # - SOLUSDT
+    # - XRPUSDT
+  active_session: "ny" # Opsi: "all", "ny", "london", "asia", "asia_london", "london_ny", "asia_ny"
   timeframes:
     - "3m"
     - "5m"
@@ -43,3 +41,6 @@ database:
   pool_size: 5
   max_overflow: 10
   pool_timeout: 30
+
+features:
+  enable_reddit_scraper: false # Set to true to enable Reddit scraping

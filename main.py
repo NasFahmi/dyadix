@@ -29,7 +29,7 @@ def run_once():
     from pipelines.main_pipeline import MainPipeline
 
     pipeline = MainPipeline()
-    results = pipeline.run()
+    results = pipeline.run(ignore_session=True)
 
     # ── Print ringkasan keputusan per pair ────────────────────────────
     print("\n" + "=" * 60)

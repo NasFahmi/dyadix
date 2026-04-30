@@ -44,7 +44,7 @@ class LoopScheduler:
         from pipelines.signal_detector import SignalDetector
         from pipelines.decision_logger import DecisionLogger
         from bot.telegram import TelegramNotifier
-        from service.trade_monitor import TradeMonitor
+
 
         config = get_config()
         scheduler_config = config.get("scheduler", {})
@@ -61,9 +61,11 @@ class LoopScheduler:
             cooldown_seconds=detector_config.get("cooldown_seconds", 900)
         )
         self.telegram = TelegramNotifier()
-        self.trade_monitor = TradeMonitor()
+
 
         self.running = True
+        self.paused = False
+        self.force_start = False
         self.cycle_count = 0
         self._start_time = None
 
@@ -78,6 +80,9 @@ class LoopScheduler:
         signal_module.signal(signal_module.SIGTERM, self._handle_shutdown)
 
         self._start_time = time.time()
+
+        # Start Telegram polling
+        self.telegram.start_polling(self._handle_telegram_command)
 
         print("\n" + "=" * 60)
         print("  🚀 DYADIX DSS — Continuous Mode Started")
@@ -125,11 +130,24 @@ class LoopScheduler:
         )
         logger.info(f"{'─' * 50}")
 
-        # ── Step 0: Monitor running trades ──────────────────────────
-        try:
-            self.trade_monitor.check_trades()
-        except Exception as e:
-            logger.error(f"Trade monitor error: {e}")
+
+
+        # ── Step 0: Check Active Session / State ──────────────────────
+        if self.paused:
+            logger.info("⏸️ Bot is stopped via Telegram command. Sleeping...")
+            return
+
+        if not self.force_start:
+            from config.settings import get_config
+            from utils.session_checker import is_active_session
+            
+            config = get_config()
+            trading_config = config.get("trading", {})
+            active_session = trading_config.get("active_session", "all")
+            
+            if not is_active_session(active_session):
+                logger.info(f"⏳ Outside active session ('{active_session}'). Sleeping...")
+                return
 
         # ── Step 1: Refresh stale data ────────────────────────────────
         refreshed = self.data_manager.refresh_stale_data()
@@ -168,10 +186,7 @@ class LoopScheduler:
                 logger.error(f"  ❌ {pair} context error: {ctx.get('error')}")
                 continue
 
-            # ── Check if pair already has a running trade in DB ──
-            if self._has_active_trade(pair):
-                logger.info(f"  🚫 {pair} → Skipped: Active trade still running in database")
-                continue
+
 
             # Inject last candles dan market snapshot
             ctx = self._inject_extra_context(ctx, market_data.get(pair, {}))
@@ -540,6 +555,53 @@ class LoopScheduler:
         """Handle Ctrl+C gracefully."""
         logger.info("\n⚠️  Shutdown signal received. Finishing current cycle...")
         self.running = False
+        self.telegram.stop_polling()
+
+    def _handle_telegram_command(self, command: str):
+        """Handle telegram command asynchronously."""
+        if command == "start":
+            self.paused = False
+            self.force_start = True
+            logger.info("Bot started via Telegram (Force Start)")
+            self.telegram.send_message("▶️ <b>Bot Started (Forced)</b>\nSiklus trading berjalan mengabaikan jadwal sesi.")
+        elif command == "stop":
+            self.paused = True
+            self.force_start = False
+            logger.info("Bot stopped via Telegram")
+            self.telegram.send_message("⏸️ <b>Bot Stopped</b>\nSiklus trading dihentikan sementara.")
+        elif command == "auto":
+            self.paused = False
+            self.force_start = False
+            logger.info("Bot set to auto via Telegram")
+            self.telegram.send_message("🔄 <b>Bot Set to Auto</b>\nSiklus trading berjalan mengikuti jadwal sesi.")
+        elif command == "status":
+            uptime = time.time() - self._start_time if self._start_time else 0
+            summary = self.decision_logger.get_today_summary()
+            
+            hours, rem = divmod(uptime, 3600)
+            minutes, seconds = divmod(rem, 60)
+            uptime_str = f"{int(hours)}h {int(minutes)}m {int(seconds)}s"
+            
+            if self.paused:
+                state_str = "⏸️ Paused"
+            elif self.force_start:
+                state_str = "▶️ Forced Start"
+            else:
+                state_str = "🔄 Auto (Session)"
+                
+            msg = (
+                f"📊 <b>DYADIX STATUS</b>\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"<b>State:</b> {state_str}\n"
+                f"<b>Uptime:</b> {uptime_str}\n"
+                f"<b>Total Cycles:</b> {self.cycle_count}\n"
+                f"\n"
+                f"<b>LLM Calls:</b> {summary.get('llm_calls', 0)}\n"
+                f"<b>Decisions:</b> {summary.get('decisions', 0)}\n"
+                f"<b>Skipped:</b> {summary.get('skips', 0)}\n"
+                f"<b>Cooldown Skip:</b> {summary.get('cooldown_skips', 0)}\n"
+            )
+            self.telegram.send_message(msg)
 
     def _interruptible_sleep(self, seconds: float):
         """Sleep yang bisa di-interrupt oleh shutdown signal."""
@@ -547,23 +609,4 @@ class LoopScheduler:
         while time.time() < end_time and self.running:
             time.sleep(min(1.0, end_time - time.time()))
 
-    def _has_active_trade(self, pair: str) -> bool:
-        """Cek ke database apakah ada trade yang statusnya RUNNING untuk pair ini."""
-        try:
-            from db.database import SessionLocal
-            from db.models import Trade, TradeStatus
-            
-            db = SessionLocal()
-            try:
-                active_trade = db.query(Trade).filter(
-                    Trade.pair == pair,
-                    Trade.status == TradeStatus.RUNNING
-                ).first()
-                return active_trade is not None
-            except Exception as e:
-                logger.error(f"Error checking active trade in DB: {e}")
-                return False
-            finally:
-                db.close()
-        except ImportError:
-            return False
+

@@ -50,7 +50,7 @@ class MainPipeline:
     #  ENTRY POINT
     # ─────────────────────────────────────────────────────────────────
 
-    def run(self) -> Dict[str, Any]:
+    def run(self, ignore_session: bool = False) -> Dict[str, Any]:
         """
         Jalankan pipeline lengkap untuk semua pair yang terdaftar di settings.yml.
         Returns dict {pair: {"full_context": ..., "decision": ...}}
@@ -58,6 +58,20 @@ class MainPipeline:
         logger.info("=" * 60)
         logger.info("  Dyadix Main Pipeline Started")
         logger.info("=" * 60)
+
+        # ── Step 0: Check Active Session ──────────────────────────────
+        if not ignore_session:
+            from config.settings import get_config
+            from utils.session_checker import is_active_session
+            
+            config = get_config()
+            trading_config = config.get("trading", {})
+            active_session = trading_config.get("active_session", "all")
+            
+            if not is_active_session(active_session):
+                logger.info(f"⏳ Outside active session ('{active_session}'). Pipeline aborted.")
+                return {"error": f"Outside active session ('{active_session}')"}
+
 
         # ── Step 1: Market data ───────────────────────────────────────
         logger.info("[1/5] Fetching market data...")
@@ -159,12 +173,7 @@ class MainPipeline:
             economic_data=sentiment_ctx.get("economic_calendar"),
         )
 
-        # ── Save to Database (Modular via Repository) ─────────────
-        try:
-            from db.repository.sentiment_repository import SentimentRepository
-            SentimentRepository.save_sentiment(result, asset="BTC")
-        except Exception as e:
-            logger.warning(f"Failed to use SentimentRepository: {e}")
+
 
         return result
 

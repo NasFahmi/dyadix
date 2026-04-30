@@ -46,6 +46,24 @@ class SignalDetector:
         liquidity = context.get("liquidity", {})
         derivatives = context.get("derivatives", {})
 
+        from config.settings import get_config
+        from utils.session_checker import is_active_session
+        
+        config = get_config()
+        active_session = config.get("trading", {}).get("active_session", "all")
+        
+        if not is_active_session(active_session):
+            return {
+                "pair": pair,
+                "has_potential_signal": False,
+                "confidence": 0.0,
+                "reasons": [f"Outside active session ('{active_session}')"],
+                "suggested_bias": "Neutral",
+                "signal_type": None,
+                "scores": {"bullish": 0.0, "bearish": 0.0},
+            }
+
+
         bullish_score = 0.0
         bearish_score = 0.0
         bullish_reasons: List[str] = []
