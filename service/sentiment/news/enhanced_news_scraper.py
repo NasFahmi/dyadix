@@ -20,7 +20,8 @@ from collections import defaultdict
 
 import requests
 import feedparser
-import yfinance as yf
+
+# import yfinance as yf
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -125,13 +126,13 @@ class EnhancedNewsScraper:
     """Fetches crypto news from multiple RSS sources."""
 
     RSS_SOURCES = {
-        # "coindesk": "https://www.coindesk.com/arc/outboundfeeds/rss/",
+        "coindesk": "https://www.coindesk.com/arc/outboundfeeds/rss/",
         "cointelegraph": "https://cointelegraph.com/rss",
         "decrypt": "https://decrypt.co/feed",
         # "cryptoslate": "https://cryptoslate.com/feed/",
         "blockworks": "https://blockworks.co/feed/",
-        "bitcoinmagazine": "https://bitcoinmagazine.com/.rss/full/",
-        "cryptonews": "https://cryptonews.com/news/feed/",
+        # "bitcoinmagazine": "https://bitcoinmagazine.com/.rss/full/",
+        # "cryptonews": "https://cryptonews.com/news/feed/",
     }
 
     def __init__(self, cache_dir: str = "cache/news", cache_ttl: int = 30):
@@ -144,7 +145,7 @@ class EnhancedNewsScraper:
     def fetch_crypto_news(
         self,
         limit: int = 50,
-        min_sources: int = 3,
+        min_sources: int = 4,
         deduplicate: bool = True,
     ) -> List[Dict[str, Any]]:
         """
@@ -178,15 +179,15 @@ class EnhancedNewsScraper:
             if len(all_articles) >= limit and successful_sources >= min_sources:
                 break
 
-        # Fetch from Yahoo Finance
-        try:
-            yf_articles = self._fetch_from_yahoo_finance("BTC-USD", max_articles=10)
-            if yf_articles:
-                all_articles.extend(yf_articles)
-                successful_sources += 1
-                logger.info(f"  yahoo_finance: {len(yf_articles)} articles")
-        except Exception as e:
-            logger.warning(f"  yahoo_finance failed: {e}")
+        # Fetch from Yahoo Finance (Disabled due to VPS IP blocks)
+        # try:
+        #     yf_articles = self._fetch_from_yahoo_finance("BTC-USD", max_articles=10)
+        #     if yf_articles:
+        #         all_articles.extend(yf_articles)
+        #         successful_sources += 1
+        #         logger.info(f"  yahoo_finance: {len(yf_articles)} articles")
+        # except Exception as e:
+        #     logger.warning(f"  yahoo_finance failed: {e}")
 
         if deduplicate:
             all_articles = self._deduplicate(all_articles)
@@ -210,7 +211,20 @@ class EnhancedNewsScraper:
             return cached
 
         try:
-            feed = feedparser.parse(url)
+            # Menggunakan self.http.get agar mendapat benefit retry dan rate-limiting
+            response = self.http.get(url, timeout=15)
+            if response.status_code != 200:
+                raise Exception(f"HTTP {response.status_code}")
+
+            raw_content = response.content  # bytes
+
+            # Khusus untuk CoinDesk: feedparser memetakan <dc:description/> ke field yang sama
+            # dengan <description>, sehingga nilal kosong dc:description menimpa summary.
+            # Solusi: parse XML langsung dengan ElementTree untuk mengambil <description> secara eksplisit.
+            if source_name == "coindesk":
+                return self._parse_coindesk_xml(raw_content, source_name, max_articles)
+
+            feed = feedparser.parse(raw_content)
             articles = []
 
             for entry in feed.entries[:max_articles]:
@@ -219,14 +233,23 @@ class EnhancedNewsScraper:
                 if not title or not link:
                     continue
 
+                raw_summary = (
+                    entry.get("summary")
+                    or entry.get("description")
+                    or (
+                        entry.get("content", [{}])[0].get("value")
+                        if entry.get("content")
+                        else ""
+                    )
+                    or ""
+                )
+
                 articles.append(
                     {
                         "title": title,
                         "link": link,
                         "published": entry.get("published", entry.get("updated", "")),
-                        "summary": self._clean_html(
-                            entry.get("summary", entry.get("description", ""))
-                        ),
+                        "summary": self._clean_html(raw_summary),
                         "source": source_name,
                         "fetched_at": datetime.now().isoformat(),
                     }
@@ -305,6 +328,60 @@ class EnhancedNewsScraper:
             logger.warning(f"Error fetching Yahoo Finance ({ticker_symbol}): {e}")
             self.source_stats[source_name]["failures"] += 1
             return []
+
+    def _parse_coindesk_xml(
+        self, raw_content: bytes, source_name: str, max_articles: int
+    ) -> List[Dict[str, Any]]:
+        """
+        Parse CoinDesk RSS secara langsung menggunakan ElementTree untuk menghindari
+        bug feedparser dimana <dc:description/> kosong menimpa nilai <description>.
+        """
+        import xml.etree.ElementTree as ET
+
+        articles = []
+        try:
+            root = ET.fromstring(raw_content)
+            channel = root.find("channel")
+            if channel is None:
+                return []
+
+            items = channel.findall("item")
+            for item in items[:max_articles]:
+                title_el = item.find("title")
+                link_el = item.find("link")
+                desc_el = item.find("description")
+                pub_el = item.find("pubDate")
+
+                title = (title_el.text or "").strip() if title_el is not None else ""
+                link = (link_el.text or "").strip() if link_el is not None else ""
+                summary = (desc_el.text or "").strip() if desc_el is not None else ""
+                published = (pub_el.text or "").strip() if pub_el is not None else ""
+
+                if not title or not link:
+                    continue
+
+                articles.append(
+                    {
+                        "title": title,
+                        "link": link,
+                        "published": published,
+                        "summary": self._clean_html(summary),
+                        "source": source_name,
+                        "fetched_at": datetime.now().isoformat(),
+                    }
+                )
+
+        except ET.ParseError as e:
+            logger.warning(f"CoinDesk XML parse error: {e}")
+
+        if articles:
+            self.cache.set(f"rss_{source_name}", articles)
+            self.source_stats[source_name]["successes"] += 1
+            self.source_stats[source_name]["total_articles"] += len(articles)
+        else:
+            self.source_stats[source_name]["failures"] += 1
+
+        return articles
 
     def _deduplicate(self, articles: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         unique = []

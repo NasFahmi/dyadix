@@ -1,14 +1,14 @@
 trading:
   pairs:
     - BTCUSDT
-    - SOLUSDT
-    - ETHUSDT
-    - XRPUSDT
+    # - SOLUSDT
+    # - ETHUSDT
+    # - XRPUSDT
   correlation_pairs:
     - BTCUSDT
-    - ETHUSDT
-    - SOLUSDT
-    - XRPUSDT
+    # - ETHUSDT
+    # - SOLUSDT
+    # - XRPUSDT
   active_session: "ny" # Opsi: "all", "ny", "london", "asia", "asia_london", "london_ny", "asia_ny"
   timeframes:
     - "3m"
