@@ -80,3 +80,8 @@ websockets==16.0
 yarl==1.23.0
 yfinance==1.3.0
 
+# ─── Auto-Trading Dependencies ───────────────────────────────────────────────
+python-binance==1.0.19     # Binance Futures API client
+sqlalchemy==2.0.41         # ORM untuk PostgreSQL
+psycopg2-binary==2.9.10    # PostgreSQL driver (binary = tidak perlu compile)
+alembic==1.16.1            # Database migration tool

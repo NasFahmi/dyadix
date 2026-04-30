@@ -44,3 +44,44 @@ database:
 
 features:
   enable_reddit_scraper: false # Set to true to enable Reddit scraping
+
+exchange:
+  provider: "binance"
+  # Testnet dikontrol via .env: BINANCE_TESTNET=true / false
+
+risk_management:
+  risk_per_trade_pct: 1.0    # % modal yang di-risk per trade
+  leverage: 10               # Leverage Binance Futures (ubah sesuai toleransi risiko)
+  max_running_trades: 1      # Maksimal 1 trade aktif bersamaan per pair
+
+  # ───────────────────────────────────────────────────────────────
+  # CONTOH KALKULASI RISK (panduan penyesuaian):
+  #
+  # Asumsikan:
+  #   Modal akun (USDT balance) : $200
+  #   risk_per_trade_pct        : 1.0%  → Risk dollar = $200 x 1% = $2
+  #   leverage                  : 10x
+  #   Pair                      : BTCUSDT @ $95,000
+  #
+  # Langkah kalkulasi quantity:
+  #   1. Nominal posisi = Risk x Leverage = $2 x 10 = $20
+  #   2. Quantity (BTC) = $20 / $95,000  ≈ 0.00021 BTC
+  #
+  # Artinya: Dengan $200 modal dan leverage 10x,
+  #   bot hanya mempertaruhkan $2 (1%) per trade,
+  #   membuka posisi senilai $20 nominal.
+  #
+  # Jika leverage dinaikkan ke 20x:
+  #   Nominal posisi = $2 x 20 = $40
+  #   Quantity (BTC) = $40 / $95,000   ≈ 0.00042 BTC
+  #   → Potensi PnL lebih besar, RISK TETAP $2
+  #
+  # Rekomendasi umum:
+  #   risk_per_trade_pct : 0.5 - 1.0%
+  #   leverage           : 5x - 10x
+  # ───────────────────────────────────────────────────────────────
+
+autopsy:
+  enabled: true
+  notify_telegram: true
+  min_loss_usd: 1.0          # Jalankan autopsy hanya jika loss >= $1

@@ -1,0 +1,227 @@
+"""
+service/exchange/binance_futures_client.py
+
+Wrapper untuk Binance Futures API menggunakan python-binance.
+Mendukung testnet via BINANCE_TESTNET=true di .env.
+"""
+
+import os
+import logging
+from typing import Dict, Any, Optional
+from dotenv import load_dotenv
+
+load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+
+class BinanceFuturesClient:
+    """
+    Client untuk Binance USDT-M Futures.
+    Semua order menggunakan USDT sebagai margin.
+    """
+
+    def __init__(self):
+        from binance.client import Client
+        from binance.exceptions import BinanceAPIException
+
+        self._BinanceAPIException = BinanceAPIException
+
+        api_key = os.getenv("BINANCE_API_KEY", "")
+        api_secret = os.getenv("BINANCE_SECRET_KEY", "")
+        testnet = os.getenv("BINANCE_TESTNET", "true").lower() == "true"
+
+        self.client = Client(api_key, api_secret, testnet=testnet)
+        self.testnet = testnet
+
+        mode = "TESTNET" if testnet else "PRODUCTION"
+        logger.info(f"BinanceFuturesClient initialized [{mode}]")
+
+    # ─────────────────────────────────────────────────────────────────────
+    #  ACCOUNT
+    # ─────────────────────────────────────────────────────────────────────
+
+    def get_usdt_balance(self) -> float:
+        """Ambil available USDT balance di Futures wallet."""
+        try:
+            account = self.client.futures_account()
+            for asset in account.get("assets", []):
+                if asset["asset"] == "USDT":
+                    return float(asset["availableBalance"])
+            return 0.0
+        except Exception as e:
+            logger.error(f"Error getting USDT balance: {e}")
+            return 0.0
+
+    def get_realtime_price(self, pair: str) -> float:
+        """Ambil harga mark price terkini untuk pair futures."""
+        try:
+            ticker = self.client.futures_mark_price(symbol=pair)
+            return float(ticker["markPrice"])
+        except Exception as e:
+            logger.error(f"Error getting price for {pair}: {e}")
+            return 0.0
+
+    # ─────────────────────────────────────────────────────────────────────
+    #  LEVERAGE
+    # ─────────────────────────────────────────────────────────────────────
+
+    def set_leverage(self, pair: str, leverage: int) -> bool:
+        """Set leverage untuk pair tertentu."""
+        try:
+            self.client.futures_change_leverage(symbol=pair, leverage=leverage)
+            logger.info(f"Leverage set: {pair} → {leverage}x")
+            return True
+        except Exception as e:
+            logger.error(f"Error setting leverage for {pair}: {e}")
+            return False
+
+    # ─────────────────────────────────────────────────────────────────────
+    #  ORDER PLACEMENT
+    # ─────────────────────────────────────────────────────────────────────
+
+    def place_market_order(self, pair: str, side: str, quantity: float) -> Optional[Dict[str, Any]]:
+        """
+        Place Futures Market Order.
+
+        Args:
+            pair    : Contoh "BTCUSDT"
+            side    : "BUY" atau "SELL"
+            quantity: Jumlah kontrak (dalam base asset, misal BTC)
+
+        Returns:
+            Dict response dari Binance, atau None jika gagal.
+        """
+        try:
+            from binance.enums import ORDER_TYPE_MARKET, SIDE_BUY, SIDE_SELL
+            binance_side = SIDE_BUY if side.upper() == "BUY" else SIDE_SELL
+
+            order = self.client.futures_create_order(
+                symbol=pair,
+                side=binance_side,
+                type=ORDER_TYPE_MARKET,
+                quantity=self._round_quantity(quantity),
+            )
+            logger.info(f"Market order placed: {pair} {side} {quantity} → ID: {order['orderId']}")
+            return order
+        except Exception as e:
+            logger.error(f"Error placing market order {pair} {side}: {e}")
+            return None
+
+    def place_limit_order(self, pair: str, side: str, quantity: float, price: float) -> Optional[Dict[str, Any]]:
+        """
+        Place Futures Limit Order.
+
+        Args:
+            pair    : Contoh "BTCUSDT"
+            side    : "BUY" atau "SELL"
+            quantity: Jumlah kontrak
+            price   : Harga limit (midpoint dari entry_zone)
+
+        Returns:
+            Dict response dari Binance, atau None jika gagal.
+        """
+        try:
+            from binance.enums import ORDER_TYPE_LIMIT, SIDE_BUY, SIDE_SELL, TIME_IN_FORCE_GTC
+            binance_side = SIDE_BUY if side.upper() == "BUY" else SIDE_SELL
+
+            order = self.client.futures_create_order(
+                symbol=pair,
+                side=binance_side,
+                type=ORDER_TYPE_LIMIT,
+                quantity=self._round_quantity(quantity),
+                price=self._round_price(pair, price),
+                timeInForce=TIME_IN_FORCE_GTC,  # Good Till Canceled
+            )
+            logger.info(f"Limit order placed: {pair} {side} {quantity} @ {price} → ID: {order['orderId']}")
+            return order
+        except Exception as e:
+            logger.error(f"Error placing limit order {pair} {side} @ {price}: {e}")
+            return None
+
+    def place_stop_loss_order(self, pair: str, side: str, quantity: float, sl_price: float) -> Optional[Dict[str, Any]]:
+        """
+        Place Stop Loss (STOP_MARKET) order untuk menutup posisi.
+        Side adalah kebalikan dari posisi (BUY pos → SL SELL, SELL pos → SL BUY).
+        """
+        try:
+            from binance.enums import SIDE_BUY, SIDE_SELL
+            # SL side adalah kebalikan dari posisi
+            close_side = SIDE_SELL if side.upper() == "BUY" else SIDE_BUY
+
+            order = self.client.futures_create_order(
+                symbol=pair,
+                side=close_side,
+                type="STOP_MARKET",
+                stopPrice=self._round_price(pair, sl_price),
+                closePosition=True,  # Tutup seluruh posisi
+            )
+            logger.info(f"Stop Loss set: {pair} @ {sl_price} → ID: {order['orderId']}")
+            return order
+        except Exception as e:
+            logger.error(f"Error placing SL for {pair}: {e}")
+            return None
+
+    def place_take_profit_order(self, pair: str, side: str, quantity: float, tp_price: float) -> Optional[Dict[str, Any]]:
+        """
+        Place Take Profit (TAKE_PROFIT_MARKET) order untuk menutup posisi.
+        """
+        try:
+            from binance.enums import SIDE_BUY, SIDE_SELL
+            close_side = SIDE_SELL if side.upper() == "BUY" else SIDE_BUY
+
+            order = self.client.futures_create_order(
+                symbol=pair,
+                side=close_side,
+                type="TAKE_PROFIT_MARKET",
+                stopPrice=self._round_price(pair, tp_price),
+                closePosition=True,
+            )
+            logger.info(f"Take Profit set: {pair} @ {tp_price} → ID: {order['orderId']}")
+            return order
+        except Exception as e:
+            logger.error(f"Error placing TP for {pair}: {e}")
+            return None
+
+    # ─────────────────────────────────────────────────────────────────────
+    #  ORDER STATUS
+    # ─────────────────────────────────────────────────────────────────────
+
+    def get_order_status(self, pair: str, order_id: str) -> Optional[Dict[str, Any]]:
+        """Cek status order. Returns dict dengan field 'status'."""
+        try:
+            return self.client.futures_get_order(symbol=pair, orderId=int(order_id))
+        except Exception as e:
+            logger.error(f"Error getting order status {pair} #{order_id}: {e}")
+            return None
+
+    def cancel_order(self, pair: str, order_id: str) -> bool:
+        """Cancel order yang belum terisi."""
+        try:
+            self.client.futures_cancel_order(symbol=pair, orderId=int(order_id))
+            logger.info(f"Order canceled: {pair} #{order_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error canceling order {pair} #{order_id}: {e}")
+            return False
+
+    def get_open_positions(self, pair: Optional[str] = None) -> list:
+        """Ambil semua posisi yang sedang terbuka."""
+        try:
+            positions = self.client.futures_position_information(symbol=pair)
+            return [p for p in positions if float(p.get("positionAmt", 0)) != 0]
+        except Exception as e:
+            logger.error(f"Error getting positions: {e}")
+            return []
+
+    # ─────────────────────────────────────────────────────────────────────
+    #  HELPER
+    # ─────────────────────────────────────────────────────────────────────
+
+    def _round_quantity(self, quantity: float) -> float:
+        """Round quantity ke 5 desimal (cukup untuk semua pair Binance Futures)."""
+        return round(quantity, 5)
+
+    def _round_price(self, pair: str, price: float) -> float:
+        """Round price ke 2 desimal (default, bisa disesuaikan per pair)."""
+        return round(price, 2)

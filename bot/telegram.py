@@ -155,6 +155,8 @@ class TelegramNotifier:
                                 command_callback("auto")
                             elif text == "/status":
                                 command_callback("status")
+                            elif text == "/trades":
+                                command_callback("trades")
                                 
             except requests.exceptions.Timeout:
                 pass  # Wajar karena long polling
@@ -272,3 +274,70 @@ class TelegramNotifier:
         )
 
         return self.send_message(text)
+
+    def notify_order_placed(
+        self, pair: str, action: str, decision: Dict, realtime_price: float = 0.0
+    ) -> bool:
+        """
+        Kirim notifikasi saat order berhasil ditempatkan di Binance Futures.
+        """
+        from utils.entry_calculator import parse_entry_midpoint, parse_price
+
+        entry_zone = decision.get("entry_zone", "N/A")
+        entry_planned = parse_entry_midpoint(entry_zone, realtime_price)
+        sl_price = parse_price(decision.get("stop_loss", ""), 0.0)
+        tp_price = parse_price(decision.get("target", ""), 0.0)
+        execution_type = decision.get("execution_type", "LIMIT")
+        risk_reward = decision.get("risk_reward", "N/A")
+
+        action_emoji = "🟢" if action == "BUY" else "🔴"
+        exec_emoji = "⚡ MARKET" if execution_type == "MARKET" else "📋 LIMIT"
+
+        text = (
+            f"✅ <b>ORDER PLACED — {pair}</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"<b>Action:</b> {action_emoji} {action} ({exec_emoji})\n"
+            f"<b>Entry Planned:</b> ${entry_planned:,.2f}\n"
+            f"<b>Realtime Price:</b> ${realtime_price:,.2f}\n"
+            f"<b>Stop Loss:</b> ${sl_price:,.2f}\n"
+            f"<b>Target:</b> ${tp_price:,.2f}\n"
+            f"<b>R/R:</b> {risk_reward}\n"
+            f"<i>{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC</i>"
+        )
+
+        return self.send_message(text)
+
+    def notify_running_trades(self) -> bool:
+        """
+        Kirim daftar trade yang sedang RUNNING (dipanggil oleh /trades command).
+        """
+        try:
+            from service.trade.trade_guard import TradeGuard
+            from datetime import datetime
+
+            trades = TradeGuard.get_all_running_trades()
+
+            if not trades:
+                return self.send_message("📂 <b>RUNNING TRADES</b>\n━━━━━━━━━━━━━━━━━━━━\n<i>Tidak ada trade yang sedang berjalan.</i>")
+
+            lines = ["📂 <b>RUNNING TRADES</b>", "━━━━━━━━━━━━━━━━━━━━"]
+            for i, t in enumerate(trades, 1):
+                duration = ""
+                if t.opened_at:
+                    delta = datetime.utcnow() - t.opened_at
+                    hours, remainder = divmod(int(delta.total_seconds()), 3600)
+                    minutes = remainder // 60
+                    duration = f" | {hours}j {minutes}m"
+
+                action_emoji = "🟢" if t.side == "BUY" else "🔴"
+                lines.append(
+                    f"\n<b>{i}. {t.pair}</b> {action_emoji} {t.side}{duration}\n"
+                    f"   Entry: ${t.entry_price:,.2f}\n"
+                    f"   SL: ${t.stop_loss_price:,.2f} | TP: ${t.target_price:,.2f}"
+                )
+
+            return self.send_message("\n".join(lines))
+
+        except Exception as e:
+            logger.error(f"Failed to get running trades: {e}")
+            return self.send_message("❌ Gagal mengambil data running trades.")

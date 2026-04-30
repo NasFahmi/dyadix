@@ -62,6 +62,19 @@ class LoopScheduler:
         )
         self.telegram = TelegramNotifier()
 
+        # ── Auto-trading components ───────────────────────────────────
+        from service.trade.trade_monitor import TradeMonitor
+        from service.trade.order_executor import OrderExecutor
+        from data.database import init_db
+
+        # Inisialisasi tabel database jika belum ada
+        try:
+            init_db()
+        except Exception as e:
+            logger.warning(f"DB init failed (non-fatal): {e}")
+
+        self.trade_monitor = TradeMonitor(telegram=self.telegram)
+        self.order_executor = OrderExecutor()
 
         self.running = True
         self.paused = False
@@ -83,6 +96,9 @@ class LoopScheduler:
 
         # Start Telegram polling
         self.telegram.start_polling(self._handle_telegram_command)
+
+        # Start Trade Monitor background thread
+        self.trade_monitor.start()
 
         print("\n" + "=" * 60)
         print("  🚀 DYADIX DSS — Continuous Mode Started")
@@ -186,6 +202,15 @@ class LoopScheduler:
                 logger.error(f"  ❌ {pair} context error: {ctx.get('error')}")
                 continue
 
+            # ── Running Trade Guard ────────────────────────────────────
+            # Skip pair jika sudah ada trade yang sedang RUNNING
+            try:
+                from service.trade.trade_guard import TradeGuard
+                if TradeGuard.has_running_trade(pair):
+                    logger.info(f"  ⏭ {pair}: Skipped — running trade active for this pair")
+                    continue
+            except Exception as e:
+                logger.warning(f"  TradeGuard check failed for {pair}: {e}")
 
 
             # Inject last candles dan market snapshot
@@ -247,6 +272,23 @@ class LoopScheduler:
                 self.decision_logger.log_telegram_sent(
                     pair, signal_result, decision, realtime_price, payload=ctx
                 )
+
+            # ── Execute Order (jika BUY atau SELL) ────────────────────
+            action = decision.get("decision", "WAIT")
+            if action in ("BUY", "SELL"):
+                try:
+                    trade_id = self.order_executor.execute(
+                        pair=pair,
+                        decision=decision,
+                        realtime_price=realtime_price,
+                    )
+                    if trade_id:
+                        logger.info(f"  ✅ {pair}: Order executed → trade_id={trade_id}")
+                        self.telegram.notify_order_placed(pair, action, decision, realtime_price)
+                    else:
+                        logger.warning(f"  ⚠️ {pair}: Order execution returned None")
+                except Exception as e:
+                    logger.error(f"  ✘ {pair}: Order execution failed: {e}")
 
             # Print decision
             self._print_decision(pair, signal_result, decision)
@@ -602,6 +644,8 @@ class LoopScheduler:
                 f"<b>Cooldown Skip:</b> {summary.get('cooldown_skips', 0)}\n"
             )
             self.telegram.send_message(msg)
+        elif command == "trades":
+            self.telegram.notify_running_trades()
 
     def _interruptible_sleep(self, seconds: float):
         """Sleep yang bisa di-interrupt oleh shutdown signal."""
