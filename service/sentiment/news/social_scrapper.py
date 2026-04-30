@@ -7,6 +7,7 @@ No authentication required.
 
 import logging
 import requests
+from curl_cffi import requests as curl_requests
 from typing import List, Dict, Optional, Any
 
 logger = logging.getLogger(__name__)
@@ -64,8 +65,18 @@ class SocialScrapper:
             logger.info(f"Scraping /r/{sub} ...")
 
             try:
-                response = requests.get(url, headers=self.HEADERS, timeout=self.timeout)
-                response.raise_for_status()
+                # Menggunakan curl_cffi untuk memanipulasi TLS fingerprint agar tidak di-block Reddit
+                response = curl_requests.get(
+                    url, 
+                    headers=self.HEADERS, 
+                    timeout=self.timeout,
+                    impersonate="chrome110"
+                )
+                
+                if response.status_code != 200:
+                    logger.warning(f"  HTTP error for /r/{sub}: {response.status_code} {response.reason}")
+                    results[sub] = []
+                    continue
 
                 data = response.json()
                 posts = data.get("data", {}).get("children", [])
@@ -96,17 +107,8 @@ class SocialScrapper:
                 results[sub] = items
                 logger.info(f"  Found {len(items)} posts from /r/{sub}")
 
-            except requests.exceptions.Timeout:
-                logger.warning(f"  Timeout for /r/{sub}")
-                results[sub] = []
-            except requests.exceptions.HTTPError as e:
-                logger.warning(f"  HTTP error for /r/{sub}: {e}")
-                results[sub] = []
-            except requests.exceptions.RequestException as e:
-                logger.warning(f"  Request error for /r/{sub}: {e}")
-                results[sub] = []
-            except (ValueError, KeyError) as e:
-                logger.warning(f"  JSON parse error for /r/{sub}: {e}")
+            except Exception as e:
+                logger.warning(f"  Error fetching /r/{sub}: {e}")
                 results[sub] = []
 
         total = sum(len(v) for v in results.values())
@@ -117,8 +119,15 @@ class SocialScrapper:
         """Fetch top comments for a specific post using the post's JSON endpoint."""
         url = f"https://www.reddit.com{permalink}.json?limit={limit}&sort=top"
         try:
-            response = requests.get(url, headers=self.HEADERS, timeout=self.timeout)
-            response.raise_for_status()
+            response = curl_requests.get(
+                url, 
+                headers=self.HEADERS, 
+                timeout=self.timeout,
+                impersonate="chrome110"
+            )
+            if response.status_code != 200:
+                return []
+                
             data = response.json()
 
             # Reddit post JSON returns a list: [post_data, comments_data]

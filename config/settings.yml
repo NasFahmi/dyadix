@@ -41,3 +41,6 @@ database:
   pool_size: 5
   max_overflow: 10
   pool_timeout: 30
+
+features:
+  enable_reddit_scraper: false # Set to true to enable Reddit scraping
