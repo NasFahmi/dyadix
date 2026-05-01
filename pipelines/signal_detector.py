@@ -20,8 +20,9 @@ class SignalDetector:
     Scoring berbasis confluence dari technical, liquidity, sentiment, dan derivatives.
     """
 
-    def __init__(self, min_confidence: float = 0.65):
+    def __init__(self, min_confidence: float = 0.65, divergence_threshold: float = 0.15):
         self.min_confidence = min_confidence
+        self.divergence_threshold = divergence_threshold
 
     def detect(self, context: Dict) -> Dict:
         """
@@ -125,11 +126,33 @@ class SignalDetector:
             signal_type = "SHORT"
 
         final_confidence = min(1.0, max(0.0, dominant_score))
+        divergence = abs(bullish_score - bearish_score)
 
         if final_confidence >= self.min_confidence:
+            if divergence <= self.divergence_threshold:
+                logger.info(
+                    f"⏭ {pair} → SIGNAL SKIPPED (Low Divergence) | "
+                    f"confidence={final_confidence:.2f} | "
+                    f"divergence={divergence:.2f} (<= {self.divergence_threshold}) | "
+                    f"bull={bullish_score:.2f} | bear={bearish_score:.2f}"
+                )
+                return {
+                    "pair": pair,
+                    "has_potential_signal": False,
+                    "confidence": round(final_confidence, 2),
+                    "reasons": [f"Low divergence ({divergence:.2f}) - Potential sideways/conflicting"],
+                    "suggested_bias": "Neutral",
+                    "signal_type": None,
+                    "scores": {
+                        "bullish": round(bullish_score, 2),
+                        "bearish": round(bearish_score, 2),
+                    },
+                }
+
             logger.info(
                 f"🎯 {pair} → SIGNAL DETECTED | "
                 f"confidence={final_confidence:.2f} | "
+                f"divergence={divergence:.2f} | "
                 f"bias={suggested_bias} | "
                 f"reasons={reasons}"
             )

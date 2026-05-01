@@ -55,7 +55,8 @@ class LoopScheduler:
         self.data_manager = DataManager()
         self.context_builder = ContextBuilder()
         self.signal_detector = SignalDetector(
-            min_confidence=detector_config.get("min_confidence", 0.65)
+            min_confidence=detector_config.get("min_confidence", 0.65),
+            divergence_threshold=detector_config.get("divergence_threshold", 0.15)
         )
         self.decision_logger = DecisionLogger(
             cooldown_seconds=detector_config.get("cooldown_seconds", 900)

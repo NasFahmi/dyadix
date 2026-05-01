@@ -35,6 +35,7 @@ scheduler:
 
 signal_detector:
   min_confidence: 0.40 # Threshold minimum untuk memanggil LLM
+  divergence_threshold: 0.15 # Minimum difference between bullish and bearish scores
   cooldown_seconds: 1200 # 15 menit cooldown per pair setelah LLM call
 
 database:
