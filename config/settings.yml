@@ -1,14 +1,14 @@
 trading:
   pairs:
     - BTCUSDT
-    # - SOLUSDT
-    # - ETHUSDT
-    # - XRPUSDT
+    - SOLUSDT
+    - ETHUSDT
+    - XRPUSDT
   correlation_pairs:
     - BTCUSDT
-    # - ETHUSDT
-    # - SOLUSDT
-    # - XRPUSDT
+    - ETHUSDT
+    - SOLUSDT
+    - XRPUSDT
   active_session: "ny" # Opsi: "all", "ny", "london", "asia", "asia_london", "london_ny", "asia_ny"
   timeframes:
     - "3m"
@@ -50,9 +50,9 @@ exchange:
   # Testnet dikontrol via .env: BINANCE_TESTNET=true / false
 
 risk_management:
-  risk_per_trade_pct: 1.0    # % modal yang di-risk per trade
-  leverage: 10               # Leverage Binance Futures (ubah sesuai toleransi risiko)
-  max_running_trades: 1      # Maksimal 1 trade aktif bersamaan per pair
+  risk_per_trade_pct: 1.0 # % modal yang di-risk per trade
+  leverage: 10 # Leverage Binance Futures (ubah sesuai toleransi risiko)
+  max_running_trades: 1 # Maksimal 1 trade aktif bersamaan per pair
 
   # ───────────────────────────────────────────────────────────────
   # CONTOH KALKULASI RISK (panduan penyesuaian):
@@ -84,4 +84,4 @@ risk_management:
 autopsy:
   enabled: true
   notify_telegram: true
-  min_loss_usd: 1.0          # Jalankan autopsy hanya jika loss >= $1
+  min_loss_usd: 1.0 # Jalankan autopsy hanya jika loss >= $1

@@ -16,21 +16,25 @@ Format entry_zone yang didukung:
 
 import re
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-def parse_entry_midpoint(entry_zone: str, fallback_price: float) -> float:
+def parse_entry_midpoint(entry_zone: Any, fallback_price: float) -> float:
     """
     Parse string entry_zone dari LLM dan kembalikan midpoint sebagai float.
 
     Args:
-        entry_zone    : String dari field entry_zone decision LLM.
+        entry_zone    : String atau float dari field entry_zone decision LLM.
         fallback_price: Harga realtime saat ini, digunakan jika parsing gagal.
 
     Returns:
         Midpoint entry zone sebagai float.
     """
+    if isinstance(entry_zone, (int, float)):
+        return float(entry_zone)
+
     if not entry_zone or not isinstance(entry_zone, str):
         logger.warning(f"entry_zone tidak valid: '{entry_zone}', menggunakan fallback {fallback_price}")
         return fallback_price
@@ -65,17 +69,20 @@ def parse_entry_midpoint(entry_zone: str, fallback_price: float) -> float:
         return fallback_price
 
 
-def parse_price(price_str: str, fallback: float = 0.0) -> float:
+def parse_price(price_str: Any, fallback: float = 0.0) -> float:
     """
-    Parse string harga tunggal dari LLM (stop_loss, target) ke float.
+    Parse harga tunggal dari LLM (stop_loss, target) ke float.
 
     Args:
-        price_str: Contoh: "93800", "$93,800", "93800.5"
+        price_str: String atau angka. Contoh: "93800", "$93,800", 93800.5
         fallback : Nilai jika parsing gagal.
 
     Returns:
         Harga sebagai float.
     """
+    if isinstance(price_str, (int, float)):
+        return float(price_str)
+
     if not price_str or not isinstance(price_str, str):
         return fallback
 

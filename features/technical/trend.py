@@ -96,9 +96,15 @@ class TrendEngine:
         ] = "Weak Downtrend"
 
         # ==================== PRICE POSITION ====================
-        df["price_vs_ema50"] = df["close"] > df["ema_50"]
-        df["price_vs_ema200"] = df["close"] > df["ema_200"]
-        df["price_vs_supertrend"] = df["close"] > df["supertrend"]
+        # Convert to numeric first — pandas_ta can return None (not NaN)
+        # when insufficient data points, which crashes the > operator.
+        ema50_safe = pd.to_numeric(df["ema_50"], errors="coerce")
+        ema200_safe = pd.to_numeric(df["ema_200"], errors="coerce")
+        supertrend_safe = pd.to_numeric(df["supertrend"], errors="coerce")
+
+        df["price_vs_ema50"] = df["close"].gt(ema50_safe).fillna(False)
+        df["price_vs_ema200"] = df["close"].gt(ema200_safe).fillna(False)
+        df["price_vs_supertrend"] = df["close"].gt(supertrend_safe).fillna(False)
 
         logger.debug(
             f"Trend indicators calculated for {timeframe} | "

@@ -33,9 +33,30 @@ class BinanceFuturesClient:
 
         self.client = Client(api_key, api_secret, testnet=testnet)
         self.testnet = testnet
-
         mode = "TESTNET" if testnet else "PRODUCTION"
         logger.info(f"BinanceFuturesClient initialized [{mode}]")
+
+        # Cache untuk informasi presisi pair
+        self.symbols_info = {}
+        self._load_symbols_info()
+
+    def _load_symbols_info(self):
+        """Ambil informasi presisi (tickSize, stepSize) dari bursa."""
+        try:
+            info = self.client.futures_exchange_info()
+            for s in info['symbols']:
+                symbol = s['symbol']
+                filters = {f['filterType']: f for f in s['filters']}
+                
+                self.symbols_info[symbol] = {
+                    'tickSize': float(filters.get('PRICE_FILTER', {}).get('tickSize', 0.01)),
+                    'stepSize': float(filters.get('LOT_SIZE', {}).get('stepSize', 0.001)),
+                    'pricePrecision': int(s.get('pricePrecision', 2)),
+                    'quantityPrecision': int(s.get('quantityPrecision', 3))
+                }
+            logger.info(f"Loaded exchange info for {len(self.symbols_info)} symbols.")
+        except Exception as e:
+            logger.error(f"Failed to load exchange info: {e}")
 
     # ─────────────────────────────────────────────────────────────────────
     #  ACCOUNT
@@ -100,7 +121,7 @@ class BinanceFuturesClient:
                 symbol=pair,
                 side=binance_side,
                 type=ORDER_TYPE_MARKET,
-                quantity=self._round_quantity(quantity),
+                quantity=self._round_quantity(pair, quantity),
             )
             logger.info(f"Market order placed: {pair} {side} {quantity} → ID: {order['orderId']}")
             return order
@@ -129,7 +150,7 @@ class BinanceFuturesClient:
                 symbol=pair,
                 side=binance_side,
                 type=ORDER_TYPE_LIMIT,
-                quantity=self._round_quantity(quantity),
+                quantity=self._round_quantity(pair, quantity),
                 price=self._round_price(pair, price),
                 timeInForce=TIME_IN_FORCE_GTC,  # Good Till Canceled
             )
@@ -218,10 +239,27 @@ class BinanceFuturesClient:
     #  HELPER
     # ─────────────────────────────────────────────────────────────────────
 
-    def _round_quantity(self, quantity: float) -> float:
-        """Round quantity ke 5 desimal (cukup untuk semua pair Binance Futures)."""
-        return round(quantity, 5)
+    def _round_quantity(self, pair: str, quantity: float) -> float:
+        """Round quantity berdasarkan stepSize bursa."""
+        info = self.symbols_info.get(pair)
+        if not info:
+            return round(quantity, 3)  # Fallback
+        
+        step_size = info['stepSize']
+        precision = info['quantityPrecision']
+        
+        # Kalkulasi berdasarkan stepSize (paling akurat untuk Futures)
+        rounded = (quantity // step_size) * step_size
+        return round(rounded, precision)
 
     def _round_price(self, pair: str, price: float) -> float:
-        """Round price ke 2 desimal (default, bisa disesuaikan per pair)."""
-        return round(price, 2)
+        """Round price berdasarkan tickSize bursa."""
+        info = self.symbols_info.get(pair)
+        if not info:
+            return round(price, 2)  # Fallback
+            
+        tick_size = info['tickSize']
+        precision = info['pricePrecision']
+        
+        rounded = round(price / tick_size) * tick_size
+        return round(rounded, precision)

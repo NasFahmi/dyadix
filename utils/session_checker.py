@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
+
 def is_active_session(active_session_config: str) -> bool:
     """
     Cek apakah waktu saat ini (New York Time) berada di dalam session yang aktif.
@@ -13,10 +14,10 @@ def is_active_session(active_session_config: str) -> bool:
       NY: 09:00 - 18:00
     """
     config = active_session_config.lower().strip()
-    
+
     if config == "all":
         return True
-        
+
     # Ambil waktu saat ini di zona waktu New York
     ny_tz = ZoneInfo("America/New_York")
     now = datetime.now(ny_tz).time()
@@ -28,7 +29,7 @@ def is_active_session(active_session_config: str) -> bool:
     # London: 04:00 pagi sampai 13:00 siang
     is_london = 4 <= hour <= 13
     # NY: 09:00 pagi sampai 18:00 sore
-    is_ny = 9 <= hour <= 18
+    is_ny = 8 <= hour <= 18
 
     if config == "asia":
         return is_asia

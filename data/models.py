@@ -41,7 +41,7 @@ class SentimentRecord(Base):
     confidence = Column(Float)                  # 0.0 - 1.0
     dominant_narrative = Column(Text)
     news_impact = Column(Text)
-    social_mood = Column(String(50))
+    social_mood = Column(Text)
     trading_implication = Column(Text)
     key_insights = Column(JSONB)                # Array of strings
 
