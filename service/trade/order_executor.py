@@ -56,7 +56,9 @@ class OrderExecutor:
         """
         action = decision.get("decision", "WAIT")
         if action not in ("BUY", "SELL"):
-            logger.info(f"  ↳ {pair}: Action={action}, tidak ada order yang dieksekusi.")
+            logger.info(
+                f"  ↳ {pair}: Action={action}, tidak ada order yang dieksekusi."
+            )
             return None
 
         execution_type = decision.get("execution_type", "LIMIT")
@@ -73,7 +75,9 @@ class OrderExecutor:
         tp_price = parse_price(tp_str, fallback=0.0)
 
         if sl_price == 0.0 or tp_price == 0.0:
-            logger.error(f"  ✘ {pair}: SL atau TP tidak valid — {sl_str} / {tp_str}. Order dibatalkan.")
+            logger.error(
+                f"  ✘ {pair}: SL atau TP tidak valid — {sl_str} / {tp_str}. Order dibatalkan."
+            )
             return None
 
         # ── Hitung quantity berdasarkan risk management ───────────────
@@ -102,15 +106,30 @@ class OrderExecutor:
             logger.info(f"  ⚡ {pair}: Placing MARKET {action} order...")
             order_response = self.exchange.place_market_order(pair, action, quantity)
         else:
-            logger.info(f"  📋 {pair}: Placing LIMIT {action} order @ {entry_price_planned}...")
-            order_response = self.exchange.place_limit_order(pair, action, quantity, entry_price_planned)
+            logger.info(
+                f"  📋 {pair}: Placing LIMIT {action} order @ {entry_price_planned}..."
+            )
+            order_response = self.exchange.place_limit_order(
+                pair, action, quantity, entry_price_planned
+            )
 
         if not order_response:
             logger.error(f"  ✘ {pair}: Order gagal ditempatkan.")
             return None
 
         exchange_order_id = str(order_response.get("orderId", ""))
-        actual_entry = float(order_response.get("avgPrice", 0) or entry_price_planned)
+
+        # For LIMIT orders, wait for fill to get actual entry price
+        if execution_type == "LIMIT":
+            import time
+
+            for _ in range(10):
+                filled = self.exchange.check_order_fill(pair, exchange_order_id)
+                if filled:
+                    actual_entry = filled.get("avgPrice", entry_price_planned)
+                    if actual_entry and actual_entry > 0:
+                        break
+                time.sleep(0.5)
 
         # ── Set SL & TP ──────────────────────────────────────────────
         self.exchange.place_stop_loss_order(pair, action, quantity, sl_price)
@@ -129,7 +148,9 @@ class OrderExecutor:
             quantity=quantity,
         )
 
-        logger.info(f"  ✅ {pair}: Order placed → trade_id={trade_id}, exchange_id={exchange_order_id}")
+        logger.info(
+            f"  ✅ {pair}: Order placed → trade_id={trade_id}, exchange_id={exchange_order_id}"
+        )
         return trade_id
 
     def _save_trade(

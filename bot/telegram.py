@@ -320,6 +320,13 @@ class TelegramNotifier:
             if not trades:
                 return self.send_message("📂 <b>RUNNING TRADES</b>\n━━━━━━━━━━━━━━━━━━━━\n<i>Tidak ada trade yang sedang berjalan.</i>")
 
+            # Get real-time P/L from exchange
+            try:
+                from service.exchange.binance_futures_client import BinanceFuturesClient
+                exchange = BinanceFuturesClient()
+            except Exception:
+                exchange = None
+
             lines = ["📂 <b>RUNNING TRADES</b>", "━━━━━━━━━━━━━━━━━━━━"]
             for i, t in enumerate(trades, 1):
                 duration = ""
@@ -329,11 +336,33 @@ class TelegramNotifier:
                     minutes = remainder // 60
                     duration = f" | {hours}j {minutes}m"
 
+                # Get real-time P/L and unrealized P/L from exchange
+                unrealized_pnl = 0.0
+                if exchange and t.entry_price and t.entry_price > 0:
+                    try:
+                        position = exchange.get_position_pnl(t.pair)
+                        if position:
+                            unrealized_pnl = float(position.get("unrealizedPnl", 0))
+                    except Exception:
+                        pass
+
+                # Calculate margin used
+                margin_used = 0.0
+                if t.entry_price and t.quantity and t.leverage:
+                    margin_used = (t.entry_price * t.quantity) / t.leverage
+
+                pnl_emoji = "🟢" if unrealized_pnl >= 0 else "🔴"
+                pnl_text = f"{pnl_emoji} P/L: ${unrealized_pnl:+.2f}" if unrealized_pnl != 0 else ""
+
                 action_emoji = "🟢" if t.side == "BUY" else "🔴"
+                entry_text = f"${t.entry_price:,.2f}" if t.entry_price and t.entry_price > 0 else "⏳ Pending"
+
                 lines.append(
                     f"\n<b>{i}. {t.pair}</b> {action_emoji} {t.side}{duration}\n"
-                    f"   Entry: ${t.entry_price:,.2f}\n"
-                    f"   SL: ${t.stop_loss_price:,.2f} | TP: ${t.target_price:,.2f}"
+                    f"   Entry: {entry_text}\n"
+                    f"   SL: ${t.stop_loss_price:,.2f} | TP: ${t.target_price:,.2f}\n"
+                    f"   Margin: ${margin_used:,.2f} | Qty: {t.quantity} | Lev: {t.leverage}x\n"
+                    f"   {pnl_text}"
                 )
 
             return self.send_message("\n".join(lines))

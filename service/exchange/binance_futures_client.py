@@ -176,6 +176,7 @@ class BinanceFuturesClient:
                 type="STOP_MARKET",
                 stopPrice=self._round_price(pair, sl_price),
                 quantity=self._round_quantity(pair, quantity),
+                reduceOnly=True,
                 workingType='MARK_PRICE',
                 priceProtect=True
             )
@@ -199,6 +200,7 @@ class BinanceFuturesClient:
                 type="TAKE_PROFIT_MARKET",
                 stopPrice=self._round_price(pair, tp_price),
                 quantity=self._round_quantity(pair, quantity),
+                reduceOnly=True,
                 workingType='MARK_PRICE',
                 priceProtect=True
             )
@@ -220,6 +222,17 @@ class BinanceFuturesClient:
             logger.error(f"Error getting order status {pair} #{order_id}: {e}")
             return None
 
+    def check_order_fill(self, pair: str, order_id: str) -> Optional[Dict[str, Any]]:
+        """Cek apakah order sudah terisi dan ambil avgPrice."""
+        try:
+            order = self.client.futures_get_order(symbol=pair, orderId=int(order_id))
+            if order and order.get("status") in ("FILLED", "PARTIALLY_FILLED"):
+                return order
+            return None
+        except Exception as e:
+            logger.error(f"Error checking order fill {pair} #{order_id}: {e}")
+            return None
+
     def cancel_order(self, pair: str, order_id: str) -> bool:
         """Cancel order yang belum terisi."""
         try:
@@ -229,6 +242,18 @@ class BinanceFuturesClient:
         except Exception as e:
             logger.error(f"Error canceling order {pair} #{order_id}: {e}")
             return False
+
+    def get_position_pnl(self, pair: str) -> Optional[Dict[str, Any]]:
+        """Ambil unrealized P/L untuk posisi tertentu."""
+        try:
+            positions = self.client.futures_position_information(symbol=pair)
+            for p in positions:
+                if float(p.get("positionAmt", 0)) != 0:
+                    return p
+            return None
+        except Exception as e:
+            logger.error(f"Error getting position PNL for {pair}: {e}")
+            return None
 
     def get_open_positions(self, pair: Optional[str] = None) -> list:
         """Ambil semua posisi yang sedang terbuka."""
