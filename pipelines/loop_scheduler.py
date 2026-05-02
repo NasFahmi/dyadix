@@ -281,17 +281,19 @@ class LoopScheduler:
             action = decision.get("decision", "WAIT")
             if action in ("BUY", "SELL"):
                 try:
-                    trade_id = self.order_executor.execute(
+                    result = self.order_executor.execute(
                         pair=pair,
                         decision=decision,
                         realtime_price=realtime_price,
                     )
-                    if trade_id:
+                    if result:
+                        trade_id = result.get("trade_id")
+                        actual_entry = result.get("actual_entry")
                         logger.info(
-                            f"  ✅ {pair}: Order executed → trade_id={trade_id}"
+                            f"  ✅ {pair}: Order executed → trade_id={trade_id}, entry=${actual_entry}"
                         )
                         self.telegram.notify_order_placed(
-                            pair, action, decision, realtime_price
+                            pair, action, decision, realtime_price, actual_entry
                         )
                     else:
                         logger.warning(f"  ⚠️ {pair}: Order execution returned None")
@@ -656,7 +658,7 @@ class LoopScheduler:
             )
             self.telegram.send_message(msg)
         elif command == "trades":
-            self.telegram.notify_running_trades()
+            self.telegram.notify_all_trades()
 
     def _interruptible_sleep(self, seconds: float):
         """Sleep yang bisa di-interrupt oleh shutdown signal."""

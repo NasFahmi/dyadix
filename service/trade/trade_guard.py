@@ -86,3 +86,28 @@ class TradeGuard:
         except Exception as e:
             logger.error(f"TradeGuard get_all_running error: {e}")
             return []
+
+    @staticmethod
+    def get_closed_trades(limit: int = 10) -> list:
+        """
+        Ambil semua trade yang sudah closed (CLOSED_TP, CLOSED_SL, CANCELED).
+        Digunakan oleh /trades command untuk menampilkan histori.
+
+        Args:
+            limit: Jumlah trades terakhir yang ditampilkan (default 10)
+
+        Returns:
+            List of TradeRecord.
+        """
+        try:
+            with SessionFactory() as session:
+                return (
+                    session.query(TradeRecord)
+                    .filter(TradeRecord.status.in_(["CLOSED_TP", "CLOSED_SL", "CANCELED"]))
+                    .order_by(TradeRecord.closed_at.desc())
+                    .limit(limit)
+                    .all()
+                )
+        except Exception as e:
+            logger.error(f"TradeGuard get_closed_trades error: {e}")
+            return []

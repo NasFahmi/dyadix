@@ -112,6 +112,10 @@ class TradeRecord(Base):
     quantity = Column(Float)
     leverage = Column(Integer)
 
+    # TP/SL order IDs from exchange
+    stop_loss_order_id = Column(String(50), nullable=True)  # Exchange order ID for SL
+    take_profit_order_id = Column(String(50), nullable=True)  # Exchange order ID for TP
+
     # Hasil trade
     exit_price = Column(Float)
     realized_pnl = Column(Float)                          # PnL dalam USDT

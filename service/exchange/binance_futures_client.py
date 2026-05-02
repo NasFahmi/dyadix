@@ -58,9 +58,9 @@ class BinanceFuturesClient:
         except Exception as e:
             logger.error(f"Failed to load exchange info: {e}")
 
-    # ─────────────────────────────────────────────────────────────────────
+    # ---------------------------------------------------------------------
     #  ACCOUNT
-    # ─────────────────────────────────────────────────────────────────────
+    # ---------------------------------------------------------------------
 
     def get_usdt_balance(self) -> float:
         """Ambil available USDT balance di Futures wallet."""
@@ -83,23 +83,23 @@ class BinanceFuturesClient:
             logger.error(f"Error getting price for {pair}: {e}")
             return 0.0
 
-    # ─────────────────────────────────────────────────────────────────────
+    # ---------------------------------------------------------------------
     #  LEVERAGE
-    # ─────────────────────────────────────────────────────────────────────
+    # ---------------------------------------------------------------------
 
     def set_leverage(self, pair: str, leverage: int) -> bool:
         """Set leverage untuk pair tertentu."""
         try:
             self.client.futures_change_leverage(symbol=pair, leverage=leverage)
-            logger.info(f"Leverage set: {pair} → {leverage}x")
+            logger.info(f"Leverage set: {pair} -> {leverage}x")
             return True
         except Exception as e:
             logger.error(f"Error setting leverage for {pair}: {e}")
             return False
 
-    # ─────────────────────────────────────────────────────────────────────
+    # ---------------------------------------------------------------------
     #  ORDER PLACEMENT
-    # ─────────────────────────────────────────────────────────────────────
+    # ---------------------------------------------------------------------
 
     def place_market_order(self, pair: str, side: str, quantity: float) -> Optional[Dict[str, Any]]:
         """
@@ -123,7 +123,7 @@ class BinanceFuturesClient:
                 type=ORDER_TYPE_MARKET,
                 quantity=self._round_quantity(pair, quantity),
             )
-            logger.info(f"Market order placed: {pair} {side} {quantity} → ID: {order['orderId']}")
+            logger.info(f"Market order placed: {pair} {side} {quantity} -> ID: {order['orderId']}")
             return order
         except Exception as e:
             logger.error(f"Error placing market order {pair} {side}: {e}")
@@ -154,7 +154,7 @@ class BinanceFuturesClient:
                 price=self._round_price(pair, price),
                 timeInForce=TIME_IN_FORCE_GTC,  # Good Till Canceled
             )
-            logger.info(f"Limit order placed: {pair} {side} {quantity} @ {price} → ID: {order['orderId']}")
+            logger.info(f"Limit order placed: {pair} {side} {quantity} @ {price} -> ID: {order['orderId']}")
             return order
         except Exception as e:
             logger.error(f"Error placing limit order {pair} {side} @ {price}: {e}")
@@ -163,25 +163,63 @@ class BinanceFuturesClient:
     def place_stop_loss_order(self, pair: str, side: str, quantity: float, sl_price: float) -> Optional[Dict[str, Any]]:
         """
         Place Stop Loss (STOP_MARKET) order untuk menutup posisi.
-        Side adalah kebalikan dari posisi (BUY pos → SL SELL, SELL pos → SL BUY).
+        Supports both testnet and mainnet.
         """
         try:
             from binance.enums import SIDE_BUY, SIDE_SELL
-            # SL side adalah kebalikan dari posisi
             close_side = SIDE_SELL if side.upper() == "BUY" else SIDE_BUY
 
-            order = self.client.futures_create_order(
-                symbol=pair,
-                side=close_side,
-                type="STOP_MARKET",
-                stopPrice=self._round_price(pair, sl_price),
-                quantity=self._round_quantity(pair, quantity),
-                reduceOnly=True,
-                workingType='MARK_PRICE',
-                priceProtect=True
-            )
-            logger.info(f"Stop Loss set: {pair} @ {sl_price} → ID: {order['orderId']}")
-            return order
+            # Method 1: Try standard futures_create_order
+            try:
+                order = self.client.futures_create_order(
+                    symbol=pair,
+                    side=close_side,
+                    type="STOP_MARKET",
+                    stopPrice=self._round_price(pair, sl_price),
+                    quantity=self._round_quantity(pair, quantity),
+                    reduceOnly=True,
+                    workingType="MARK_PRICE"
+                )
+                logger.info(f"Stop Loss set: {pair} @ {sl_price} -> ID: {order.get('orderId')}")
+                return order
+            except Exception as e1:
+                logger.debug(f"Method 1 failed: {e1}")
+
+            # Method 2: Try with priceProtect disabled
+            try:
+                order = self.client.futures_create_order(
+                    symbol=pair,
+                    side=close_side,
+                    type="STOP_MARKET",
+                    stopPrice=self._round_price(pair, sl_price),
+                    quantity=self._round_quantity(pair, quantity),
+                    reduceOnly=True,
+                    workingType="MARK_PRICE",
+                    priceProtect=False
+                )
+                logger.info(f"Stop Loss set (method 2): {pair} @ {sl_price} -> ID: {order.get('orderId')}")
+                return order
+            except Exception as e2:
+                logger.debug(f"Method 2 failed: {e2}")
+
+            # Method 3: Try with STOP limit order
+            try:
+                order = self.client.futures_create_order(
+                    symbol=pair,
+                    side=close_side,
+                    type="STOP",
+                    stopPrice=self._round_price(pair, sl_price),
+                    quantity=self._round_quantity(pair, quantity),
+                    reduceOnly=True
+                )
+                logger.info(f"Stop Loss set (method 3): {pair} @ {sl_price} -> ID: {order.get('orderId')}")
+                return order
+            except Exception as e3:
+                logger.debug(f"Method 3 failed: {e3}")
+
+            logger.warning(f"Could not set SL for {pair}: All methods failed")
+            return None
+
         except Exception as e:
             logger.error(f"Error placing SL for {pair}: {e}")
             return None
@@ -189,30 +227,70 @@ class BinanceFuturesClient:
     def place_take_profit_order(self, pair: str, side: str, quantity: float, tp_price: float) -> Optional[Dict[str, Any]]:
         """
         Place Take Profit (TAKE_PROFIT_MARKET) order untuk menutup posisi.
+        Supports both testnet and mainnet.
         """
         try:
             from binance.enums import SIDE_BUY, SIDE_SELL
             close_side = SIDE_SELL if side.upper() == "BUY" else SIDE_BUY
 
-            order = self.client.futures_create_order(
-                symbol=pair,
-                side=close_side,
-                type="TAKE_PROFIT_MARKET",
-                stopPrice=self._round_price(pair, tp_price),
-                quantity=self._round_quantity(pair, quantity),
-                reduceOnly=True,
-                workingType='MARK_PRICE',
-                priceProtect=True
-            )
-            logger.info(f"Take Profit set: {pair} @ {tp_price} → ID: {order['orderId']}")
-            return order
+            # Method 1: Try standard futures_create_order
+            try:
+                order = self.client.futures_create_order(
+                    symbol=pair,
+                    side=close_side,
+                    type="TAKE_PROFIT_MARKET",
+                    stopPrice=self._round_price(pair, tp_price),
+                    quantity=self._round_quantity(pair, quantity),
+                    reduceOnly=True,
+                    workingType="MARK_PRICE"
+                )
+                logger.info(f"Take Profit set: {pair} @ {tp_price} -> ID: {order.get('orderId')}")
+                return order
+            except Exception as e1:
+                logger.debug(f"Method 1 failed: {e1}")
+
+            # Method 2: Try with priceProtect disabled
+            try:
+                order = self.client.futures_create_order(
+                    symbol=pair,
+                    side=close_side,
+                    type="TAKE_PROFIT_MARKET",
+                    stopPrice=self._round_price(pair, tp_price),
+                    quantity=self._round_quantity(pair, quantity),
+                    reduceOnly=True,
+                    workingType="MARK_PRICE",
+                    priceProtect=False
+                )
+                logger.info(f"Take Profit set (method 2): {pair} @ {tp_price} -> ID: {order.get('orderId')}")
+                return order
+            except Exception as e2:
+                logger.debug(f"Method 2 failed: {e2}")
+
+            # Method 3: Try with TAKE_PROFIT limit order
+            try:
+                order = self.client.futures_create_order(
+                    symbol=pair,
+                    side=close_side,
+                    type="TAKE_PROFIT",
+                    stopPrice=self._round_price(pair, tp_price),
+                    quantity=self._round_quantity(pair, quantity),
+                    reduceOnly=True
+                )
+                logger.info(f"Take Profit set (method 3): {pair} @ {tp_price} -> ID: {order.get('orderId')}")
+                return order
+            except Exception as e3:
+                logger.debug(f"Method 3 failed: {e3}")
+
+            logger.warning(f"Could not set TP for {pair}: All methods failed")
+            return None
+
         except Exception as e:
             logger.error(f"Error placing TP for {pair}: {e}")
             return None
 
-    # ─────────────────────────────────────────────────────────────────────
+    # ---------------------------------------------------------------------
     #  ORDER STATUS
-    # ─────────────────────────────────────────────────────────────────────
+    # ---------------------------------------------------------------------
 
     def get_order_status(self, pair: str, order_id: str) -> Optional[Dict[str, Any]]:
         """Cek status order. Returns dict dengan field 'status'."""
@@ -264,9 +342,34 @@ class BinanceFuturesClient:
             logger.error(f"Error getting positions: {e}")
             return []
 
-    # ─────────────────────────────────────────────────────────────────────
+    def get_open_orders(self, pair: Optional[str] = None) -> list:
+        """Ambil semua open orders (termasuk TP/SL)."""
+        try:
+            return self.client.futures_get_open_orders(symbol=pair)
+        except Exception as e:
+            logger.error(f"Error getting open orders: {e}")
+            return []
+
+    def verify_tp_sl_set(self, pair: str) -> dict:
+        """Verify bahwa TP dan SL sudah ter-set untuk pair ini."""
+        try:
+            open_orders = self.get_open_orders(pair)
+            tp_orders = [o for o in open_orders if o.get("type") == "TAKE_PROFIT_MARKET"]
+            sl_orders = [o for o in open_orders if o.get("type") == "STOP_MARKET"]
+
+            return {
+                "has_tp": len(tp_orders) > 0,
+                "has_sl": len(sl_orders) > 0,
+                "tp_orders": tp_orders,
+                "sl_orders": sl_orders,
+            }
+        except Exception as e:
+            logger.error(f"Error verifying TP/SL for {pair}: {e}")
+            return {"has_tp": False, "has_sl": False, "tp_orders": [], "sl_orders": []}
+
+    # ---------------------------------------------------------------------
     #  HELPER
-    # ─────────────────────────────────────────────────────────────────────
+    # ---------------------------------------------------------------------
 
     def _round_quantity(self, pair: str, quantity: float) -> float:
         """Round quantity berdasarkan stepSize bursa."""

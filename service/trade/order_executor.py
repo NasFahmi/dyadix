@@ -41,7 +41,7 @@ class OrderExecutor:
         decision: Dict[str, Any],
         realtime_price: float,
         decision_id: Optional[str] = None,
-    ) -> Optional[str]:
+    ) -> Optional[Dict[str, Any]]:
         """
         Eksekusi order berdasarkan decision LLM.
 
@@ -52,12 +52,13 @@ class OrderExecutor:
             decision_id   : UUID record di tabel decisions (untuk FK)
 
         Returns:
-            trade_id (UUID string) jika berhasil, None jika gagal.
+            Dict dengan 'trade_id', 'actual_entry', 'sl_price', 'tp_price', 'quantity'
+            jika berhasil, None jika gagal.
         """
         action = decision.get("decision", "WAIT")
         if action not in ("BUY", "SELL"):
             logger.info(
-                f"  ↳ {pair}: Action={action}, tidak ada order yang dieksekusi."
+                f"  -> {pair}: Action={action}, tidak ada order yang dieksekusi."
             )
             return None
 
@@ -76,14 +77,14 @@ class OrderExecutor:
 
         if sl_price == 0.0 or tp_price == 0.0:
             logger.error(
-                f"  ✘ {pair}: SL atau TP tidak valid — {sl_str} / {tp_str}. Order dibatalkan."
+                f"  [ERR] {pair}: SL atau TP tidak valid - {sl_str} / {tp_str}. Order dibatalkan."
             )
             return None
 
         # ── Hitung quantity berdasarkan risk management ───────────────
         balance = self.exchange.get_usdt_balance()
         if balance <= 0:
-            logger.error(f"  ✘ {pair}: Balance USDT = 0. Order dibatalkan.")
+            logger.error(f"  [ERR] {pair}: Balance USDT = 0. Order dibatalkan.")
             return None
 
         risk_usd = balance * (self.risk_pct / 100.0)
@@ -91,9 +92,9 @@ class OrderExecutor:
         quantity = nominal / realtime_price
 
         logger.info(
-            f"  💰 {pair} Risk Calc: Balance=${balance:.2f}, Risk={self.risk_pct}% "
-            f"→ ${risk_usd:.2f} x {self.leverage}x = ${nominal:.2f} "
-            f"→ Qty={quantity:.5f}"
+            f"  [$$$] {pair} Risk Calc: Balance=${balance:.2f}, Risk={self.risk_pct}% "
+            f"-> ${risk_usd:.2f} x {self.leverage}x = ${nominal:.2f} "
+            f"-> Qty={quantity:.5f}"
         )
 
         # ── Set leverage ─────────────────────────────────────────────
@@ -103,21 +104,23 @@ class OrderExecutor:
         order_response = None
 
         if execution_type == "MARKET":
-            logger.info(f"  ⚡ {pair}: Placing MARKET {action} order...")
+            logger.info(f"  [MARKET] {pair}: Placing MARKET {action} order...")
             order_response = self.exchange.place_market_order(pair, action, quantity)
         else:
             logger.info(
-                f"  📋 {pair}: Placing LIMIT {action} order @ {entry_price_planned}..."
+                f"  [LIMIT] {pair}: Placing LIMIT {action} order @ {entry_price_planned}..."
             )
             order_response = self.exchange.place_limit_order(
                 pair, action, quantity, entry_price_planned
             )
 
         if not order_response:
-            logger.error(f"  ✘ {pair}: Order gagal ditempatkan.")
+            logger.error(f"  [ERR] {pair}: Order gagal ditempatkan.")
             return None
 
         exchange_order_id = str(order_response.get("orderId", ""))
+
+        actual_entry = None
 
         # For LIMIT orders, wait for fill to get actual entry price
         if execution_type == "LIMIT":
@@ -130,10 +133,43 @@ class OrderExecutor:
                     if actual_entry and actual_entry > 0:
                         break
                 time.sleep(0.5)
+        else:
+            # For MARKET orders (execute immediately on testnet), get avgPrice from order status
+            import time
+
+            # Wait a moment for order to settle
+            time.sleep(0.3)
+
+            # Check the filled order to get actual entry price
+            filled = self.exchange.check_order_fill(pair, exchange_order_id)
+            if filled:
+                actual_entry = filled.get("avgPrice")
+                logger.info(f"  [ENTRY] {pair}: Market order filled @ avgPrice: {actual_entry}")
+            else:
+                # Fallback to realtime price if avgPrice not available
+                actual_entry = realtime_price
+                logger.info(f"  [ENTRY] {pair}: Using realtime price as entry: {actual_entry}")
+
+        # Wait a moment for position to be recognized in Binance
+        import time
+        time.sleep(0.5)
 
         # ── Set SL & TP ──────────────────────────────────────────────
-        self.exchange.place_stop_loss_order(pair, action, quantity, sl_price)
-        self.exchange.place_take_profit_order(pair, action, quantity, tp_price)
+        logger.info(f"  [TP/SL] {pair}: Setting SL={sl_price}, TP={tp_price}")
+
+        sl_result = self.exchange.place_stop_loss_order(pair, action, quantity, sl_price)
+        sl_order_id = str(sl_result.get("orderId")) if sl_result else None
+        if sl_result:
+            logger.info(f"  [TP/SL] {pair}: SL order placed -> ID: {sl_order_id}")
+        else:
+            logger.warning(f"  [TP/SL] {pair}: SL order FAILED (will use manual monitoring)")
+
+        tp_result = self.exchange.place_take_profit_order(pair, action, quantity, tp_price)
+        tp_order_id = str(tp_result.get("orderId")) if tp_result else None
+        if tp_result:
+            logger.info(f"  [TP/SL] {pair}: TP order placed -> ID: {tp_order_id}")
+        else:
+            logger.warning(f"  [TP/SL] {pair}: TP order FAILED (will use manual monitoring)")
 
         # ── Simpan ke database ────────────────────────────────────────
         trade_id = self._save_trade(
@@ -146,12 +182,24 @@ class OrderExecutor:
             sl_price=sl_price,
             tp_price=tp_price,
             quantity=quantity,
+            sl_order_id=sl_order_id,
+            tp_order_id=tp_order_id,
         )
 
         logger.info(
-            f"  ✅ {pair}: Order placed → trade_id={trade_id}, exchange_id={exchange_order_id}"
+            f"  [OK] {pair}: Order placed -> trade_id={trade_id}, exchange_id={exchange_order_id}, "
+            f"SL={sl_order_id}, TP={tp_order_id}"
         )
-        return trade_id
+
+        return {
+            "trade_id": trade_id,
+            "actual_entry": actual_entry,
+            "sl_price": sl_price,
+            "tp_price": tp_price,
+            "quantity": quantity,
+            "sl_order_id": sl_order_id,
+            "tp_order_id": tp_order_id,
+        }
 
     def _save_trade(
         self,
@@ -164,6 +212,8 @@ class OrderExecutor:
         sl_price: float,
         tp_price: float,
         quantity: float,
+        sl_order_id: Optional[str] = None,
+        tp_order_id: Optional[str] = None,
     ) -> str:
         """Simpan record trade baru ke PostgreSQL."""
         from data.database import SessionFactory
@@ -181,6 +231,8 @@ class OrderExecutor:
             target_price=tp_price,
             quantity=quantity,
             leverage=self.leverage,
+            stop_loss_order_id=sl_order_id,
+            take_profit_order_id=tp_order_id,
             opened_at=datetime.utcnow(),
         )
 

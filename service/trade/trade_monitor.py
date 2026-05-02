@@ -16,7 +16,8 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-POLL_INTERVAL_SECONDS = 30  # Cek setiap 30 detik
+POLL_INTERVAL_SECONDS = 10  # Cek setiap 10 detik (lebih aman untuk rate limit)
+TP_SL_CHECK_INTERVAL = 5   # Tapi cek TP/SL lebih sering (5 detik)
 
 
 class TradeMonitor:
@@ -51,11 +52,23 @@ class TradeMonitor:
 
     def _run(self):
         """Loop utama monitoring."""
+        consecutive_errors = 0
+
         while not self._stop_event.is_set():
             try:
                 self._sync_all_trades()
+                consecutive_errors = 0  # Reset on success
             except Exception as e:
-                logger.error(f"TradeMonitor sync error: {e}")
+                consecutive_errors += 1
+                logger.error(f"TradeMonitor sync error ({consecutive_errors}x): {e}")
+
+                # Rate limit backoff
+                if consecutive_errors >= 3:
+                    logger.warning("Rate limit detected, waiting 30s...")
+                    self._stop_event.wait(30)
+                    consecutive_errors = 0
+                else:
+                    self._stop_event.wait(POLL_INTERVAL_SECONDS)
 
             self._stop_event.wait(POLL_INTERVAL_SECONDS)
 
@@ -70,8 +83,20 @@ class TradeMonitor:
 
         logger.debug(f"TradeMonitor: checking {len(running_trades)} running trade(s)...")
 
+        # Batch fetch all open positions in ONE API call
+        all_positions = self.exchange.get_open_positions()
+
+        # Build a lookup for quick access
+        positions_by_pair = {p["symbol"]: p for p in all_positions}
+
         for trade in running_trades:
             try:
+                # Check TP/SL first (even if position still exists)
+                position = positions_by_pair.get(trade.pair)
+                if position:
+                    self._check_manual_tp_sl(trade, position)
+
+                # Then check if position still exists
                 self._sync_trade(trade)
             except Exception as e:
                 logger.error(f"Error syncing trade {trade.id} ({trade.pair}): {e}")
@@ -105,14 +130,144 @@ class TradeMonitor:
         if entry_status in ("FILLED", "PARTIALLY_FILLED"):
             # Cek posisi aktual di exchange
             positions = self.exchange.get_open_positions(trade.pair)
-            # positions adalah list p yang Amt != 0. 
+            # positions adalah list p yang Amt != 0.
             # Jika pair tidak ada di list ini, berarti posisi sudah tertutup.
             has_position = any(p["symbol"] == trade.pair for p in positions)
 
             if not has_position:
-                # Posisi sudah tertutup! Cari tahu kenapa (SL/TP)
-                # Untuk sementara kita sebut "Closed" sampai ada pelacakan SL/TP order ID
-                self._close_trade(trade, order, reason="Position Closed")
+                # Posisi sudah tertutup! Cari tahu apakah SL atau TP yang memicu
+                close_reason = self._detect_close_reason(trade)
+                self._close_trade(trade, order, reason=close_reason)
+            else:
+                # Posisi masih ada - cek apakah TP/SL tercapai (manual monitoring)
+                self._check_manual_tp_sl(trade, positions[0])
+
+    def _detect_close_reason(self, trade) -> str:
+        """
+        Deteksi apakah posisi tertutup karena TP atau SL.
+        Cek status TP/SL orders yang tersimpan di database.
+        """
+        # Check SL order status
+        if trade.stop_loss_order_id:
+            sl_order = self.exchange.get_order_status(trade.pair, trade.stop_loss_order_id)
+            if sl_order and sl_order.get("status") in ("FILLED", "PARTIALLY_FILLED"):
+                return "Hit SL"
+
+        # Check TP order status
+        if trade.take_profit_order_id:
+            tp_order = self.exchange.get_order_status(trade.pair, trade.take_profit_order_id)
+            if tp_order and tp_order.get("status") in ("FILLED", "PARTIALLY_FILLED"):
+                return "Hit TP"
+
+        # Fallback: guess based on current price vs entry
+        current_price = self.exchange.get_realtime_price(trade.pair)
+        if current_price > 0 and trade.entry_price:
+            if trade.side == "BUY":
+                if current_price >= trade.target_price:
+                    return "Hit TP"
+                elif current_price <= trade.stop_loss_price:
+                    return "Hit SL"
+            else:  # SELL
+                if current_price <= trade.target_price:
+                    return "Hit TP"
+                elif current_price >= trade.stop_loss_price:
+                    return "Hit SL"
+
+        # Default
+        return "Position Closed"
+
+    def _check_manual_tp_sl(self, trade, position):
+        """
+        Manual TP/SL check - untuk testnet yang tidak support TP/SL orders.
+        Jika harga market mencapai SL atau TP, tutup posisi secara manual.
+        """
+        if not trade.stop_loss_price or not trade.target_price:
+            return
+
+        current_price = self.exchange.get_realtime_price(trade.pair)
+        if current_price <= 0:
+            return
+
+        entry_price = float(position.get("entryPrice", 0))
+        side = trade.side
+
+        # Tentukan apakah TP atau SL tercapai
+        triggered = None
+
+        if side == "BUY":
+            # Long position: TP di atas entry, SL di bawah entry
+            if current_price >= trade.target_price:
+                triggered = "Hit TP"
+            elif current_price <= trade.stop_loss_price:
+                triggered = "Hit SL"
+        elif side == "SELL":
+            # Short position: TP di bawah entry, SL di atas entry
+            if current_price <= trade.target_price:
+                triggered = "Hit TP"
+            elif current_price >= trade.stop_loss_price:
+                triggered = "Hit SL"
+
+        if triggered:
+            logger.info(
+                f"Manual TP/SL triggered: {trade.pair} {side} - {triggered} "
+                f"(Entry: {entry_price}, Current: {current_price}, TP: {trade.target_price}, SL: {trade.stop_loss_price})"
+            )
+
+            # Tutup posisi dengan market order
+            close_side = "SELL" if side == "BUY" else "BUY"
+            quantity = abs(float(position.get("positionAmt", 0)))
+
+            close_order = self.exchange.place_market_order(
+                trade.pair, close_side, quantity
+            )
+
+            if close_order:
+                # Cari tahu apakah TP atau SL
+                if triggered == "Hit TP":
+                    new_status = "CLOSED_TP"
+                    exit_reason = "Hit TP"
+                else:
+                    new_status = "CLOSED_SL"
+                    exit_reason = "Hit SL"
+
+                # Hitung realized P/L
+                realized_pnl = self._calculate_pnl(trade, current_price)
+
+                # Update database
+                from data.database import SessionFactory
+                from data.models import TradeRecord
+
+                try:
+                    with SessionFactory() as session:
+                        db_trade = session.query(TradeRecord).filter_by(id=trade.id).first()
+                        if db_trade:
+                            db_trade.status = new_status
+                            db_trade.exit_price = current_price
+                            db_trade.exit_reason = exit_reason
+                            db_trade.realized_pnl = realized_pnl
+                            db_trade.closed_at = datetime.utcnow()
+                            session.commit()
+                except Exception as e:
+                    logger.error(f"Error updating trade {trade.id} in DB: {e}")
+                    return
+
+                logger.info(
+                    f"Trade closed: {trade.pair} {trade.side} -> {exit_reason} | "
+                    f"PnL: {realized_pnl:+.2f} USDT"
+                )
+
+                # Kirim notifikasi Telegram
+                if self.telegram:
+                    self._notify_trade_closed(trade, current_price, realized_pnl, exit_reason)
+
+                # Trigger Autopsy jika SL
+                if new_status == "CLOSED_SL":
+                    threading.Thread(
+                        target=self._trigger_autopsy,
+                        args=(trade,),
+                        daemon=True,
+                        name=f"AutopsyThread-{trade.pair}",
+                    ).start()
 
     def _close_trade(self, trade, order, reason=None):
         """Update DB saat trade ditutup, kirim notifikasi, trigger autopsy jika SL."""
@@ -120,23 +275,50 @@ class TradeMonitor:
         from data.models import TradeRecord
 
         status = order.get("status", "")
-        avg_price = float(order.get("avgPrice", 0) or trade.entry_price or 0)
-        
-        # Jika reason manual disediakan, gunakan itu
+
+        # Untuk exit price, gunakan:
+        # 1. avgPrice dari closing order (TP/SL), atau
+        # 2. Current mark price jika position sudah tertutup (tidak ada order info)
+        exit_price = float(order.get("avgPrice", 0) or 0)
+
+        # If position is closed, try to get exit price from TP/SL orders
+        if exit_price == 0 and reason in ("Hit SL", "Hit TP"):
+            if reason == "Hit SL" and trade.stop_loss_order_id:
+                sl_order = self.exchange.get_order_status(trade.pair, trade.stop_loss_order_id)
+                if sl_order:
+                    exit_price = float(sl_order.get("avgPrice") or sl_order.get("stopPrice") or 0)
+            elif reason == "Hit TP" and trade.take_profit_order_id:
+                tp_order = self.exchange.get_order_status(trade.pair, trade.take_profit_order_id)
+                if tp_order:
+                    exit_price = float(tp_order.get("avgPrice") or tp_order.get("stopPrice") or 0)
+
+        # Last resort: get current mark price
+        if exit_price == 0:
+            exit_price = self.exchange.get_realtime_price(trade.pair)
+
+# Jika reason manual disediakan, gunakan itu
         if reason == "Entry Canceled":
             exit_reason = "Entry Canceled"
             new_status = "CANCELED"
+            exit_price = 0  # No exit price for canceled entries
+        elif reason == "Hit SL":
+            exit_reason = "Hit SL"
+            new_status = "CLOSED_SL"
+        elif reason == "Hit TP":
+            exit_reason = "Hit TP"
+            new_status = "CLOSED_TP"
         elif reason == "Position Closed":
-            # Coba tebak apakah SL atau TP berdasarkan harga (jika belum ada order tracking)
-            # Ini akan di-improve nanti dengan tracking order ID SL/TP
-            exit_reason = "Closed"
-            new_status = "CLOSED_TP" 
+            # Fallback: assume TP if we can't determine
+            exit_reason = "Closed (TP)"
+            new_status = "CLOSED_TP"
         else:
             exit_reason = "Unknown"
             new_status = "CLOSED_TP"
 
-        # Hitung PnL sederhana
-        realized_pnl = self._calculate_pnl(trade, avg_price)
+        # Hitung PnL hanya jika kita punya entry dan exit price
+        realized_pnl = 0.0
+        if trade.entry_price and trade.entry_price > 0 and exit_price and exit_price > 0:
+            realized_pnl = self._calculate_pnl(trade, exit_price)
 
         # Update database
         try:
@@ -144,7 +326,7 @@ class TradeMonitor:
                 db_trade = session.query(TradeRecord).filter_by(id=trade.id).first()
                 if db_trade:
                     db_trade.status = new_status
-                    db_trade.exit_price = avg_price
+                    db_trade.exit_price = exit_price
                     db_trade.exit_reason = exit_reason
                     db_trade.realized_pnl = realized_pnl
                     db_trade.closed_at = datetime.utcnow()
@@ -162,7 +344,7 @@ class TradeMonitor:
 
         # Kirim notifikasi Telegram
         if self.telegram:
-            self._notify_trade_closed(trade, avg_price, realized_pnl, exit_reason)
+            self._notify_trade_closed(trade, exit_price, realized_pnl, exit_reason)
 
         # Trigger Autopsy jika kena SL
         if new_status == "CLOSED_SL":

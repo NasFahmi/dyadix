@@ -157,6 +157,8 @@ class TelegramNotifier:
                                 command_callback("status")
                             elif text == "/trades":
                                 command_callback("trades")
+                            elif text == "/history":
+                                command_callback("history")
                                 
             except requests.exceptions.Timeout:
                 pass  # Wajar karena long polling
@@ -276,7 +278,8 @@ class TelegramNotifier:
         return self.send_message(text)
 
     def notify_order_placed(
-        self, pair: str, action: str, decision: Dict, realtime_price: float = 0.0
+        self, pair: str, action: str, decision: Dict, realtime_price: float = 0.0,
+        actual_entry: Optional[float] = None
     ) -> bool:
         """
         Kirim notifikasi saat order berhasil ditempatkan di Binance Futures.
@@ -293,12 +296,15 @@ class TelegramNotifier:
         action_emoji = "🟢" if action == "BUY" else "🔴"
         exec_emoji = "⚡ MARKET" if execution_type == "MARKET" else "📋 LIMIT"
 
+        # Use actual entry price if available (for executed orders on testnet)
+        entry_display = f"${actual_entry:,.2f}" if actual_entry and actual_entry > 0 else f"${entry_planned:,.2f}"
+        entry_label = "Entry (Filled)" if actual_entry and actual_entry > 0 else "Entry Planned"
+
         text = (
-            f"✅ <b>ORDER PLACED — {pair}</b>\n"
+            f"✅ <b>ORDER EXECUTED — {pair}</b>\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"<b>Action:</b> {action_emoji} {action} ({exec_emoji})\n"
-            f"<b>Entry Planned:</b> ${entry_planned:,.2f}\n"
-            f"<b>Realtime Price:</b> ${realtime_price:,.2f}\n"
+            f"<b>{entry_label}:</b> {entry_display}\n"
             f"<b>Stop Loss:</b> ${sl_price:,.2f}\n"
             f"<b>Target:</b> ${tp_price:,.2f}\n"
             f"<b>R/R:</b> {risk_reward}\n"
@@ -370,3 +376,113 @@ class TelegramNotifier:
         except Exception as e:
             logger.error(f"Failed to get running trades: {e}")
             return self.send_message("❌ Gagal mengambil data running trades.")
+
+    def notify_all_trades(self) -> bool:
+        """
+        Kirim daftar semua trades (RUNNING + CLOSED) dipanggil oleh /trades command.
+        Menampilkan juga P/L untuk closed trades.
+        """
+        try:
+            from service.trade.trade_guard import TradeGuard
+            from datetime import datetime
+
+            running = TradeGuard.get_all_running_trades()
+            closed = TradeGuard.get_closed_trades(limit=10)
+
+            # Get real-time P/L from exchange
+            try:
+                from service.exchange.binance_futures_client import BinanceFuturesClient
+                exchange = BinanceFuturesClient()
+            except Exception:
+                exchange = None
+
+            lines = []
+
+            # === RUNNING TRADES ===
+            if running:
+                lines.append("📂 <b>RUNNING TRADES</b>")
+                lines.append("━━━━━━━━━━━━━━━━━━━━")
+
+                for i, t in enumerate(running, 1):
+                    duration = ""
+                    if t.opened_at:
+                        delta = datetime.utcnow() - t.opened_at
+                        hours, remainder = divmod(int(delta.total_seconds()), 3600)
+                        minutes = remainder // 60
+                        duration = f" | {hours}j {minutes}m"
+
+                    unrealized_pnl = 0.0
+                    if exchange and t.entry_price and t.entry_price > 0:
+                        try:
+                            position = exchange.get_position_pnl(t.pair)
+                            if position:
+                                unrealized_pnl = float(position.get("unrealizedPnl", 0))
+                        except Exception:
+                            pass
+
+                    margin_used = 0.0
+                    if t.entry_price and t.quantity and t.leverage:
+                        margin_used = (t.entry_price * t.quantity) / t.leverage
+
+                    pnl_emoji = "🟢" if unrealized_pnl >= 0 else "🔴"
+                    pnl_text = f"{pnl_emoji} P/L: ${unrealized_pnl:+.2f}" if unrealized_pnl != 0 else ""
+
+                    action_emoji = "🟢" if t.side == "BUY" else "🔴"
+                    entry_text = f"${t.entry_price:,.2f}" if t.entry_price and t.entry_price > 0 else "⏳ Pending"
+
+                    lines.append(
+                        f"\n<b>{i}. {t.pair}</b> {action_emoji} {t.side}{duration}\n"
+                        f"   Entry: {entry_text}\n"
+                        f"   SL: ${t.stop_loss_price:,.2f} | TP: ${t.target_price:,.2f}\n"
+                        f"   Margin: ${margin_used:,.2f} | Qty: {t.quantity} | Lev: {t.leverage}x\n"
+                        f"   {pnl_text}"
+                    )
+            else:
+                lines.append("📂 <b>RUNNING TRADES</b>\n━━━━━━━━━━━━━━━━━━━━\n<i>Tidak ada trade yang sedang berjalan.</i>")
+
+            # === CLOSED TRADES ===
+            if closed:
+                lines.append("\n\n📕 <b>CLOSED TRADES</b> (Last 10)")
+                lines.append("━━━━━━━━━━━━━━━━━━━━")
+
+                total_pnl = 0.0
+                for i, t in enumerate(closed, 1):
+                    duration = ""
+                    if t.opened_at and t.closed_at:
+                        delta = t.closed_at - t.opened_at
+                        hours, remainder = divmod(int(delta.total_seconds()), 3600)
+                        minutes = remainder // 60
+                        duration = f"{hours}j {minutes}m"
+
+                    action_emoji = "🟢" if t.side == "BUY" else "🔴"
+
+                    entry_display = f"${t.entry_price:,.2f}" if t.entry_price and t.entry_price > 0 else "N/A"
+                    exit_display = f"${t.exit_price:,.2f}" if t.exit_price and t.exit_price > 0 else "N/A"
+
+                    pnl = t.realized_pnl or 0.0
+                    total_pnl += pnl
+                    pnl_emoji = "🟢" if pnl >= 0 else "🔴"
+                    pnl_str = f"{pnl_emoji} ${pnl:+.2f}"
+
+                    if t.status == "CLOSED_TP":
+                        status_label = "✅ TP"
+                    elif t.status == "CLOSED_SL":
+                        status_label = "❌ SL"
+                    else:
+                        status_label = "⚪ CLOSED"
+
+                    lines.append(
+                        f"\n<b>{i}. {t.pair}</b> {action_emoji} {t.side} {status_label}\n"
+                        f"   Entry: {entry_display} → Exit: {exit_display}\n"
+                        f"   P/L: {pnl_str} | Durasi: {duration}\n"
+                        f"   Qty: {t.quantity} | Lev: {t.leverage}x"
+                    )
+
+                total_emoji = "🟢" if total_pnl >= 0 else "🔴"
+                lines.append(f"\n<b>Total Closed P/L:</b> {total_emoji} ${total_pnl:+.2f}")
+
+            return self.send_message("\n".join(lines))
+
+        except Exception as e:
+            logger.error(f"Failed to get all trades: {e}")
+            return self.send_message("❌ Gagal mengambil data trades.")
