@@ -52,17 +52,29 @@ class OHLCVAggregator:
         df_b = df_binance.copy()
         df_y = df_bybit.copy()
 
-        # Pastikan index bertipe datetime
+        # Pastikan index bertipe datetime dan naive UTC
         if not isinstance(df_b.index, pd.DatetimeIndex):
             df_b.index = pd.to_datetime(df_b.index)
         if not isinstance(df_y.index, pd.DatetimeIndex):
             df_y.index = pd.to_datetime(df_y.index)
+            
+        # Force naive UTC to ensure matching
+        if df_b.index.tz is not None:
+            df_b.index = df_b.index.tz_convert(None)
+        if df_y.index.tz is not None:
+            df_y.index = df_y.index.tz_convert(None)
 
         # Align timestamp
         if align_method == "inner":
             common_index = df_b.index.intersection(df_y.index)
             if len(common_index) == 0:
-                logger.error("Tidak ada timestamp yang sama antara Binance dan Bybit.")
+                logger.error(
+                    f"Tidak ada timestamp yang sama antara Binance dan Bybit. "
+                    f"Binance: {len(df_b)} rows, {df_b.index.min()} to {df_b.index.max()}. "
+                    f"Bybit: {len(df_y)} rows, {df_y.index.min()} to {df_y.index.max()}. "
+                    f"Binance first 3: {df_b.index[:3].tolist()}. "
+                    f"Bybit first 3: {df_y.index[:3].tolist()}."
+                )
                 return pd.DataFrame()
             df_b = df_b.loc[common_index]
             df_y = df_y.loc[common_index]

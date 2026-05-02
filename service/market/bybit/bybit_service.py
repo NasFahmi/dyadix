@@ -28,6 +28,11 @@ class BybitService:
                 'recvWindow': 60000,
             }
         })
+        
+        testnet = os.getenv("BYBIT_TESTNET", "true").lower() == "true"
+        if testnet:
+            self.exchange.set_sandbox_mode(True)
+            
         try:
             self.exchange.load_time_difference()
         except:
