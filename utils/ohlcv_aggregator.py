@@ -23,6 +23,7 @@ class OHLCVAggregator:
         df_bybit: pd.DataFrame,
         method: Literal["simple_average", "volume_weighted"] = "volume_weighted",
         align_method: Literal["inner", "outer"] = "inner",
+        allow_fallback: bool = True,
     ) -> pd.DataFrame:
         """
         Aggregate OHLCV dari Binance dan Bybit.
@@ -37,15 +38,27 @@ class OHLCVAggregator:
             Metode agregasi: 'simple_average' atau 'volume_weighted' (default)
         align_method : str
             Cara align timestamp: 'inner' (hanya timestamp sama) atau 'outer'
+        allow_fallback : bool
+            Jika True, gunakan data dari salah satu exchange jika yang lain kosong atau tidak sinkron.
 
         Returns:
         --------
         pd.DataFrame : OHLCV agregat dengan kolom tambahan
         """
-        if df_binance.empty or df_bybit.empty:
-            logger.warning(
-                "Salah satu DataFrame kosong. Mengembalikan DataFrame kosong."
-            )
+        # Handle empty DataFrames
+        if df_binance.empty and df_bybit.empty:
+            logger.warning("Kedua DataFrame kosong.")
+            return pd.DataFrame()
+
+        if allow_fallback:
+            if df_binance.empty:
+                logger.warning("Data Binance kosong. Menggunakan data Bybit sebagai fallback.")
+                return OHLCVAggregator._create_fallback_df(df_bybit, "bybit")
+            if df_bybit.empty:
+                logger.warning("Data Bybit kosong. Menggunakan data Binance sebagai fallback.")
+                return OHLCVAggregator._create_fallback_df(df_binance, "binance")
+        elif df_binance.empty or df_bybit.empty:
+            logger.warning("Salah satu DataFrame kosong. Mengembalikan DataFrame kosong.")
             return pd.DataFrame()
 
         # Copy untuk menghindari modifying original
@@ -71,15 +84,16 @@ class OHLCVAggregator:
                 logger.error(
                     f"Tidak ada timestamp yang sama antara Binance dan Bybit. "
                     f"Binance: {len(df_b)} rows, {df_b.index.min()} to {df_b.index.max()}. "
-                    f"Bybit: {len(df_y)} rows, {df_y.index.min()} to {df_y.index.max()}. "
-                    f"Binance first 3: {df_b.index[:3].tolist()}. "
-                    f"Bybit first 3: {df_y.index[:3].tolist()}."
+                    f"Bybit: {len(df_y)} rows, {df_y.index.min()} to {df_y.index.max()}."
                 )
+                if allow_fallback:
+                    logger.warning("Menggunakan data Binance sebagai fallback karena tidak ada irisan waktu.")
+                    return OHLCVAggregator._create_fallback_df(df_binance, "binance")
                 return pd.DataFrame()
             df_b = df_b.loc[common_index]
             df_y = df_y.loc[common_index]
         else:
-            # Outer join (jarang dipakai)
+            # Outer join
             df_b, df_y = df_b.align(df_y, join="outer", axis=0)
             df_b = df_b.fillna(method="ffill").fillna(method="bfill")
             df_y = df_y.fillna(method="ffill").fillna(method="bfill")
@@ -140,6 +154,25 @@ class OHLCVAggregator:
         )
 
         return aggregated
+
+
+    @staticmethod
+    def _create_fallback_df(df: pd.DataFrame, source: str) -> pd.DataFrame:
+        """
+        Helper untuk membuat DataFrame dengan format agregat dari satu exchange saja.
+        """
+        res = df.copy()
+        if source == "binance":
+            res["volume_binance"] = df["volume"]
+            res["volume_bybit"] = 0
+            res["volume_ratio_binance"] = 1.0
+        else:
+            res["volume_binance"] = 0
+            res["volume_bybit"] = df["volume"]
+            res["volume_ratio_binance"] = 0.0
+
+        res["agg_method"] = "fallback_" + source
+        return res
 
     @staticmethod
     def aggregate_multi_tf(
