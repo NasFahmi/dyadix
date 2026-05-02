@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+
 class BybitService:
     def __init__(self):
         """
@@ -13,74 +14,78 @@ class BybitService:
         """
         self.api_key = os.getenv("BYBIT_API_KEY")
         self.secret_key = os.getenv("BYBIT_SECRET_KEY")
-        
+
         # Check if keys are actually present
         if not self.api_key or not self.secret_key:
             print("Warning: BYBIT_API_KEY or BYBIT_SECRET_KEY is missing in .env")
-        
+
         # Initialize CCXT Bybit instance
-        self.exchange = ccxt.bybit({
-            'apiKey': self.api_key,
-            'secret': self.secret_key,
-            'enableRateLimit': True,
-            'options': {
-                'adjustForTimeDifference': True,
-                'recvWindow': 60000,
+        self.exchange = ccxt.bybit(
+            {
+                "apiKey": self.api_key,
+                "secret": self.secret_key,
+                "enableRateLimit": True,
+                "options": {
+                    "adjustForTimeDifference": True,
+                    "recvWindow": 60000,
+                },
             }
-        })
-        
-        testnet = os.getenv("BYBIT_TESTNET", "true").lower() == "true"
-        if testnet:
-            self.exchange.set_sandbox_mode(True)
-            
+        )
         try:
             self.exchange.load_time_difference()
         except:
             pass
-        
-    def fetch_ohlcv(self, symbol: str, timeframe: str = '1h', limit: int = 100):
+
+    def fetch_ohlcv(self, symbol: str, timeframe: str = "1h", limit: int = 100):
         """
         Fetch OHLCV data for a specific symbol as pandas DataFrame.
-        
+
         :param symbol: Trading pair symbol, e.g., 'BTC/USDT'
         :param timeframe: Timeframe interval, e.g., '1m', '1h', '1d'
         :param limit: Number of candles to return (default 100)
         :return: pandas DataFrame containing OHLCV
         """
         import pandas as pd
+
         try:
             print(f"Fetching OHLCV for {symbol} on {timeframe} timeframe from Bybit...")
             ohlcv = self.exchange.fetch_ohlcv(symbol, timeframe, limit=limit)
             if not ohlcv:
                 return pd.DataFrame()
-                
-            df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-            df.set_index('timestamp', inplace=True)
+
+            df = pd.DataFrame(
+                ohlcv, columns=["timestamp", "open", "high", "low", "close", "volume"]
+            )
+            df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
+            df.set_index("timestamp", inplace=True)
             return df
         except Exception as e:
             import pandas as pd
+
             print(f"Error fetching OHLCV for {symbol} from Bybit: {e}")
             return pd.DataFrame()
+
 
 if __name__ == "__main__":
     # Test execution
     service = BybitService()
-    
+
     # Check balance as an authenticated test
     try:
         print("Checking account balance to verify API Keys functionality...")
         service.exchange.fetch_balance()
         print("API keys are valid. Successfully connected to Bybit.")
     except Exception as e:
-        print(f"Failed to authenticate using API keys. Ensure keys are valid and have appropriate permissions.")
+        print(
+            f"Failed to authenticate using API keys. Ensure keys are valid and have appropriate permissions."
+        )
         print(f"Error details: {e}")
         print("\nProceeding to test OHLCV (which might still work for public data)...")
-    
+
     # Test getting OHLCV for BTC/USDT
     print("\n--- Testing OHLCV Data Retrieval ---")
     data = service.fetch_ohlcv("BTC/USDT", timeframe="1h", limit=5)
-    
+
     if data is not None and not data.empty:
         print(f"\nSuccessfully fetched {len(data)} OHLCV candles (DataFrame):")
         print(data.head())

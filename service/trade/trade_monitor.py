@@ -77,42 +77,63 @@ class TradeMonitor:
                 logger.error(f"Error syncing trade {trade.id} ({trade.pair}): {e}")
 
     def _sync_trade(self, trade):
-        """Cek satu trade dan update jika sudah closed."""
+        """
+        Cek status trade dan update jika sudah closed.
+        Logika:
+        1. Cek status entry order (trade.exchange_order_id).
+        2. Jika entry order CANCELED/EXPIRED/REJECTED -> Close trade as CANCELED.
+        3. Jika entry order FILLED -> Cek posisi di exchange.
+        4. Jika posisi 0 -> Close trade (cek apakah kena SL/TP).
+        """
         if not trade.exchange_order_id:
             return
 
+        # 1. Cek status entry order
         order = self.exchange.get_order_status(trade.pair, trade.exchange_order_id)
         if not order:
             return
 
-        status = order.get("status", "")
+        entry_status = order.get("status", "")
 
-        # Status Binance Futures: NEW, PARTIALLY_FILLED, FILLED, CANCELED, EXPIRED, STOPPED
-        if status in ("FILLED", "STOPPED", "CANCELED", "EXPIRED"):
-            self._close_trade(trade, order)
+        # Jika entry order gagal/batal sebelum terisi
+        if entry_status in ("CANCELED", "EXPIRED", "REJECTED"):
+            self._close_trade(trade, order, reason="Entry Canceled")
+            return
 
-    def _close_trade(self, trade, order):
+        # Jika entry order sudah FILLED atau PARTIALLY_FILLED, berarti trade sedang jalan.
+        # Kita cek apakah posisi masih ada.
+        if entry_status in ("FILLED", "PARTIALLY_FILLED"):
+            # Cek posisi aktual di exchange
+            positions = self.exchange.get_open_positions(trade.pair)
+            # positions adalah list p yang Amt != 0. 
+            # Jika pair tidak ada di list ini, berarti posisi sudah tertutup.
+            has_position = any(p["symbol"] == trade.pair for p in positions)
+
+            if not has_position:
+                # Posisi sudah tertutup! Cari tahu kenapa (SL/TP)
+                # Untuk sementara kita sebut "Closed" sampai ada pelacakan SL/TP order ID
+                self._close_trade(trade, order, reason="Position Closed")
+
+    def _close_trade(self, trade, order, reason=None):
         """Update DB saat trade ditutup, kirim notifikasi, trigger autopsy jika SL."""
         from data.database import SessionFactory
         from data.models import TradeRecord
 
         status = order.get("status", "")
         avg_price = float(order.get("avgPrice", 0) or trade.entry_price or 0)
-        order_type = order.get("type", "")
-
-        # Tentukan exit_reason berdasarkan tipe order yang ter-fill
-        if order_type == "STOP_MARKET" or status == "STOPPED":
-            exit_reason = "Hit SL"
-            new_status = "CLOSED_SL"
-        elif order_type == "TAKE_PROFIT_MARKET":
-            exit_reason = "Hit TP"
-            new_status = "CLOSED_TP"
-        elif status == "CANCELED":
-            exit_reason = "Canceled"
+        
+        # Jika reason manual disediakan, gunakan itu
+        if reason == "Entry Canceled":
+            exit_reason = "Entry Canceled"
             new_status = "CANCELED"
+        elif reason == "Position Closed":
+            # Coba tebak apakah SL atau TP berdasarkan harga (jika belum ada order tracking)
+            # Ini akan di-improve nanti dengan tracking order ID SL/TP
+            exit_reason = "Closed"
+            new_status = "CLOSED_TP" 
         else:
             exit_reason = "Unknown"
-            new_status = "CLOSED_TP"  # Asumsi TP jika FILLED biasa
+            new_status = "CLOSED_TP"
 
         # Hitung PnL sederhana
         realized_pnl = self._calculate_pnl(trade, avg_price)

@@ -45,7 +45,6 @@ class LoopScheduler:
         from pipelines.decision_logger import DecisionLogger
         from bot.telegram import TelegramNotifier
 
-
         config = get_config()
         scheduler_config = config.get("scheduler", {})
         detector_config = config.get("signal_detector", {})
@@ -56,7 +55,7 @@ class LoopScheduler:
         self.context_builder = ContextBuilder()
         self.signal_detector = SignalDetector(
             min_confidence=detector_config.get("min_confidence", 0.65),
-            divergence_threshold=detector_config.get("divergence_threshold", 0.15)
+            divergence_threshold=detector_config.get("divergence_threshold", 0.15),
         )
         self.decision_logger = DecisionLogger(
             cooldown_seconds=detector_config.get("cooldown_seconds", 900)
@@ -147,8 +146,6 @@ class LoopScheduler:
         )
         logger.info(f"{'─' * 50}")
 
-
-
         # ── Step 0: Check Active Session / State ──────────────────────
         if self.paused:
             logger.info("⏸️ Bot is stopped via Telegram command. Sleeping...")
@@ -157,13 +154,15 @@ class LoopScheduler:
         if not self.force_start:
             from config.settings import get_config
             from utils.session_checker import is_active_session
-            
+
             config = get_config()
             trading_config = config.get("trading", {})
             active_session = trading_config.get("active_session", "all")
-            
+
             if not is_active_session(active_session):
-                logger.info(f"⏳ Outside active session ('{active_session}'). Sleeping...")
+                logger.info(
+                    f"⏳ Outside active session ('{active_session}'). Sleeping..."
+                )
                 return
 
         # ── Step 1: Refresh stale data ────────────────────────────────
@@ -207,12 +206,14 @@ class LoopScheduler:
             # Skip pair jika sudah ada trade yang sedang RUNNING
             try:
                 from service.trade.trade_guard import TradeGuard
+
                 if TradeGuard.has_running_trade(pair):
-                    logger.info(f"  ⏭ {pair}: Skipped — running trade active for this pair")
+                    logger.info(
+                        f"  ⏭ {pair}: Skipped — running trade active for this pair"
+                    )
                     continue
             except Exception as e:
                 logger.warning(f"  TradeGuard check failed for {pair}: {e}")
-
 
             # Inject last candles dan market snapshot
             ctx = self._inject_extra_context(ctx, market_data.get(pair, {}))
@@ -268,7 +269,9 @@ class LoopScheduler:
             self.decision_logger.log_decision(pair, signal_result, decision, ctx)
 
             # Notify Telegram: decision result (with realtime price)
-            telegram_sent = self.telegram.notify_decision(pair, signal_result, decision, realtime_price)
+            telegram_sent = self.telegram.notify_decision(
+                pair, signal_result, decision, realtime_price
+            )
             if telegram_sent:
                 self.decision_logger.log_telegram_sent(
                     pair, signal_result, decision, realtime_price, payload=ctx
@@ -284,8 +287,12 @@ class LoopScheduler:
                         realtime_price=realtime_price,
                     )
                     if trade_id:
-                        logger.info(f"  ✅ {pair}: Order executed → trade_id={trade_id}")
-                        self.telegram.notify_order_placed(pair, action, decision, realtime_price)
+                        logger.info(
+                            f"  ✅ {pair}: Order executed → trade_id={trade_id}"
+                        )
+                        self.telegram.notify_order_placed(
+                            pair, action, decision, realtime_price
+                        )
                     else:
                         logger.warning(f"  ⚠️ {pair}: Order execution returned None")
                 except Exception as e:
@@ -367,17 +374,17 @@ class LoopScheduler:
                 "decision": {
                     "type": "string",
                     "enum": ["BUY", "SELL", "HOLD", "WAIT"],
-                    "description": "Trading decision"
+                    "description": "Trading decision",
                 },
                 "rr_calculation": {
                     "type": "string",
-                    "description": "Step-by-step mathematical calculation for SL and Target based on ATR to ensure minimum 1:1.5 Risk/Reward ratio."
+                    "description": "Step-by-step mathematical calculation for SL and Target based on ATR to ensure minimum 1:1.5 Risk/Reward ratio.",
                 },
                 "confidence": {
                     "type": "number",
                     "minimum": 0,
                     "maximum": 1,
-                    "description": "Confidence level from 0.0 to 1.0"
+                    "description": "Confidence level from 0.0 to 1.0",
                 },
                 "bias": {
                     "type": "string",
@@ -386,63 +393,60 @@ class LoopScheduler:
                         "Moderate Bullish",
                         "Neutral",
                         "Moderate Bearish",
-                        "Strong Bearish"
-                    ]
+                        "Strong Bearish",
+                    ],
                 },
                 "recommended_timeframe": {
                     "type": "string",
-                    "enum": ["M5", "M15", "H1", "Swing"]
+                    "enum": ["M5", "M15", "H1", "Swing"],
                 },
                 "entry_zone": {
                     "type": "string",
                     "maxLength": 80,
-                    "description": "Entry zone or condition"
+                    "description": "Entry zone or condition",
                 },
                 "invalidated_if": {
                     "type": "string",
                     "maxLength": 100,
-                    "description": "Condition that invalidates the setup"
+                    "description": "Condition that invalidates the setup",
                 },
                 "target": {
                     "type": "string",
                     "maxLength": 80,
-                    "description": "Target price or zone"
+                    "description": "Target price or zone",
                 },
                 "stop_loss": {
                     "type": "string",
                     "maxLength": 80,
-                    "description": "Stop loss level"
+                    "description": "Stop loss level",
                 },
                 "risk_reward": {
                     "type": "string",
                     "maxLength": 20,
-                    "description": "Risk to reward ratio (example: 1:2.5)"
+                    "description": "Risk to reward ratio (example: 1:2.5)",
                 },
                 "execution_type": {
                     "type": "string",
                     "enum": ["MARKET", "LIMIT"],
-                    "description": "MARKET if realtime_price is inside entry_zone, LIMIT if entry_zone requires a pullback"
+                    "description": "MARKET if realtime_price is inside entry_zone, LIMIT if entry_zone requires a pullback",
                 },
                 "expected_move": {
                     "type": "string",
                     "maxLength": 100,
-                    "description": "Expected price movement with timeframe (example: '+2.8% to +4.2% dalam 12 jam')"
+                    "description": "Expected price movement with timeframe (example: '+2.8% to +4.2% dalam 12 jam')",
                 },
                 "reason": {
                     "type": "string",
                     "maxLength": 75,
-                    "description": "Short, clear, and professional reasoning"
+                    "description": "Short, clear, and professional reasoning",
                 },
                 "key_risks": {
                     "type": "array",
-                    "items": {
-                        "type": "string",
-                        "maxLength": 80
-                    },
+                    "items": {"type": "string", "maxLength": 80},
                     "minItems": 1,
                     "maxItems": 3,
-                    "description": "List of key risks (maximum 3)"
-                }
+                    "description": "List of key risks (maximum 3)",
+                },
             },
             "required": [
                 "decision",
@@ -458,9 +462,9 @@ class LoopScheduler:
                 "expected_move",
                 "reason",
                 "key_risks",
-                "execution_type"
+                "execution_type",
             ],
-            "additionalProperties": False
+            "additionalProperties": False,
         }
 
         try:
@@ -606,32 +610,38 @@ class LoopScheduler:
             self.paused = False
             self.force_start = True
             logger.info("Bot started via Telegram (Force Start)")
-            self.telegram.send_message("▶️ <b>Bot Started (Forced)</b>\nSiklus trading berjalan mengabaikan jadwal sesi.")
+            self.telegram.send_message(
+                "▶️ <b>Bot Started (Forced)</b>\nSiklus trading berjalan mengabaikan jadwal sesi."
+            )
         elif command == "stop":
             self.paused = True
             self.force_start = False
             logger.info("Bot stopped via Telegram")
-            self.telegram.send_message("⏸️ <b>Bot Stopped</b>\nSiklus trading dihentikan sementara.")
+            self.telegram.send_message(
+                "⏸️ <b>Bot Stopped</b>\nSiklus trading dihentikan sementara."
+            )
         elif command == "auto":
             self.paused = False
             self.force_start = False
             logger.info("Bot set to auto via Telegram")
-            self.telegram.send_message("🔄 <b>Bot Set to Auto</b>\nSiklus trading berjalan mengikuti jadwal sesi.")
+            self.telegram.send_message(
+                "🔄 <b>Bot Set to Auto</b>\nSiklus trading berjalan mengikuti jadwal sesi."
+            )
         elif command == "status":
             uptime = time.time() - self._start_time if self._start_time else 0
             summary = self.decision_logger.get_today_summary()
-            
+
             hours, rem = divmod(uptime, 3600)
             minutes, seconds = divmod(rem, 60)
             uptime_str = f"{int(hours)}h {int(minutes)}m {int(seconds)}s"
-            
+
             if self.paused:
                 state_str = "⏸️ Paused"
             elif self.force_start:
                 state_str = "▶️ Forced Start"
             else:
                 state_str = "🔄 Auto (Session)"
-                
+
             msg = (
                 f"📊 <b>DYADIX STATUS</b>\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
@@ -653,5 +663,3 @@ class LoopScheduler:
         end_time = time.time() + seconds
         while time.time() < end_time and self.running:
             time.sleep(min(1.0, end_time - time.time()))
-
-

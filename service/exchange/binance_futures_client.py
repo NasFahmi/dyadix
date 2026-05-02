@@ -175,7 +175,9 @@ class BinanceFuturesClient:
                 side=close_side,
                 type="STOP_MARKET",
                 stopPrice=self._round_price(pair, sl_price),
-                closePosition=True,  # Tutup seluruh posisi
+                quantity=self._round_quantity(pair, quantity),
+                workingType='MARK_PRICE',
+                priceProtect=True
             )
             logger.info(f"Stop Loss set: {pair} @ {sl_price} → ID: {order['orderId']}")
             return order
@@ -196,7 +198,9 @@ class BinanceFuturesClient:
                 side=close_side,
                 type="TAKE_PROFIT_MARKET",
                 stopPrice=self._round_price(pair, tp_price),
-                closePosition=True,
+                quantity=self._round_quantity(pair, quantity),
+                workingType='MARK_PRICE',
+                priceProtect=True
             )
             logger.info(f"Take Profit set: {pair} @ {tp_price} → ID: {order['orderId']}")
             return order
