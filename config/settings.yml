@@ -54,6 +54,8 @@ risk_management:
   risk_per_trade_pct: 1.0 # % modal yang di-risk per trade
   leverage: 10 # Leverage Binance Futures (ubah sesuai toleransi risiko)
   max_running_trades: 1 # Maksimal 1 trade aktif bersamaan per pair
+  max_daily_trades: 5 # Maksimal trade per hari (0 = tidak dibatasi)
+  max_daily_sl: 3 # Maksimal total hit Stop Loss per hari (0 = tidak dibatasi)
 
   # ───────────────────────────────────────────────────────────────
   # CONTOH KALKULASI RISK (panduan penyesuaian):

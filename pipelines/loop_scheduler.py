@@ -165,6 +165,16 @@ class LoopScheduler:
                 )
                 return
 
+        # ── Step 0.5: Check Daily Limits ──────────────────────────────
+        try:
+            from service.trade.trade_guard import TradeGuard
+            is_limit_reached, limit_reason = TradeGuard.is_daily_limit_reached()
+            if is_limit_reached:
+                logger.info(f"⏳ Daily limit reached: {limit_reason}. Sleeping...")
+                return
+        except Exception as e:
+            logger.warning(f"Failed to check daily limits: {e}")
+
         # ── Step 1: Refresh stale data ────────────────────────────────
         refreshed = self.data_manager.refresh_stale_data()
 
