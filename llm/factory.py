@@ -13,6 +13,7 @@ from llm.groq_client import GroqClient
 from llm.gemini_client import GeminiClient
 from llm.local_client import LocalClient
 from llm.deepseek_client import DeepseekClient
+from llm.ninerouter_client import NinerouterClient
 from config.settings import get_config
 
 logger = logging.getLogger(__name__)
@@ -95,6 +96,8 @@ def get_llm_client(provider_type: str = "decision") -> BaseLLMClient:
         return LocalClient(base_url=local_base_url, model=model)
     elif provider == "deepseek":
         return DeepseekClient(model=model)
+    elif provider == "ninerouter":
+        return NinerouterClient(model=model)
 
     else:
         logger.warning(

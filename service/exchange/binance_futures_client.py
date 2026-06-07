@@ -169,7 +169,27 @@ class BinanceFuturesClient:
             from binance.enums import SIDE_BUY, SIDE_SELL
             close_side = SIDE_SELL if side.upper() == "BUY" else SIDE_BUY
 
-            # Method 1: Try standard futures_create_order
+            # Method 1: Try Algo Order API (new standard for USDT-M Futures stop loss)
+            try:
+                params = {
+                    'algoType': 'CONDITIONAL',
+                    'symbol': pair,
+                    'side': close_side,
+                    'type': 'STOP_MARKET',
+                    'triggerPrice': self._round_price(pair, sl_price),
+                    'closePosition': 'true',
+                    'workingType': 'MARK_PRICE'
+                }
+                order = self.client._request_futures_api('post', 'algoOrder', True, data=params)
+                if order:
+                    if "orderId" not in order and "algoId" in order:
+                        order["orderId"] = order["algoId"]
+                    logger.info(f"Stop Loss set (Algo Order): {pair} @ {sl_price} -> ID: {order.get('orderId')}")
+                    return order
+            except Exception as e_algo:
+                logger.debug(f"Algo Order SL method failed: {e_algo}")
+
+            # Method 2: Try standard futures_create_order
             try:
                 order = self.client.futures_create_order(
                     symbol=pair,
@@ -183,9 +203,9 @@ class BinanceFuturesClient:
                 logger.info(f"Stop Loss set: {pair} @ {sl_price} -> ID: {order.get('orderId')}")
                 return order
             except Exception as e1:
-                logger.debug(f"Method 1 failed: {e1}")
+                logger.debug(f"Method 2 failed: {e1}")
 
-            # Method 2: Try with priceProtect disabled
+            # Method 3: Try with priceProtect disabled
             try:
                 order = self.client.futures_create_order(
                     symbol=pair,
@@ -197,12 +217,12 @@ class BinanceFuturesClient:
                     workingType="MARK_PRICE",
                     priceProtect=False
                 )
-                logger.info(f"Stop Loss set (method 2): {pair} @ {sl_price} -> ID: {order.get('orderId')}")
+                logger.info(f"Stop Loss set (method 3): {pair} @ {sl_price} -> ID: {order.get('orderId')}")
                 return order
             except Exception as e2:
-                logger.debug(f"Method 2 failed: {e2}")
+                logger.debug(f"Method 3 failed: {e2}")
 
-            # Method 3: Try with STOP limit order
+            # Method 4: Try with STOP limit order
             try:
                 order = self.client.futures_create_order(
                     symbol=pair,
@@ -212,10 +232,10 @@ class BinanceFuturesClient:
                     quantity=self._round_quantity(pair, quantity),
                     reduceOnly=True
                 )
-                logger.info(f"Stop Loss set (method 3): {pair} @ {sl_price} -> ID: {order.get('orderId')}")
+                logger.info(f"Stop Loss set (method 4): {pair} @ {sl_price} -> ID: {order.get('orderId')}")
                 return order
             except Exception as e3:
-                logger.debug(f"Method 3 failed: {e3}")
+                logger.debug(f"Method 4 failed: {e3}")
 
             logger.warning(f"Could not set SL for {pair}: All methods failed")
             return None
@@ -233,7 +253,27 @@ class BinanceFuturesClient:
             from binance.enums import SIDE_BUY, SIDE_SELL
             close_side = SIDE_SELL if side.upper() == "BUY" else SIDE_BUY
 
-            # Method 1: Try standard futures_create_order
+            # Method 1: Try Algo Order API (new standard for USDT-M Futures take profit)
+            try:
+                params = {
+                    'algoType': 'CONDITIONAL',
+                    'symbol': pair,
+                    'side': close_side,
+                    'type': 'TAKE_PROFIT_MARKET',
+                    'triggerPrice': self._round_price(pair, tp_price),
+                    'closePosition': 'true',
+                    'workingType': 'MARK_PRICE'
+                }
+                order = self.client._request_futures_api('post', 'algoOrder', True, data=params)
+                if order:
+                    if "orderId" not in order and "algoId" in order:
+                        order["orderId"] = order["algoId"]
+                    logger.info(f"Take Profit set (Algo Order): {pair} @ {tp_price} -> ID: {order.get('orderId')}")
+                    return order
+            except Exception as e_algo:
+                logger.debug(f"Algo Order TP method failed: {e_algo}")
+
+            # Method 2: Try standard futures_create_order
             try:
                 order = self.client.futures_create_order(
                     symbol=pair,
@@ -247,9 +287,9 @@ class BinanceFuturesClient:
                 logger.info(f"Take Profit set: {pair} @ {tp_price} -> ID: {order.get('orderId')}")
                 return order
             except Exception as e1:
-                logger.debug(f"Method 1 failed: {e1}")
+                logger.debug(f"Method 2 failed: {e1}")
 
-            # Method 2: Try with priceProtect disabled
+            # Method 3: Try with priceProtect disabled
             try:
                 order = self.client.futures_create_order(
                     symbol=pair,
@@ -261,12 +301,12 @@ class BinanceFuturesClient:
                     workingType="MARK_PRICE",
                     priceProtect=False
                 )
-                logger.info(f"Take Profit set (method 2): {pair} @ {tp_price} -> ID: {order.get('orderId')}")
+                logger.info(f"Take Profit set (method 3): {pair} @ {tp_price} -> ID: {order.get('orderId')}")
                 return order
             except Exception as e2:
-                logger.debug(f"Method 2 failed: {e2}")
+                logger.debug(f"Method 3 failed: {e2}")
 
-            # Method 3: Try with TAKE_PROFIT limit order
+            # Method 4: Try with TAKE_PROFIT limit order
             try:
                 order = self.client.futures_create_order(
                     symbol=pair,
@@ -276,10 +316,10 @@ class BinanceFuturesClient:
                     quantity=self._round_quantity(pair, quantity),
                     reduceOnly=True
                 )
-                logger.info(f"Take Profit set (method 3): {pair} @ {tp_price} -> ID: {order.get('orderId')}")
+                logger.info(f"Take Profit set (method 4): {pair} @ {tp_price} -> ID: {order.get('orderId')}")
                 return order
             except Exception as e3:
-                logger.debug(f"Method 3 failed: {e3}")
+                logger.debug(f"Method 4 failed: {e3}")
 
             logger.warning(f"Could not set TP for {pair}: All methods failed")
             return None
@@ -292,12 +332,18 @@ class BinanceFuturesClient:
     #  ORDER STATUS
     # ---------------------------------------------------------------------
 
-    def get_order_status(self, pair: str, order_id: str) -> Optional[Dict[str, Any]]:
+    def get_order_status(self, pair: str, order_id: str, is_algo: bool = False) -> Optional[Dict[str, Any]]:
         """Cek status order. Returns dict dengan field 'status'."""
         try:
-            return self.client.futures_get_order(symbol=pair, orderId=int(order_id))
+            if is_algo:
+                res = self.client._request_futures_api('get', 'algoOrder', True, data={'algoId': int(order_id)})
+                if res and "status" not in res and "algoStatus" in res:
+                    res["status"] = res["algoStatus"]
+                return res
+            else:
+                return self.client.futures_get_order(symbol=pair, orderId=int(order_id))
         except Exception as e:
-            logger.error(f"Error getting order status {pair} #{order_id}: {e}")
+            logger.error(f"Error getting order status {pair} #{order_id} (is_algo={is_algo}): {e}")
             return None
 
     def check_order_fill(self, pair: str, order_id: str) -> Optional[Dict[str, Any]]:
@@ -311,14 +357,18 @@ class BinanceFuturesClient:
             logger.error(f"Error checking order fill {pair} #{order_id}: {e}")
             return None
 
-    def cancel_order(self, pair: str, order_id: str) -> bool:
+    def cancel_order(self, pair: str, order_id: str, is_algo: bool = False) -> bool:
         """Cancel order yang belum terisi."""
         try:
-            self.client.futures_cancel_order(symbol=pair, orderId=int(order_id))
-            logger.info(f"Order canceled: {pair} #{order_id}")
+            if is_algo:
+                self.client._request_futures_api('delete', 'algoOrder', True, data={'algoId': int(order_id)})
+                logger.info(f"Algo order canceled: {pair} #{order_id}")
+            else:
+                self.client.futures_cancel_order(symbol=pair, orderId=int(order_id))
+                logger.info(f"Order canceled: {pair} #{order_id}")
             return True
         except Exception as e:
-            logger.error(f"Error canceling order {pair} #{order_id}: {e}")
+            logger.error(f"Error canceling order {pair} #{order_id} (is_algo={is_algo}): {e}")
             return False
 
     def get_position_pnl(self, pair: str) -> Optional[Dict[str, Any]]:
@@ -356,6 +406,26 @@ class BinanceFuturesClient:
             open_orders = self.get_open_orders(pair)
             tp_orders = [o for o in open_orders if o.get("type") == "TAKE_PROFIT_MARKET"]
             sl_orders = [o for o in open_orders if o.get("type") == "STOP_MARKET"]
+
+            # Also check for algo open orders
+            try:
+                algo_orders = self.client._request_futures_api('get', 'openAlgoOrders', True, data={'symbol': pair})
+                if algo_orders and isinstance(algo_orders, list):
+                    for ao in algo_orders:
+                        # Normalize keys to match standard order schema
+                        if "type" not in ao and "orderType" in ao:
+                            ao["type"] = ao["orderType"]
+                        if "stopPrice" not in ao and "triggerPrice" in ao:
+                            ao["stopPrice"] = ao["triggerPrice"]
+                        if "orderId" not in ao and "algoId" in ao:
+                            ao["orderId"] = ao["algoId"]
+                        
+                        if ao.get("type") == "TAKE_PROFIT_MARKET":
+                            tp_orders.append(ao)
+                        elif ao.get("type") == "STOP_MARKET":
+                            sl_orders.append(ao)
+            except Exception as ex:
+                logger.debug(f"Could not retrieve open algo orders for {pair}: {ex}")
 
             return {
                 "has_tp": len(tp_orders) > 0,

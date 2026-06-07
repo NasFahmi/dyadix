@@ -149,13 +149,13 @@ class TradeMonitor:
         """
         # Check SL order status
         if trade.stop_loss_order_id:
-            sl_order = self.exchange.get_order_status(trade.pair, trade.stop_loss_order_id)
+            sl_order = self.exchange.get_order_status(trade.pair, trade.stop_loss_order_id, is_algo=True)
             if sl_order and sl_order.get("status") in ("FILLED", "PARTIALLY_FILLED"):
                 return "Hit SL"
 
         # Check TP order status
         if trade.take_profit_order_id:
-            tp_order = self.exchange.get_order_status(trade.pair, trade.take_profit_order_id)
+            tp_order = self.exchange.get_order_status(trade.pair, trade.take_profit_order_id, is_algo=True)
             if tp_order and tp_order.get("status") in ("FILLED", "PARTIALLY_FILLED"):
                 return "Hit TP"
 
@@ -284,13 +284,13 @@ class TradeMonitor:
         # If position is closed, try to get exit price from TP/SL orders
         if exit_price == 0 and reason in ("Hit SL", "Hit TP"):
             if reason == "Hit SL" and trade.stop_loss_order_id:
-                sl_order = self.exchange.get_order_status(trade.pair, trade.stop_loss_order_id)
+                sl_order = self.exchange.get_order_status(trade.pair, trade.stop_loss_order_id, is_algo=True)
                 if sl_order:
-                    exit_price = float(sl_order.get("avgPrice") or sl_order.get("stopPrice") or 0)
+                    exit_price = float(sl_order.get("avgPrice") or sl_order.get("actualPrice") or sl_order.get("stopPrice") or sl_order.get("triggerPrice") or 0)
             elif reason == "Hit TP" and trade.take_profit_order_id:
-                tp_order = self.exchange.get_order_status(trade.pair, trade.take_profit_order_id)
+                tp_order = self.exchange.get_order_status(trade.pair, trade.take_profit_order_id, is_algo=True)
                 if tp_order:
-                    exit_price = float(tp_order.get("avgPrice") or tp_order.get("stopPrice") or 0)
+                    exit_price = float(tp_order.get("avgPrice") or tp_order.get("actualPrice") or tp_order.get("stopPrice") or tp_order.get("triggerPrice") or 0)
 
         # Last resort: get current mark price
         if exit_price == 0:
