@@ -328,8 +328,8 @@ class TelegramNotifier:
 
             # Get real-time P/L from exchange
             try:
-                from service.exchange.binance_futures_client import BinanceFuturesClient
-                exchange = BinanceFuturesClient()
+                from service.exchange.hyperliquid_client import HyperliquidClient
+                exchange = HyperliquidClient()
             except Exception:
                 exchange = None
 
@@ -391,8 +391,8 @@ class TelegramNotifier:
 
             # Get real-time P/L from exchange
             try:
-                from service.exchange.binance_futures_client import BinanceFuturesClient
-                exchange = BinanceFuturesClient()
+                from service.exchange.hyperliquid_client import HyperliquidClient
+                exchange = HyperliquidClient()
             except Exception:
                 exchange = None
 

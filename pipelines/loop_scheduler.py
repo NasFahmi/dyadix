@@ -598,14 +598,9 @@ class LoopScheduler:
         untuk mengurangi latency pada entry zone.
         """
         try:
-            exchange = self.data_manager.market_service.binance.exchange
-            # Convert BTCUSDT → BTC/USDT format for ccxt
-            base = pair.replace("USDT", "")
-            symbol = f"{base}/USDT"
-            ticker = exchange.fetch_ticker(symbol)
-            price = ticker.get("last", 0.0)
+            price = self.order_executor.exchange.get_realtime_price(pair)
             logger.debug(f"Realtime price for {pair}: {price}")
-            return float(price)
+            return price
         except Exception as e:
             logger.warning(f"Failed to fetch realtime price for {pair}: {e}")
             return 0.0

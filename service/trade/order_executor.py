@@ -25,7 +25,7 @@ class OrderExecutor:
 
     def __init__(self):
         from config.settings import get_config
-        from service.exchange.binance_futures_client import BinanceFuturesClient
+        from service.exchange.hyperliquid_client import HyperliquidClient
 
         config = get_config()
         rm = config.get("risk_management", {})
@@ -33,7 +33,7 @@ class OrderExecutor:
         self.risk_pct = rm.get("risk_per_trade_pct", 1.0)
         self.leverage = rm.get("leverage", 10)
 
-        self.exchange = BinanceFuturesClient()
+        self.exchange = HyperliquidClient()
 
     def execute(
         self,

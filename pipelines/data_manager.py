@@ -93,11 +93,11 @@ class DataManager:
     @property
     def derivatives_service(self):
         if self._derivatives_service is None:
-            from service.market.binance.binance_derivatives import (
-                BinanceDerivativesService,
+            from service.market.hyperliquid.hyperliquid_derivatives import (
+                HyperliquidDerivativesService,
             )
 
-            self._derivatives_service = BinanceDerivativesService()
+            self._derivatives_service = HyperliquidDerivativesService()
         return self._derivatives_service
 
     # ─────────────────────────────────────────────────────────────────────
@@ -271,21 +271,18 @@ class DataManager:
                 if tf not in self.timeframes:
                     continue
                 try:
-                    df_binance = self.market_service.binance.fetch_ohlcv(
-                        symbol=pair, timeframe=tf, limit=self.MARKET_DATA_LIMIT
-                    )
-                    df_bybit = self.market_service.bybit.fetch_ohlcv(
+                    df_hl = self.market_service.hyperliquid.fetch_ohlcv(
                         symbol=pair, timeframe=tf, limit=self.MARKET_DATA_LIMIT
                     )
                     df_aggregated = OHLCVAggregator.aggregate(
-                        df_binance=df_binance,
-                        df_bybit=df_bybit,
+                        df_binance=df_hl,
+                        df_bybit=pd.DataFrame(),
                         method="volume_weighted",
                     )
 
                     market_data[pair][tf] = {
-                        "binance": df_binance,
-                        "bybit": df_bybit,
+                        "binance": df_hl,
+                        "bybit": pd.DataFrame(),
                         "aggregated": df_aggregated,
                         "last_updated": datetime.utcnow(),
                     }

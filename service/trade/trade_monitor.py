@@ -27,9 +27,9 @@ class TradeMonitor:
     """
 
     def __init__(self, telegram=None):
-        from service.exchange.binance_futures_client import BinanceFuturesClient
+        from service.exchange.hyperliquid_client import HyperliquidClient
 
-        self.exchange = BinanceFuturesClient()
+        self.exchange = HyperliquidClient()
         self.telegram = telegram
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None

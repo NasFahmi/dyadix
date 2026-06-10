@@ -100,11 +100,11 @@ def check_account(client) -> tuple[float, bool]:
     mode = "TESTNET" if client.testnet else "PRODUCTION [WARN]"
 
     print(f"  Mode    : {mode}")
-    print(f"  Balance : ${balance:.2f} USDT")
+    print(f"  Balance : ${balance:.2f} USDC")
 
     if balance <= 0:
-        print("  [ERR] Balance = 0. Pastikan testnet wallet sudah ada USDT.")
-        print("     -> Kunjungi https://testnet.binancefuture.com/ dan klaim USDT.")
+        print("  [ERR] Balance = 0. Pastikan testnet wallet sudah ada USDC.")
+        print("     -> Kunjungi https://app.hyperliquid-testnet.xyz/ dan klaim USDC.")
         return balance, False
 
     print("  [OK] Account OK")
@@ -207,7 +207,7 @@ def execute_order(pair: str, decision: dict, realtime_price: float):
 
 
 def verify_positions(client, pair: str):
-    """Cek apakah posisi berhasil dibuka di Binance dan TP/SL sudah ter-set."""
+    """Cek apakah posisi berhasil dibuka di Hyperliquid dan TP/SL sudah ter-set."""
     print("\n" + "=" * 60)
     print("  STEP 5: Verifying Open Positions & TP/SL")
     print("=" * 60)
@@ -289,16 +289,16 @@ def main():
 
     print("\n" + "=" * 60)
     print("  DYADIX - Trade Execution Test")
-    print("  Target: Binance Futures Testnet")
+    print("  Target: Hyperliquid Testnet")
     print("=" * 60)
     print(f"  Pair     : {args.pair}")
     print(f"  Side     : {args.side}")
     print(f"  ExecType : {args.exec_type}")
 
-    # Init Binance client langsung (untuk check account & verify)
-    from service.exchange.binance_futures_client import BinanceFuturesClient
+    # Init Hyperliquid client langsung (untuk check account & verify)
+    from service.exchange.hyperliquid_client import HyperliquidClient
 
-    client = BinanceFuturesClient()
+    client = HyperliquidClient()
 
     # STEP 1: Account check
     balance, ok = check_account(client)
@@ -317,7 +317,7 @@ def main():
     # Konfirmasi sebelum eksekusi (kecuali --skip-confirm)
     if not args.skip_confirm:
         print("\n" + "[WARN]  " * 15)
-        print("  PERHATIAN: Order ini akan dieksekusi ke Binance Testnet!")
+        print("  PERHATIAN: Order ini akan dieksekusi ke Hyperliquid Testnet!")
         print("  Ini adalah uang virtual, BUKAN uang asli.")
         print("[WARN]  " * 15)
         confirm = input("\n  Lanjutkan eksekusi? (y/N): ").strip().lower()

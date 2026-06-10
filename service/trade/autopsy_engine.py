@@ -119,38 +119,31 @@ class AutopsyEngine:
         }
 
     def _get_price_action(self, pair: str, start_time: datetime, end_time: datetime) -> list:
-        """Ambil OHLCV M5 selama trade berlangsung dari DataManager cache."""
+        """Ambil OHLCV M5 selama trade berlangsung dari Hyperliquid."""
         try:
-            from service.exchange.binance_futures_client import BinanceFuturesClient
-            from binance.client import Client
-            import os
-
-            client = Client(
-                os.getenv("BINANCE_API_KEY", ""),
-                os.getenv("BINANCE_SECRET_KEY", ""),
-                testnet=os.getenv("BINANCE_TESTNET", "true").lower() == "true"
-            )
+            from service.exchange.hyperliquid_client import HyperliquidClient
+            hl_client = HyperliquidClient()
+            coin = hl_client._to_coin(pair)
 
             start_ms = int(start_time.timestamp() * 1000)
             end_ms = int(end_time.timestamp() * 1000)
 
-            klines = client.futures_klines(
-                symbol=pair,
+            klines = hl_client.info.candles_snapshot(
+                coin=coin,
                 interval="5m",
                 startTime=start_ms,
-                endTime=end_ms,
-                limit=100,
+                endTime=end_ms
             )
 
             candles = []
             for k in klines:
                 candles.append({
-                    "time": datetime.utcfromtimestamp(k[0] / 1000).strftime("%H:%M"),
-                    "open": float(k[1]),
-                    "high": float(k[2]),
-                    "low": float(k[3]),
-                    "close": float(k[4]),
-                    "volume": float(k[5]),
+                    "time": datetime.utcfromtimestamp(k["T"] / 1000).strftime("%H:%M"),
+                    "open": float(k["o"]),
+                    "high": float(k["h"]),
+                    "low": float(k["l"]),
+                    "close": float(k["c"]),
+                    "volume": float(k["v"]),
                 })
             return candles
 
@@ -159,19 +152,14 @@ class AutopsyEngine:
             return []
 
     def _get_btc_correlation(self, trade) -> Dict[str, Any]:
-        """Hitung pergerakan BTC selama trade berlangsung."""
+        """Hitung pergerakan BTC selama trade berlangsung di Hyperliquid."""
         try:
             if trade.pair == "BTCUSDT":
                 return {"note": "Trade is BTCUSDT itself"}
 
-            from binance.client import Client
-            import os
-
-            client = Client(
-                os.getenv("BINANCE_API_KEY", ""),
-                os.getenv("BINANCE_SECRET_KEY", ""),
-                testnet=os.getenv("BINANCE_TESTNET", "true").lower() == "true"
-            )
+            from service.exchange.hyperliquid_client import HyperliquidClient
+            hl_client = HyperliquidClient()
+            coin = hl_client._to_coin(trade.pair)
 
             if not trade.opened_at or not trade.closed_at:
                 return {}
@@ -179,20 +167,20 @@ class AutopsyEngine:
             start_ms = int(trade.opened_at.timestamp() * 1000)
             end_ms = int(trade.closed_at.timestamp() * 1000)
 
-            btc_klines = client.futures_klines(
-                symbol="BTCUSDT", interval="5m",
-                startTime=start_ms, endTime=end_ms, limit=2
+            btc_klines = hl_client.info.candles_snapshot(
+                coin="BTC", interval="5m",
+                startTime=start_ms, endTime=end_ms
             )
-            pair_klines = client.futures_klines(
-                symbol=trade.pair, interval="5m",
-                startTime=start_ms, endTime=end_ms, limit=2
+            pair_klines = hl_client.info.candles_snapshot(
+                coin=coin, interval="5m",
+                startTime=start_ms, endTime=end_ms
             )
 
             if btc_klines and pair_klines:
-                btc_open = float(btc_klines[0][1])
-                btc_close = float(btc_klines[-1][4])
-                pair_open = float(pair_klines[0][1])
-                pair_close = float(pair_klines[-1][4])
+                btc_open = float(btc_klines[0]["o"])
+                btc_close = float(btc_klines[-1]["c"])
+                pair_open = float(pair_klines[0]["o"])
+                pair_close = float(pair_klines[-1]["c"])
 
                 btc_move = round((btc_close - btc_open) / btc_open * 100, 2)
                 pair_move = round((pair_close - pair_open) / pair_open * 100, 2)
