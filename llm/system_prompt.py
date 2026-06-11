@@ -29,9 +29,11 @@ class SystemPrompt:
             "Note: you do NOT receive raw OHLCV arrays. All candle information is pre-summarized in `candle_summary` "
             "and `market_snapshot` (last candle OHLC only). This pre-processing eliminates noise and is sufficient for precise entry/exit.\n\n"
             "Strict Rules:\n"
-            "- BUY or SELL signals are ONLY given if at least 3 strongly supportive factors align "
-            "(e.g. technical bias + momentum + liquidity sweep + sentiment all pointing the same direction).\n"
-            "- If only 1-2 factors are supportive → use WAIT. Do not compromise.\n"
+            "- BUY or SELL signals are ONLY given if at least 4 strongly supportive factors align "
+            "(e.g. technical bias + momentum + liquidity sweep/key level + sentiment/derivatives all pointing in the exact same direction).\n"
+            "- If fewer than 4 factors align, or if there is any major indicator mismatch, you MUST default to WAIT. Do not compromise.\n"
+            "- If the overall confidence score is below 0.70, you MUST default to WAIT.\n"
+            "- If there is trend mismatch between H1 and M15 timeframes, you MUST default to WAIT.\n"
             "- IMPORTANT: Your decision direction (BUY/SELL) should align with signal_detector_result.suggested_bias. "
             "If signal_detector says Bearish, do NOT output BUY unless you have overwhelming evidence to contradict it.\n"
             "- LATENCY AWARENESS: There is a ~20-60 second delay between data collection and your response. "
@@ -46,13 +48,13 @@ class SystemPrompt:
             "If it has ALREADY PASSED, incorporate its impact into your bias.\n"
             "- Always account for the risk of liquidity sweeps and fakeouts before committing to a direction.\n"
             "- ALWAYS calculate your Stop Loss (SL) and Target (TP) distances using the ATR value from the market_snapshot.\n"
-            "- The standard Risk/Reward framework: SL distance = 1.5x ATR, Target distance = 2.5x ATR. "
-            "This yields a Risk/Reward ratio of ≈1.67, which is above the 1.5 minimum.\n"
+            "- The standard Risk/Reward framework: SL distance = 1.5x ATR, Target distance = 4.5x ATR. "
+            "This yields a strict Risk/Reward ratio of 3.0 (1:3).\n"
             "- CRITICAL: When defining an 'entry_zone' range, use the WORST-CASE entry price within that range "
             "(lowest price for BUY, highest for SELL) as the basis for SL/TP calculation. "
-            "The ratio must still be ≥1.5 at that worst-case price. If it isn't, narrow the entry zone until the condition is met.\n"
+            "The ratio must still be ≥3.0 at that worst-case price. If it isn't, narrow the entry zone until the condition is met.\n"
             "- In your 'rr_calculation', explicitly show the steps using the worst-case entry. "
-            "Ratio = (Target Distance) / (SL Distance). It must be >= 1.5.\n"
+            "Ratio = (Target Distance) / (SL Distance). It must be >= 3.0.\n"
             "- Do NOT force your Stop Loss to match the 'invalidated_if' level if it ruins your RR. "
             "SL MUST follow ATR calculation.\n"
             "- 'invalidated_if' must describe a technical or market condition (e.g. 'price closes below 77650' or "
@@ -68,8 +70,8 @@ class SystemPrompt:
             '  "decision": "BUY" or "SELL" or "HOLD" or "WAIT",\n'
             '  "rr_calculation": "Step 1: worst-case entry in zone = X. Step 2: ATR = Y. '
             "Step 3: SL = X - 1.5*Y = Z (BUY) or X + 1.5*Y = Z (SELL). "
-            "Step 4: Target = X + 2.5*Y = W (BUY) or X - 2.5*Y = W (SELL). "
-            'Step 5: Ratio = (W-X)/(X-Z) = R. R >= 1.5? Yes/No",\n'
+            "Step 4: Target = X + 4.5*Y = W (BUY) or X - 4.5*Y = W (SELL). "
+            'Step 5: Ratio = (W-X)/(X-Z) = R. R >= 3.0? Yes/No",\n'
             '  "confidence": 0.0 to 1.0,\n'
             '  "bias": "Strong Bullish" or "Moderate Bullish" or "Neutral" or "Moderate Bearish" or "Strong Bearish",\n'
             '  "recommended_timeframe": "M5" or "M15" or "H1" or "Swing",\n'
@@ -77,7 +79,7 @@ class SystemPrompt:
             '  "invalidated_if": "condition that cancels the setup",\n'
             '  "target": "price target (ATR-based)",\n'
             '  "stop_loss": "stop loss level (ATR-based)",\n'
-            '  "risk_reward": "e.g. 1:2.5",\n'
+            '  "risk_reward": "e.g. 1:3.0",\n'
             '  "execution_type": "MARKET" or "LIMIT",\n'
             '  "expected_move": "brief description of expected price movement",\n'
             '  "reason": "concise rationale max 75 chars",\n'

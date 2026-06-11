@@ -390,7 +390,7 @@ class LoopScheduler:
                 },
                 "rr_calculation": {
                     "type": "string",
-                    "description": "Step-by-step mathematical calculation for SL and Target based on ATR to ensure minimum 1:1.5 Risk/Reward ratio.",
+                    "description": "Step-by-step mathematical calculation for SL and Target based on ATR to ensure minimum 1:3.0 Risk/Reward ratio.",
                 },
                 "confidence": {
                     "type": "number",
@@ -435,7 +435,7 @@ class LoopScheduler:
                 "risk_reward": {
                     "type": "string",
                     "maxLength": 20,
-                    "description": "Risk to reward ratio (example: 1:2.5)",
+                    "description": "Risk to reward ratio (example: 1:3.0)",
                 },
                 "execution_type": {
                     "type": "string",

@@ -51,7 +51,7 @@ def build_mock_decision(side: str, execution_type: str, realtime_price: float) -
     Entry zone = +/-0.2% dari harga saat ini
     """
     sl_pct = 0.005  # 0.5% stop loss
-    tp_pct = 0.010  # 1.0% take profit (RR 1:2)
+    tp_pct = 0.015  # 1.5% take profit (RR 1:3)
     ez_pct = 0.002  # 0.2% entry zone spread
 
     if side.upper() == "BUY":
@@ -75,12 +75,12 @@ def build_mock_decision(side: str, execution_type: str, realtime_price: float) -
         "entry_zone": f"{ez_low}-{ez_high}",
         "stop_loss": str(sl_price),
         "target": str(tp_price),
-        "risk_reward": "1:2",
+        "risk_reward": "1:3",
         "execution_type": execution_type.upper(),
-        "expected_move": f"+/-1% dalam 4 jam",
+        "expected_move": f"+/-1.5% dalam 4 jam",
         "reason": "[TEST] Simulated LLM decision for trade execution test",
         "key_risks": ["Test signal - not a real trade setup"],
-        "rr_calculation": f"SL={sl_price} | TP={tp_price} | RR=1:2",
+        "rr_calculation": f"SL={sl_price} | TP={tp_price} | RR=1:3",
         "invalidated_if": "Price breaks beyond SL level",
     }
 
