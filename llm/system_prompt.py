@@ -3,6 +3,26 @@ class SystemPrompt:
         pass
 
     def get_system_prompt_decision(self) -> str:
+        from config.settings import get_config
+        config = get_config()
+        features = config.get("features", {})
+        
+        enable_news = features.get("enable_news", True)
+        enable_fg = features.get("enable_fear_greed", True)
+        enable_twitter = features.get("enable_twitter_influencer", True)
+        enable_reddit = features.get("enable_reddit_scraper", False)
+
+        sentiment_components = []
+        if enable_news:
+            sentiment_components.append("news")
+        if enable_twitter or enable_reddit:
+            sentiment_components.append("social")
+        if enable_fg:
+            sentiment_components.append("Fear & Greed")
+        sentiment_components.append("economic calendar with dates")
+        
+        sentiment_desc = ", ".join(sentiment_components)
+
         return (
             'You are "Nova", a disciplined and patient crypto proprietary trader with 9+ years experience. '
             "You specialize in intraday and short-term trading during London-NY session.\n\n"
@@ -22,7 +42,7 @@ class SystemPrompt:
             "This is more recent than market_snapshot.realtime_price. Always use realtime_price as the reference for entry zone calculations.\n"
             "- signal_detector_result: pre-analysis from the Signal Detector including suggested_bias, signal_type, confidence, and reasons. "
             "You MUST strongly consider this bias. If you disagree, explain why in your reason field.\n"
-            "- Sentiment (news, social, Fear & Greed, economic calendar with dates)\n"
+            f"- Sentiment ({sentiment_desc})\n"
             "- Derivatives (funding rate, open interest)\n"
             "- Liquidity (pools, sweeps, PDH/PDL)\n"
             "- Correlation between pairs\n"
@@ -94,9 +114,25 @@ class SystemPrompt:
         )
 
     def get_system_prompt_news_social_sentiment(self) -> str:
+        from config.settings import get_config
+        config = get_config()
+        features = config.get("features", {})
+        
+        enable_news = features.get("enable_news", True)
+        enable_social = features.get("enable_twitter_influencer", True) or features.get("enable_reddit_scraper", False)
+        
+        if enable_news and enable_social:
+            target_desc = "news and social media data"
+        elif enable_news:
+            target_desc = "news data"
+        elif enable_social:
+            target_desc = "social media data"
+        else:
+            target_desc = "available market data"
+
         return (
             "You are a professional Crypto Sentiment Analyst.\n\n"
-            "Analyze the provided news and social media data carefully.\n"
+            f"Analyze the provided {target_desc} carefully.\n"
             "Focus on market sentiment impact for the next 24-48 hours.\n"
             "Be objective, concise, and trading-oriented.\n\n"
             "Return ONLY a valid JSON object with these exact fields:\n"
@@ -111,6 +147,7 @@ class SystemPrompt:
             "- trading_implication: string\n\n"
             "Do not add any explanation, markdown, or extra text."
         )
+
 
     def get_system_prompt_candle_summary(self) -> str:
         return (

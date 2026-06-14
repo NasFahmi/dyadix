@@ -29,6 +29,15 @@ def build_sentiment_context(
     - economic_calendar: List of high-impact events
     """
     logger.info("Building sentiment context...")
+    
+    from config.settings import get_config
+    config = get_config()
+    features = config.get("features", {})
+    
+    enable_news = features.get("enable_news", True)
+    enable_reddit = features.get("enable_reddit_scraper", False)
+    enable_twitter = features.get("enable_twitter_influencer", True)
+    enable_fg = features.get("enable_fear_greed", True)
 
     context = {
         "news": [],
@@ -38,18 +47,17 @@ def build_sentiment_context(
     }
 
     # 1. Fetch News
-    try:
-        logger.info("Fetching news...")
-        news_scraper = EnhancedNewsScraper()
-        context["news"] = news_scraper.fetch_crypto_news(limit=news_limit)
-    except Exception as e:
-        logger.error(f"Error fetching news: {e}")
+    if enable_news:
+        try:
+            logger.info("Fetching news...")
+            news_scraper = EnhancedNewsScraper()
+            context["news"] = news_scraper.fetch_crypto_news(limit=news_limit)
+        except Exception as e:
+            logger.error(f"Error fetching news: {e}")
+    else:
+        logger.info("Skipping news fetching (disabled in config).")
 
     # 2. Fetch Social (Reddit Community)
-    from config.settings import get_config
-    config = get_config()
-    enable_reddit = config.get("features", {}).get("enable_reddit_scraper", False)
-
     if enable_reddit:
         try:
             logger.info("Fetching social (reddit) data...")
@@ -65,28 +73,34 @@ def build_sentiment_context(
         logger.info("Skipping reddit scraping (disabled in config).")
 
     # 3. Fetch Influencers (RSS/Reddit User)
-    try:
-        logger.info("Fetching influencer data...")
-        influencer_scraper = InfluencherScraper()
-        context["social"]["twitter"] = influencer_scraper.scrape(
-            limit_per_user=twitter_limit_per_user
-        )
-    except Exception as e:
-        logger.error(f"Error fetching influencers: {e}")
+    if enable_twitter:
+        try:
+            logger.info("Fetching influencer data...")
+            influencer_scraper = InfluencherScraper()
+            context["social"]["twitter"] = influencer_scraper.scrape(
+                limit_per_user=twitter_limit_per_user
+            )
+        except Exception as e:
+            logger.error(f"Error fetching influencers: {e}")
+    else:
+        logger.info("Skipping influencer data fetching (disabled in config).")
 
     # 4. Fetch Fear & Greed Index
-    try:
-        logger.info("Fetching fear & greed index...")
-        fng_data = get_fear_and_greed_index(limit=1)
-        if fng_data and len(fng_data) > 0:
-            # fng_data is a list of FearGreedData objects
-            context["fear_and_greed"] = {
-                "value": fng_data[0].value,
-                "classification": fng_data[0].value_classification,
-                "timestamp": fng_data[0].timestamp,
-            }
-    except Exception as e:
-        logger.error(f"Error fetching fear & greed: {e}")
+    if enable_fg:
+        try:
+            logger.info("Fetching fear & greed index...")
+            fng_data = get_fear_and_greed_index(limit=1)
+            if fng_data and len(fng_data) > 0:
+                # fng_data is a list of FearGreedData objects
+                context["fear_and_greed"] = {
+                    "value": fng_data[0].value,
+                    "classification": fng_data[0].value_classification,
+                    "timestamp": fng_data[0].timestamp,
+                }
+        except Exception as e:
+            logger.error(f"Error fetching fear & greed: {e}")
+    else:
+        logger.info("Skipping fear & greed fetching (disabled in config).")
 
     # 5. Fetch Economic Calendar
     try:
@@ -104,3 +118,4 @@ def build_sentiment_context(
 
     logger.info("Sentiment context building completed.")
     return context
+

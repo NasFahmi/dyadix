@@ -69,12 +69,17 @@ class NewsSocialLLMAnalyzer:
         """
         Kirim data News + Social ke LLM dan dapatkan analisis sentiment terstruktur.
         """
+        if not news_list and not twitter_data and not reddit_data and not fear_greed:
+            logger.info("[NewsSocialAnalyzer] All sentiment sources are disabled. Returning default neutral sentiment.")
+            return self._disabled_neutral_response()
+
         from llm.factory import get_news_social_llm
 
         system_prompt = self._build_system_prompt()
         user_input = self._build_user_input(
             news_list, twitter_data, reddit_data, fear_greed
         )
+
 
         try:
             llm = get_news_social_llm()
@@ -217,6 +222,20 @@ Analyze the sentiment and return JSON only."""
             "key_insights": ["LLM analysis failed or timed out"],
             "trading_implication": "Proceed with caution",
         }
+
+    def _disabled_neutral_response(self) -> Dict[str, Any]:
+        """Default response jika analisis sentimen dinonaktifkan."""
+        return {
+            "overall_sentiment": "Neutral",
+            "sentiment_score": 50,
+            "confidence": 1.0,
+            "dominant_narrative": "Sentiment analysis news and social data are disabled in settings.",
+            "news_impact": "Neutral",
+            "social_mood": "Neutral",
+            "key_insights": ["News, Fear & Greed, and Twitter influencer fetching are disabled"],
+            "trading_implication": "No sentiment bias applied",
+        }
+
 
     def _save_to_db(self, result: Dict[str, Any]):
         """Simpan hasil analisis sentimen LLM ke tabel sentiments di PostgreSQL."""

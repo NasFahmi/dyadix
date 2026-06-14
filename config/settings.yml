@@ -45,6 +45,10 @@ database:
 
 features:
   enable_reddit_scraper: false # Set to true to enable Reddit scraping
+  enable_news: false # Set to true to enable crypto news fetching
+  enable_fear_greed: false # Set to true to enable Fear & Greed Index analysis
+  enable_twitter_influencer: false # Set to true to enable Twitter Influencer scraping
+
 
 exchange:
   provider: "binance"
