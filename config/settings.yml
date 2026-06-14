@@ -1,14 +1,14 @@
 trading:
   pairs:
-    - BTCUSDT
-    - SOLUSDT
-    - ETHUSDT
-    - XRPUSDT
+    - BTCUSDC
+    - SOLUSDC
+    - ETHUSDC
+    - XRPUSDC
   correlation_pairs:
-    - BTCUSDT
-    - ETHUSDT
-    - SOLUSDT
-    - XRPUSDT
+    - BTCUSDC
+    - ETHUSDC
+    - SOLUSDC
+    - XRPUSDC
   active_session: "ny" # Opsi: "all", "ny", "london", "asia", "asia_london", "london_ny", "asia_ny"
   timeframes:
     - "3m"
@@ -51,8 +51,8 @@ exchange:
   # Testnet dikontrol via .env: BINANCE_TESTNET=true / false
 
 risk_management:
-  risk_per_trade_pct: 1.1 # % modal yang di-risk per trade (menghasilkan ~$11 posisi pada modal $998)
-  leverage: 1 # Leverage minimal (1x) untuk pengujian mainnet yang aman
+  risk_per_trade_pct: 1 # % modal yang di-risk per trade (0 = tidak dibatasi / menggunakan 100% balance)
+  leverage: 2 # Leverage minimal (1x) 
   max_running_trades: 1 # Maksimal 1 trade aktif bersamaan per pair
   max_daily_trades: 5 # Maksimal trade per hari (0 = tidak dibatasi)
   max_daily_sl: 3 # Maksimal total hit Stop Loss per hari (0 = tidak dibatasi)

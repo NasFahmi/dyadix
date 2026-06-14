@@ -87,12 +87,19 @@ class OrderExecutor:
             logger.error(f"  [ERR] {pair}: Balance USDT = 0. Order dibatalkan.")
             return None
 
-        risk_usd = balance * (self.risk_pct / 100.0)
+        if self.risk_pct <= 0:
+            # Jika di-set 0 atau kurang, maka tidak dibatasi (menggunakan 100% dari balance)
+            risk_usd = balance
+            risk_desc = "unlimited (100% balance)"
+        else:
+            risk_usd = balance * (self.risk_pct / 100.0)
+            risk_desc = f"{self.risk_pct}%"
+
         nominal = risk_usd * self.leverage
         quantity = nominal / realtime_price
 
         logger.info(
-            f"  [$$$] {pair} Risk Calc: Balance=${balance:.2f}, Risk={self.risk_pct}% "
+            f"  [$$$] {pair} Risk Calc: Balance=${balance:.2f}, Risk={risk_desc} "
             f"-> ${risk_usd:.2f} x {self.leverage}x = ${nominal:.2f} "
             f"-> Qty={quantity:.5f}"
         )
