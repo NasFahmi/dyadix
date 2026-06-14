@@ -76,6 +76,10 @@ class LoopScheduler:
         self.trade_monitor = TradeMonitor(telegram=self.telegram)
         self.order_executor = OrderExecutor()
 
+        # ── Microstructure collector ─────────────────────────────────
+        from service.market.hyperliquid.hyperliquid_microstructure import HyperliquidMicrostructureCollector
+        self.microstructure_collector = HyperliquidMicrostructureCollector()
+
         self.running = True
         self.paused = False
         self.force_start = False
@@ -99,6 +103,9 @@ class LoopScheduler:
 
         # Start Trade Monitor background thread
         self.trade_monitor.start()
+
+        # Start Microstructure WebSocket Collector
+        self.microstructure_collector.start()
 
         print("\n" + "=" * 60)
         print("  🚀 DYADIX DSS — Continuous Mode Started")
@@ -191,6 +198,11 @@ class LoopScheduler:
         # Build full context menggunakan ContextBuilder
         from features.context_builder import build_full_context
 
+        # Fetch microstructure data for all target pairs
+        microstructure_data = {}
+        for pair in self.data_manager.pairs:
+            microstructure_data[pair] = self.microstructure_collector.get_metrics(pair)
+
         try:
             full_contexts = build_full_context(
                 market_data=market_data,
@@ -198,6 +210,7 @@ class LoopScheduler:
                 derivatives_data=derivatives_data,
                 correlation_data=correlation_data,
                 target_pairs=self.data_manager.pairs,
+                microstructure_data=microstructure_data,
             )
         except Exception as e:
             logger.error(f"Failed to build full context: {e}")
@@ -610,6 +623,10 @@ class LoopScheduler:
         logger.info("\n⚠️  Shutdown signal received. Finishing current cycle...")
         self.running = False
         self.telegram.stop_polling()
+        try:
+            self.microstructure_collector.stop()
+        except Exception as e:
+            logger.warning(f"Error stopping microstructure collector: {e}")
 
     def _handle_telegram_command(self, command: str):
         """Handle telegram command asynchronously."""

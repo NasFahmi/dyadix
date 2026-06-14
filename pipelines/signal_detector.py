@@ -113,6 +113,14 @@ class SignalDetector:
         bullish_reasons.extend(br)
         bearish_reasons.extend(ber)
 
+        # ── 7. Microstructure Filter (max ±0.15) ────────────────────────
+        microstructure = context.get("microstructure", {})
+        b, be, br, ber = self._score_microstructure(microstructure)
+        bullish_score += b
+        bearish_score += be
+        bullish_reasons.extend(br)
+        bearish_reasons.extend(ber)
+
         # ── Determine dominant direction ────────────────────────────────
         if bullish_score >= bearish_score:
             dominant_score = bullish_score
@@ -429,6 +437,75 @@ class SignalDetector:
             if (current_price <= top) and (current_price >= bottom * (1 - threshold_pct)):
                 bear += 0.10
                 ber.append(f"Price in Bearish OB M15 ({bottom}-{top})")
+
+        return bull, bear, br, ber
+
+    def _score_microstructure(
+        self, micro: Dict
+    ) -> Tuple[float, float, List[str], List[str]]:
+        """Score dari data microstructure real-time (CVD, Imbalance, Whales, Liquidations)."""
+        bull = 0.0
+        bear = 0.0
+        br: List[str] = []
+        ber: List[str] = []
+
+        if not micro:
+            return bull, bear, br, ber
+
+        # ── 1. CVD Alignment (max 0.05) ──────────────────────────────────
+        cvd_5m = micro.get("cvd_5m_usd", 0.0)
+        cvd_15m = micro.get("cvd_15m_usd", 0.0)
+
+        if cvd_5m > 0 and cvd_15m > 0:
+            bull += 0.05
+            br.append(f"CVD bullish alignment (5m: ${cvd_5m:,.0f}, 15m: ${cvd_15m:,.0f})")
+        elif cvd_5m < 0 and cvd_15m < 0:
+            bear += 0.05
+            ber.append(f"CVD bearish alignment (5m: ${cvd_5m:,.0f}, 15m: ${cvd_15m:,.0f})")
+        elif cvd_5m > 0:
+            bull += 0.02
+            br.append(f"Short-term CVD turning positive (5m: ${cvd_5m:,.0f})")
+        elif cvd_5m < 0:
+            bear += 0.02
+            ber.append(f"Short-term CVD turning negative (5m: ${cvd_5m:,.0f})")
+
+        # ── 2. Orderbook Imbalance (max 0.04) ────────────────────────────
+        imbalance = micro.get("orderbook_imbalance_top5", 0.0)
+
+        if imbalance > 0.15:
+            bull += 0.04
+            br.append(f"Orderbook bid imbalance top-5: {imbalance:.2%}")
+        elif imbalance > 0.06:
+            bull += 0.02
+            br.append(f"Mild orderbook bid thickness: {imbalance:.2%}")
+        elif imbalance < -0.15:
+            bear += 0.04
+            ber.append(f"Orderbook ask imbalance top-5: {imbalance:.2%}")
+        elif imbalance < -0.06:
+            bear += 0.02
+            ber.append(f"Mild orderbook ask thickness: {imbalance:.2%}")
+
+        # ── 3. Whale Execution (max 0.03) ────────────────────────────────
+        whale_buys = micro.get("whale_buy_count_15m", 0)
+        whale_sells = micro.get("whale_sell_count_15m", 0)
+
+        if whale_buys > whale_sells:
+            bull += 0.03
+            br.append(f"Whale buys active (Buys: {whale_buys} vs Sells: {whale_sells})")
+        elif whale_sells > whale_buys:
+            bear += 0.03
+            ber.append(f"Whale sells active (Sells: {whale_sells} vs Buys: {whale_buys})")
+
+        # ── 4. Liquidation Squeezes (max 0.03) ───────────────────────────
+        long_liq = micro.get("long_liquidations_usd_15m", 0.0)
+        short_liq = micro.get("short_liquidations_usd_15m", 0.0)
+
+        if short_liq > 0 and short_liq > long_liq:
+            bull += 0.03
+            br.append(f"Short liquidation squeeze (${short_liq:,.0f} USD)")
+        elif long_liq > 0 and long_liq > short_liq:
+            bear += 0.03
+            ber.append(f"Long liquidation squeeze (${long_liq:,.0f} USD)")
 
         return bull, bear, br, ber
 

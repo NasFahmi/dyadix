@@ -112,6 +112,7 @@ class ContextBuilder:
         derivatives_data: Dict = None,
         correlation_data: Dict = None,
         target_pairs: Optional[List[str]] = None,
+        microstructure_data: Dict = None,
     ) -> Dict:
         """
         Membangun full context per pair dengan semua engine terintegrasi.
@@ -166,6 +167,9 @@ class ContextBuilder:
                         "insights": correlation_data.get("insights", []),
                     }
 
+                # ── microstructure per pair ───────────────────────────────
+                micro = (microstructure_data or {}).get(pair, {})
+
                 # ── final_bias (weighted) ─────────────────────────────────
                 final_bias = self._compute_final_bias(
                     tech, sentiment, derivatives, liquidity
@@ -203,6 +207,7 @@ class ContextBuilder:
                     "overall_context_summary": summary,
                     "final_bias": final_bias,
                     "key_levels": key_levels,
+                    "microstructure": micro,
                 }
 
                 logger.info(
@@ -536,6 +541,7 @@ def build_full_context(
     derivatives_data: Dict = None,
     correlation_data: Dict = None,
     target_pairs: Optional[List[str]] = None,
+    microstructure_data: Dict = None,
 ) -> Dict:
     """Helper untuk full aggregated context."""
     return ContextBuilder().build_full_context(
@@ -544,4 +550,5 @@ def build_full_context(
         derivatives_data=derivatives_data,
         correlation_data=correlation_data,
         target_pairs=target_pairs,
+        microstructure_data=microstructure_data,
     )

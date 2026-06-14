@@ -34,9 +34,9 @@ scheduler:
     sentiment: 1200 # Sentiment/News/Social (15 menit)
 
 signal_detector:
-  min_confidence: 0.40 # Threshold minimum untuk memanggil LLM
+  min_confidence: 0.55 # Threshold minimum untuk memanggil LLM (Balanced)
   divergence_threshold: 0.15 # Minimum difference between bullish and bearish scores
-  cooldown_seconds: 1200 # 15 menit cooldown per pair setelah LLM call
+  cooldown_seconds: 1200 # 20 menit cooldown per pair setelah LLM call
 
 database:
   pool_size: 5

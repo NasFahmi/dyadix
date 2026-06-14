@@ -38,12 +38,21 @@ class NinerouterClient(BaseLLMClient):
 
         base_url = os.getenv("NINEROUTER_BASE_URL", "http://localhost:20128/v1")
         self.endpoint = f"{base_url.rstrip('/')}/chat/completions"
-        self.model = model
+        
+        # Gunakan NINEROUTER_COMBO jika didefinisikan di environment
+        combo = os.getenv("NINEROUTER_COMBO")
+        if combo:
+            self.model = combo
+            logger.info(f"NinerouterClient: Using combo override '{self.model}'")
+        else:
+            self.model = model
+            
         self.headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key}"
         }
         self.timeout = 90  # detik
+
 
     def generate(self, system_prompt: str, user_input: str) -> Dict[str, Any]:
         """
@@ -56,7 +65,7 @@ class NinerouterClient(BaseLLMClient):
                 {"role": "user", "content": user_input},
             ],
             "temperature": 0.25,
-            "max_tokens": 1000,
+            "max_tokens": 8192,
             "top_p": 0.95,
             "stream": False,  # Eksplisit False
         }
@@ -103,7 +112,7 @@ class NinerouterClient(BaseLLMClient):
                 {"role": "user", "content": user_input},
             ],
             "temperature": 0.2,
-            "max_tokens": 1000,
+            "max_tokens": 8192,
             "top_p": 0.9,
             "response_format": {"type": "json_object"},
             "stream": False,
@@ -127,7 +136,7 @@ class NinerouterClient(BaseLLMClient):
                         {"role": "user", "content": user_input},
                     ],
                     "temperature": 0.2,
-                    "max_tokens": 1000,
+                    "max_tokens": 8192,
                     "top_p": 0.9,
                     "stream": False,
                 }
