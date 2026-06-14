@@ -85,13 +85,25 @@ class HyperliquidClient:
     # ---------------------------------------------------------------------
 
     def get_usdt_balance(self) -> float:
-        """Ambil withdrawable USDC balance di Hyperliquid wallet (sebagai pengganti USDT)."""
+        """Ambil total USDC balance di Hyperliquid wallet (Withdrawable Perps + Spot USDC)."""
         if not self.account_address:
             return 0.0
         try:
             state = self.info.user_state(self.account_address)
-            # Hyperliquid mengembalikan withdrawable balance di level clearinghouseState
-            return float(state.get("withdrawable", 0.0))
+            perp_withdrawable = float(state.get("withdrawable", 0.0))
+            
+            # Jika menggunakan Unified Account, dana utama mungkin berada di Spot USDC
+            spot_usdc = 0.0
+            try:
+                spot_state = self.info.spot_user_state(self.account_address)
+                for bal in spot_state.get("balances", []):
+                    if bal.get("coin") == "USDC":
+                        spot_usdc = float(bal.get("total", 0.0))
+                        break
+            except Exception as spot_err:
+                logger.debug(f"Could not fetch spot balance: {spot_err}")
+
+            return perp_withdrawable + spot_usdc
         except Exception as e:
             logger.error(f"Error getting Hyperliquid balance: {e}")
             return 0.0
@@ -178,7 +190,7 @@ class HyperliquidClient:
         try:
             logger.info(f"Placing Limit order: {coin} {side} {qty} @ {px}...")
             order_result = self.exchange.order(
-                coin=coin,
+                name=coin,
                 is_buy=is_buy,
                 sz=qty,
                 limit_px=px,
@@ -220,7 +232,7 @@ class HyperliquidClient:
         try:
             logger.info(f"Setting Stop Loss: {coin} @ {px}...")
             order_result = self.exchange.order(
-                coin=coin,
+                name=coin,
                 is_buy=is_buy,
                 sz=qty,
                 limit_px=px,  # Digunakan sebagai trigger price / worst execution price
@@ -267,7 +279,7 @@ class HyperliquidClient:
         try:
             logger.info(f"Setting Take Profit: {coin} @ {px}...")
             order_result = self.exchange.order(
-                coin=coin,
+                name=coin,
                 is_buy=is_buy,
                 sz=qty,
                 limit_px=px,

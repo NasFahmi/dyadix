@@ -159,7 +159,7 @@ def display_decision(decision: dict, pair: str):
 # -----------------------------------------------------------------------------
 
 
-def execute_order(pair: str, decision: dict, realtime_price: float):
+def execute_order(pair: str, decision: dict, realtime_price: float, risk_pct: float = None, leverage: int = None):
     """Panggil OrderExecutor.execute() - sama persis seperti yang dipanggil LoopScheduler."""
     print("\n" + "=" * 60)
     print("  STEP 4: Executing Order via OrderExecutor")
@@ -168,6 +168,10 @@ def execute_order(pair: str, decision: dict, realtime_price: float):
     from service.trade.order_executor import OrderExecutor
 
     executor = OrderExecutor()
+    if risk_pct is not None:
+        executor.risk_pct = risk_pct
+    if leverage is not None:
+        executor.leverage = leverage
 
     print(f"  Leverage : {executor.leverage}x")
     print(f"  Risk %   : {executor.risk_pct}%")
@@ -281,6 +285,18 @@ def parse_args():
         action="store_true",
         help="Skip konfirmasi sebelum eksekusi",
     )
+    parser.add_argument(
+        "--risk-pct",
+        type=float,
+        default=None,
+        help="Risk percentage override (e.g. 98.0)",
+    )
+    parser.add_argument(
+        "--leverage",
+        type=int,
+        default=None,
+        help="Leverage override (e.g. 2)",
+    )
     return parser.parse_args()
 
 
@@ -317,8 +333,12 @@ def main():
     # Konfirmasi sebelum eksekusi (kecuali --skip-confirm)
     if not args.skip_confirm:
         print("\n" + "[WARN]  " * 15)
-        print("  PERHATIAN: Order ini akan dieksekusi ke Hyperliquid Testnet!")
-        print("  Ini adalah uang virtual, BUKAN uang asli.")
+        if client.testnet:
+            print("  PERHATIAN: Order ini akan dieksekusi ke Hyperliquid Testnet!")
+            print("  Ini adalah uang virtual, BUKAN uang asli.")
+        else:
+            print("  PERHATIAN: Order ini akan dieksekusi ke Hyperliquid MAINNET!")
+            print("  Ini menggunakan UANG ASLI Anda!")
         print("[WARN]  " * 15)
         confirm = input("\n  Lanjutkan eksekusi? (y/N): ").strip().lower()
         if confirm != "y":
@@ -326,7 +346,13 @@ def main():
             sys.exit(0)
 
     # STEP 4: Execute order
-    result = execute_order(args.pair, decision, realtime_price)
+    result = execute_order(
+        args.pair,
+        decision,
+        realtime_price,
+        risk_pct=args.risk_pct,
+        leverage=args.leverage,
+    )
 
     # STEP 5: Verify positions
     import time

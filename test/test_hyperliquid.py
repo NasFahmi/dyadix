@@ -77,7 +77,7 @@ def main():
 
     # Tempatkan order limit beli 5% di bawah harga mark price agar tidak langsung terisi (resting)
     limit_price = price * 0.95
-    qty = 0.1 # 0.1 SOL
+    qty = 0.3 # 0.3 SOL (sehingga nilainya > $10)
     
     print(f"Mencoba menempatkan LIMIT BUY {qty} {pair} @ ${limit_price:,.4f}...")
     order = client.place_limit_order(pair, "BUY", qty, limit_price)
