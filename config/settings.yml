@@ -1,4 +1,5 @@
 trading:
+  mode: "scalping" # Opsi: "scalping" atau "swing"
   pairs:
     - BTCUSDC
     - SOLUSDC

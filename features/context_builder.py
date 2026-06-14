@@ -129,6 +129,27 @@ class ContextBuilder:
         """
         full_context: Dict[str, Any] = {}
 
+        from config.settings import get_config
+        config = get_config()
+        mode = config.get("trading", {}).get("mode", "scalping").lower()
+
+        if mode == "swing":
+            tf_trend = "4h"
+            tf_ob_primary = "4h"
+            tf_ob_secondary = "1h"
+            tf_mom = "1h"
+            tf_vol = "15m"
+            tf_pa = "15m"
+            tf_liq = "15m"
+        else:
+            tf_trend = "1h"
+            tf_ob_primary = "1h"
+            tf_ob_secondary = "15m"
+            tf_mom = "15m"
+            tf_vol = "5m"
+            tf_pa = "5m"
+            tf_liq = "5m"
+
         for pair, tf_data in market_data.items():
             # Filter hanya pair yang ingin ditradingkan (target_pairs)
             if target_pairs is not None and pair not in target_pairs:
@@ -148,15 +169,15 @@ class ContextBuilder:
                     derivatives = {}
 
                 # ── liquidity per pair ────────────────────────────────────
-                df_5m = tf_data.get("5m", {}).get("aggregated", pd.DataFrame())
+                df_liq = tf_data.get(tf_liq, {}).get("aggregated", pd.DataFrame())
                 daily_bias_raw = tech.get("daily_bias", {})
-                if not df_5m.empty:
+                if not df_liq.empty:
                     liq_result = LiquidityEngine.calculate(
-                        df=df_5m, daily_bias=daily_bias_raw, timeframe="5m"
+                        df=df_liq, daily_bias=daily_bias_raw, timeframe=tf_liq
                     )
                     liquidity = LiquidityEngine.get_latest_summary(liq_result)
                 else:
-                    liquidity = {"error": "No 5m data for liquidity"}
+                    liquidity = {"error": f"No {tf_liq} data for liquidity"}
 
                 # ── correlation (global, beri slice per pair) ─────────────
                 correlation = {}
@@ -192,12 +213,12 @@ class ContextBuilder:
                     "current_market_session": current_market_session,
                     "technical": {
                         "daily_bias": tech.get("daily_bias"),
-                        "trend_h1": tech.get("trend_h1"),
-                        "order_block_h1": tech.get("order_block_h1"),
-                        "order_block_m15": tech.get("order_block_m15"),
-                        "momentum_m15": tech.get("momentum_m15"),
-                        "volatility_m5": tech.get("volatility_m5"),
-                        "price_action_m5": tech.get("price_action_m5"),
+                        f"trend_{tf_trend}": tech.get(f"trend_{tf_trend}"),
+                        f"order_block_{tf_ob_primary}": tech.get(f"order_block_{tf_ob_primary}"),
+                        f"order_block_{tf_ob_secondary}": tech.get(f"order_block_{tf_ob_secondary}"),
+                        f"momentum_{tf_mom}": tech.get(f"momentum_{tf_mom}"),
+                        f"volatility_{tf_vol}": tech.get(f"volatility_{tf_vol}"),
+                        f"price_action_{tf_pa}": tech.get(f"price_action_{tf_pa}"),
                         "overall_technical_bias": tech.get("overall_technical_bias"),
                     },
                     "sentiment": sentiment,
@@ -234,6 +255,27 @@ class ContextBuilder:
         PENTING: Jangan mutate tf_data (cache) — selalu pakai copy OHLCV-only
         agar tidak terjadi duplikasi kolom indikator saat loop.
         """
+        from config.settings import get_config
+        config = get_config()
+        mode = config.get("trading", {}).get("mode", "scalping").lower()
+
+        if mode == "swing":
+            tf_trend = "4h"
+            tf_ob_primary = "4h"
+            tf_ob_secondary = "1h"
+            tf_mom = "1h"
+            tf_vol = "15m"
+            tf_pa = "15m"
+            tf_prec = "15m"
+        else:
+            tf_trend = "1h"
+            tf_ob_primary = "1h"
+            tf_ob_secondary = "15m"
+            tf_mom = "15m"
+            tf_vol = "5m"
+            tf_pa = "5m"
+            tf_prec = "3m"
+
         # Kolom asli OHLCV saja — strip indikator dari cycle sebelumnya
         _ohlcv_cols = ["open", "high", "low", "close", "volume"]
 
@@ -244,13 +286,15 @@ class ContextBuilder:
             cols = [c for c in _ohlcv_cols if c in raw.columns]
             return raw[cols].copy()
 
-        df_1h = _clean_df("1h")
-        df_15m = _clean_df("15m")
-        df_5m = _clean_df("5m")
-        df_3m = _clean_df("3m")
+        df_trend = _clean_df(tf_trend)
+        df_ob_primary = _clean_df(tf_ob_primary)
+        df_ob_secondary = _clean_df(tf_ob_secondary)
+        df_mom = _clean_df(tf_mom)
+        df_vol = _clean_df(tf_vol)
+        df_prec = _clean_df(tf_prec)
         df_daily = _clean_df("1d")
 
-        current_price = float(df_5m["close"].iloc[-1]) if not df_5m.empty else None
+        current_price = float(df_vol["close"].iloc[-1]) if not df_vol.empty else None
 
         # Daily Bias
         daily_bias = (
@@ -265,60 +309,60 @@ class ContextBuilder:
             }
         )
 
-        # Trend H1
-        df_1h_new, trend_summary = (
-            calculate_trend_features(df_1h, timeframe="1h")
-            if not df_1h.empty
+        # Trend Primary (tf_trend)
+        df_trend_new, trend_summary = (
+            calculate_trend_features(df_trend, timeframe=tf_trend)
+            if not df_trend.empty
             else (pd.DataFrame(), {})
         )
 
-        # Order Block H1
-        _, ob_summary_h1 = (
-            calculate_order_block_features(df_1h, timeframe="1h")
-            if not df_1h.empty
+        # Order Block Primary (tf_ob_primary)
+        _, ob_summary_primary = (
+            calculate_order_block_features(df_ob_primary, timeframe=tf_ob_primary)
+            if not df_ob_primary.empty
             else (pd.DataFrame(), {})
         )
 
-        # Momentum M15
-        df_15m_new, momentum_summary = (
-            calculate_momentum_features(df_15m, timeframe="15m")
-            if not df_15m.empty
+        # Momentum Secondary (tf_mom)
+        df_mom_new, momentum_summary = (
+            calculate_momentum_features(df_mom, timeframe=tf_mom)
+            if not df_mom.empty
             else (pd.DataFrame(), {})
         )
 
-        # Order Block M15
-        _, ob_summary_m15 = (
-            calculate_order_block_features(df_15m, timeframe="15m")
-            if not df_15m.empty
+        # Order Block Secondary (tf_ob_secondary)
+        _, ob_summary_secondary = (
+            calculate_order_block_features(df_ob_secondary, timeframe=tf_ob_secondary)
+            if not df_ob_secondary.empty
             else (pd.DataFrame(), {})
         )
 
-        # Volatility M5
-        df_5m_new, volatility_summary = (
-            calculate_volatility_features(df_5m, timeframe="5m")
-            if not df_5m.empty
+        # Volatility (tf_vol)
+        df_vol_new, volatility_summary = (
+            calculate_volatility_features(df_vol, timeframe=tf_vol)
+            if not df_vol.empty
             else (pd.DataFrame(), {})
         )
 
-        # Momentum M5 (agar snapshot M5 punya RSI)
-        df_5m_mom, _ = (
-            calculate_momentum_features(df_5m_new, timeframe="5m")
-            if not df_5m_new.empty
+        # Momentum on Volatility/Confirmation TF (agar snapshot punya RSI)
+        df_vol_mom, _ = (
+            calculate_momentum_features(df_vol_new, timeframe=tf_vol)
+            if not df_vol_new.empty
             else (pd.DataFrame(), {})
         )
 
-        # Price Action M5
-        df_5m_final = df_5m_mom if not df_5m_mom.empty else df_5m_new
-        df_5m_pa, pa_summary = (
-            calculate_price_action_features(df_5m_final, timeframe="5m")
-            if not df_5m_final.empty
+        # Price Action (tf_pa)
+        df_vol_final = df_vol_mom if not df_vol_mom.empty else df_vol_new
+        df_pa_new, pa_summary = (
+            calculate_price_action_features(df_vol_final, timeframe=tf_pa)
+            if not df_vol_final.empty
             else (pd.DataFrame(), {})
         )
 
-        # Optional: M3 Momentum/Volatility (agar Snapshot tidak null)
-        if not df_3m.empty:
-            df_3m_new, _ = calculate_momentum_features(df_3m, timeframe="3m")
-            df_3m_vol, _ = calculate_volatility_features(df_3m_new, timeframe="3m")
+        # Precision timeframe momentum/volatility calculation if needed
+        if not df_prec.empty and tf_prec != tf_vol:
+            df_prec_new, _ = calculate_momentum_features(df_prec, timeframe=tf_prec)
+            df_prec_vol, _ = calculate_volatility_features(df_prec_new, timeframe=tf_prec)
 
         overall_bias = self._get_overall_technical_bias(
             daily_bias, trend_summary, momentum_summary, pa_summary
@@ -337,22 +381,22 @@ class ContextBuilder:
                 "previous_day_close": daily_bias.get("previous_day_close"),
                 "previous_day_range": daily_bias.get("previous_day_range"),
             },
-            "trend_h1": trend_summary,
-            "order_block_h1": ob_summary_h1,
-            "order_block_m15": ob_summary_m15,
-            "momentum_m15": momentum_summary,
-            "volatility_m5": volatility_summary,
-            "price_action_m5": pa_summary,
+            f"trend_{tf_trend}": trend_summary,
+            f"order_block_{tf_ob_primary}": ob_summary_primary,
+            f"order_block_{tf_ob_secondary}": ob_summary_secondary,
+            f"momentum_{tf_mom}": momentum_summary,
+            f"volatility_{tf_vol}": volatility_summary,
+            f"price_action_{tf_pa}": pa_summary,
             "overall_technical_bias": overall_bias,
             "key_levels": {
                 "pd_high": daily_bias.get("previous_day_high"),
                 "pd_low": daily_bias.get("previous_day_low"),
                 "last_swing_high": pa_summary.get("last_swing_high"),
                 "last_swing_low": pa_summary.get("last_swing_low"),
-                "nearest_bullish_ob": ob_summary_h1.get("nearest_bullish_ob"),
-                "nearest_bearish_ob": ob_summary_h1.get("nearest_bearish_ob"),
-                "nearest_bullish_ob_m15": ob_summary_m15.get("nearest_bullish_ob"),
-                "nearest_bearish_ob_m15": ob_summary_m15.get("nearest_bearish_ob"),
+                f"nearest_bullish_ob_{tf_ob_primary}": ob_summary_primary.get("nearest_bullish_ob"),
+                f"nearest_bearish_ob_{tf_ob_primary}": ob_summary_primary.get("nearest_bearish_ob"),
+                f"nearest_bullish_ob_{tf_ob_secondary}": ob_summary_secondary.get("nearest_bullish_ob"),
+                f"nearest_bearish_ob_{tf_ob_secondary}": ob_summary_secondary.get("nearest_bearish_ob"),
             },
         }
 
@@ -431,6 +475,16 @@ class ContextBuilder:
 
     def _merge_key_levels(self, tech: Dict, liquidity: Dict) -> Dict:
         """Gabungkan key levels dari technical dan liquidity."""
+        from config.settings import get_config
+        config = get_config()
+        mode = config.get("trading", {}).get("mode", "scalping").lower()
+        if mode == "swing":
+            tf_ob_primary = "4h"
+            tf_ob_secondary = "1h"
+        else:
+            tf_ob_primary = "1h"
+            tf_ob_secondary = "15m"
+
         tech_levels = tech.get("key_levels", {})
         liq_levels = liquidity.get("key_levels", {})
         liq_pools = liquidity.get("liquidity_pools", {})
@@ -440,10 +494,10 @@ class ContextBuilder:
             "pd_low": tech_levels.get("pd_low"),
             "last_swing_high": tech_levels.get("last_swing_high"),
             "last_swing_low": tech_levels.get("last_swing_low"),
-            "nearest_bullish_ob": tech_levels.get("nearest_bullish_ob"),
-            "nearest_bearish_ob": tech_levels.get("nearest_bearish_ob"),
-            "nearest_bullish_ob_m15": tech_levels.get("nearest_bullish_ob_m15"),
-            "nearest_bearish_ob_m15": tech_levels.get("nearest_bearish_ob_m15"),
+            "nearest_bullish_ob": tech_levels.get(f"nearest_bullish_ob_{tf_ob_primary}"),
+            "nearest_bearish_ob": tech_levels.get(f"nearest_bearish_ob_{tf_ob_primary}"),
+            f"nearest_bullish_ob_{tf_ob_secondary}": tech_levels.get(f"nearest_bullish_ob_{tf_ob_secondary}"),
+            f"nearest_bearish_ob_{tf_ob_secondary}": tech_levels.get(f"nearest_bearish_ob_{tf_ob_secondary}"),
             "liquidity_pdh": liq_levels.get("pdh"),
             "liquidity_pdl": liq_levels.get("pdl"),
             "resistance_pools": [p["price"] for p in liq_pools.get("highs", [])],
@@ -460,29 +514,41 @@ class ContextBuilder:
         final_bias: str,
     ) -> str:
         """Teks ringkas yang menggambarkan kondisi pasar saat ini untuk pair ini."""
+        from config.settings import get_config
+        config = get_config()
+        mode = config.get("trading", {}).get("mode", "scalping").lower()
+        if mode == "swing":
+            tf_trend = "4h"
+            tf_ob_primary = "4h"
+            tf_ob_secondary = "1h"
+        else:
+            tf_trend = "1h"
+            tf_ob_primary = "1h"
+            tf_ob_secondary = "15m"
+
         parts = []
 
         # Technical
         t_bias = tech.get("overall_technical_bias", "Neutral")
-        trend = tech.get("trend_h1", {}).get("trend_regime", "Unknown")
-        ob_h1 = tech.get("order_block_h1", {})
-        ob_m15 = tech.get("order_block_m15", {})
+        trend = tech.get(f"trend_{tf_trend}", {}).get("trend_regime", "Unknown")
+        ob_primary = tech.get(f"order_block_{tf_ob_primary}", {})
+        ob_secondary = tech.get(f"order_block_{tf_ob_secondary}", {})
 
         ob_str = ""
         ob_parts = []
-        if ob_h1.get("nearest_bullish_ob"):
-            ob_parts.append(f"Bull OB H1 {ob_h1['nearest_bullish_ob']['top']}")
-        if ob_h1.get("nearest_bearish_ob"):
-            ob_parts.append(f"Bear OB H1 {ob_h1['nearest_bearish_ob']['bottom']}")
-        if ob_m15.get("nearest_bullish_ob"):
-            ob_parts.append(f"Bull OB M15 {ob_m15['nearest_bullish_ob']['top']}")
-        if ob_m15.get("nearest_bearish_ob"):
-            ob_parts.append(f"Bear OB M15 {ob_m15['nearest_bearish_ob']['bottom']}")
+        if ob_primary.get("nearest_bullish_ob"):
+            ob_parts.append(f"Bull OB {tf_ob_primary.upper()} {ob_primary['nearest_bullish_ob']['top']}")
+        if ob_primary.get("nearest_bearish_ob"):
+            ob_parts.append(f"Bear OB {tf_ob_primary.upper()} {ob_primary['nearest_bearish_ob']['bottom']}")
+        if ob_secondary.get("nearest_bullish_ob"):
+            ob_parts.append(f"Bull OB {tf_ob_secondary.upper()} {ob_secondary['nearest_bullish_ob']['top']}")
+        if ob_secondary.get("nearest_bearish_ob"):
+            ob_parts.append(f"Bear OB {tf_ob_secondary.upper()} {ob_secondary['nearest_bearish_ob']['bottom']}")
 
         if ob_parts:
             ob_str = f" | {' & '.join(ob_parts)}"
 
-        parts.append(f"{pair} secara teknikal {t_bias} dengan trend H1 {trend}{ob_str}")
+        parts.append(f"{pair} secara teknikal {t_bias} dengan trend {tf_trend.upper()} {trend}{ob_str}")
 
         # Sentiment
         s_label = sentiment.get("overall_sentiment", "Neutral")

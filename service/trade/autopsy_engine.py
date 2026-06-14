@@ -80,16 +80,20 @@ class AutopsyEngine:
 
     def _build_payload(self, trade) -> Dict[str, Any]:
         """Susun payload untuk LLM Autopsy."""
+        from config.settings import get_config
+        config = get_config()
+        mode = config.get("trading", {}).get("mode", "scalping").lower()
 
         # ── Price action selama trade berlangsung ─────────────────────
         price_action = self._get_price_action(
             pair=trade.pair,
             start_time=trade.opened_at,
             end_time=trade.closed_at or datetime.utcnow(),
+            mode=mode,
         )
 
         # ── Korelasi BTC ──────────────────────────────────────────────
-        btc_correlation = self._get_btc_correlation(trade)
+        btc_correlation = self._get_btc_correlation(trade, mode=mode)
 
         # ── Berita relevan ────────────────────────────────────────────
         news_events = self._get_relevant_news(
@@ -118,8 +122,8 @@ class AutopsyEngine:
             },
         }
 
-    def _get_price_action(self, pair: str, start_time: datetime, end_time: datetime) -> list:
-        """Ambil OHLCV M5 selama trade berlangsung dari Hyperliquid."""
+    def _get_price_action(self, pair: str, start_time: datetime, end_time: datetime, mode: str = "scalping") -> list:
+        """Ambil OHLCV selama trade berlangsung dari Hyperliquid."""
         try:
             from service.exchange.hyperliquid_client import HyperliquidClient
             hl_client = HyperliquidClient()
@@ -128,9 +132,11 @@ class AutopsyEngine:
             start_ms = int(start_time.timestamp() * 1000)
             end_ms = int(end_time.timestamp() * 1000)
 
+            interval = "15m" if mode == "swing" else "5m"
+
             klines = hl_client.info.candles_snapshot(
                 coin=coin,
-                interval="5m",
+                interval=interval,
                 startTime=start_ms,
                 endTime=end_ms
             )
@@ -151,7 +157,7 @@ class AutopsyEngine:
             logger.warning(f"Could not fetch price action for autopsy: {e}")
             return []
 
-    def _get_btc_correlation(self, trade) -> Dict[str, Any]:
+    def _get_btc_correlation(self, trade, mode: str = "scalping") -> Dict[str, Any]:
         """Hitung pergerakan BTC selama trade berlangsung di Hyperliquid."""
         try:
             if trade.pair == "BTCUSDT":
@@ -167,12 +173,14 @@ class AutopsyEngine:
             start_ms = int(trade.opened_at.timestamp() * 1000)
             end_ms = int(trade.closed_at.timestamp() * 1000)
 
+            interval = "15m" if mode == "swing" else "5m"
+
             btc_klines = hl_client.info.candles_snapshot(
-                coin="BTC", interval="5m",
+                coin="BTC", interval=interval,
                 startTime=start_ms, endTime=end_ms
             )
             pair_klines = hl_client.info.candles_snapshot(
-                coin=coin, interval="5m",
+                coin=coin, interval=interval,
                 startTime=start_ms, endTime=end_ms
             )
 

@@ -37,6 +37,7 @@ class DataManager:
         "ohlcv_fast": 60,  # M3 & M5: setiap 60 detik
         "ohlcv_m15": 90,  # M15: setiap 90 detik
         "ohlcv_h1": 180,  # H1: setiap 3 menit
+        "ohlcv_h4": 600,  # H4: setiap 10 menit
         "ohlcv_daily": 3600,  # Daily: setiap 1 jam
         "funding_rate": 60,  # Funding Rate: setiap 60 detik
         "open_interest": 120,  # OI: setiap 2 menit
@@ -66,16 +67,24 @@ class DataManager:
         trading_config = config.get("trading", {})
         self.pairs: List[str] = trading_config.get("pairs") or ["BTCUSDT"]
         self.correlation_pairs: List[str] = trading_config.get("correlation_pairs", [])
-        self.timeframes: List[str] = trading_config.get(
-            "timeframes", ["3m", "5m", "15m", "1h"]
-        )
+        
+        # Determine mode
+        self.mode = trading_config.get("mode", "scalping").lower()
+
+        # Default timeframes based on mode
+        if self.mode == "swing":
+            default_tfs = ["15m", "1h", "4h", "1d"]
+        else:
+            default_tfs = ["3m", "5m", "15m", "1h", "1d"]
+
+        self.timeframes: List[str] = trading_config.get("timeframes", default_tfs)
 
         # Pastikan 1d ada untuk daily bias
         if "1d" not in self.timeframes:
             self.timeframes.append("1d")
 
         logger.info(
-            f"DataManager initialized | pairs={self.pairs} | intervals={self.intervals}"
+            f"DataManager initialized | mode={self.mode} | pairs={self.pairs} | timeframes={self.timeframes} | intervals={self.intervals}"
         )
 
     # ─────────────────────────────────────────────────────────────────────
@@ -139,38 +148,62 @@ class DataManager:
         refreshed = {}
 
         # ── OHLCV Fast (M3 & M5) ────────────────────────────────────────
-        if self.is_stale("ohlcv_fast"):
-            logger.info("🔄 Refreshing M3 & M5 OHLCV...")
-            self._fetch_ohlcv_timeframes(["3m", "5m"])
-            self.set_cache("ohlcv_fast", True)
-            refreshed["ohlcv_fast"] = True
+        if "3m" in self.timeframes or "5m" in self.timeframes:
+            if self.is_stale("ohlcv_fast"):
+                logger.info("🔄 Refreshing M3 & M5 OHLCV...")
+                self._fetch_ohlcv_timeframes(["3m", "5m"])
+                self.set_cache("ohlcv_fast", True)
+                refreshed["ohlcv_fast"] = True
+            else:
+                refreshed["ohlcv_fast"] = False
         else:
             refreshed["ohlcv_fast"] = False
 
         # ── OHLCV M15 ───────────────────────────────────────────────────
-        if self.is_stale("ohlcv_m15"):
-            logger.info("🔄 Refreshing M15 OHLCV...")
-            self._fetch_ohlcv_timeframes(["15m"])
-            self.set_cache("ohlcv_m15", True)
-            refreshed["ohlcv_m15"] = True
+        if "15m" in self.timeframes:
+            if self.is_stale("ohlcv_m15"):
+                logger.info("🔄 Refreshing M15 OHLCV...")
+                self._fetch_ohlcv_timeframes(["15m"])
+                self.set_cache("ohlcv_m15", True)
+                refreshed["ohlcv_m15"] = True
+            else:
+                refreshed["ohlcv_m15"] = False
         else:
             refreshed["ohlcv_m15"] = False
 
         # ── OHLCV H1 ────────────────────────────────────────────────────
-        if self.is_stale("ohlcv_h1"):
-            logger.info("🔄 Refreshing H1 OHLCV...")
-            self._fetch_ohlcv_timeframes(["1h"])
-            self.set_cache("ohlcv_h1", True)
-            refreshed["ohlcv_h1"] = True
+        if "1h" in self.timeframes:
+            if self.is_stale("ohlcv_h1"):
+                logger.info("🔄 Refreshing H1 OHLCV...")
+                self._fetch_ohlcv_timeframes(["1h"])
+                self.set_cache("ohlcv_h1", True)
+                refreshed["ohlcv_h1"] = True
+            else:
+                refreshed["ohlcv_h1"] = False
         else:
             refreshed["ohlcv_h1"] = False
 
+        # ── OHLCV H4 ────────────────────────────────────────────────────
+        if "4h" in self.timeframes:
+            if self.is_stale("ohlcv_h4"):
+                logger.info("🔄 Refreshing H4 OHLCV...")
+                self._fetch_ohlcv_timeframes(["4h"])
+                self.set_cache("ohlcv_h4", True)
+                refreshed["ohlcv_h4"] = True
+            else:
+                refreshed["ohlcv_h4"] = False
+        else:
+            refreshed["ohlcv_h4"] = False
+
         # ── OHLCV Daily ─────────────────────────────────────────────────
-        if self.is_stale("ohlcv_daily"):
-            logger.info("🔄 Refreshing Daily OHLCV...")
-            self._fetch_ohlcv_timeframes(["1d"])
-            self.set_cache("ohlcv_daily", True)
-            refreshed["ohlcv_daily"] = True
+        if "1d" in self.timeframes:
+            if self.is_stale("ohlcv_daily"):
+                logger.info("🔄 Refreshing Daily OHLCV...")
+                self._fetch_ohlcv_timeframes(["1d"])
+                self.set_cache("ohlcv_daily", True)
+                refreshed["ohlcv_daily"] = True
+            else:
+                refreshed["ohlcv_daily"] = False
         else:
             refreshed["ohlcv_daily"] = False
 

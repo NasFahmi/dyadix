@@ -189,16 +189,21 @@ class MainPipeline:
 
     def _build_mock_derivatives(self, market_data: Dict) -> Dict:
         """
-        Generate proxy derivatives data dari M5 close prices.
+        Generate proxy derivatives data dari close prices.
         Ganti blok ini dengan live Binance/Bybit futures service jika sudah tersedia.
         """
+        from config.settings import get_config
+        config = get_config()
+        mode = config.get("trading", {}).get("mode", "scalping").lower()
+        tf_mock = "15m" if mode == "swing" else "5m"
+
         derivatives: Dict[str, Dict] = {}
         for pair, tf_data in market_data.items():
-            df_m5 = tf_data.get("5m", {}).get("aggregated", pd.DataFrame())
-            if df_m5.empty:
+            df_mock = tf_data.get(tf_mock, {}).get("aggregated", pd.DataFrame())
+            if df_mock.empty:
                 continue
 
-            tail = df_m5.tail(24).copy().reset_index(drop=True)
+            tail = df_mock.tail(24).copy().reset_index(drop=True)
 
             if "timestamp" in tail.columns:
                 ts_base = pd.to_datetime(tail["timestamp"])

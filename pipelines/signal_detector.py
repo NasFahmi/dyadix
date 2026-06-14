@@ -198,52 +198,64 @@ class SignalDetector:
     def _score_technical(
         self, technical: Dict
     ) -> Tuple[float, float, List[str], List[str]]:
-        """Score dari trend H1, momentum M15, price action M5, dan daily bias."""
+        """Score dari trend, momentum, price action, dan daily bias."""
+        from config.settings import get_config
+        config = get_config()
+        mode = config.get("trading", {}).get("mode", "scalping").lower()
+        if mode == "swing":
+            tf_trend = "4h"
+            tf_mom = "1h"
+            tf_pa = "15m"
+        else:
+            tf_trend = "1h"
+            tf_mom = "15m"
+            tf_pa = "5m"
+
         bull = 0.0
         bear = 0.0
         br: List[str] = []
         ber: List[str] = []
 
-        # ── Trend H1 (max 0.15) ─────────────────────────────────────────
-        trend = technical.get("trend_h1", {})
+        # ── Trend (max 0.15) ─────────────────────────────────────────
+        trend = technical.get(f"trend_{tf_trend}", {})
         trend_regime = str(trend.get("trend_regime", "")).lower()
 
         if "strong" in trend_regime and "uptrend" in trend_regime:
             bull += 0.15
-            br.append("Strong H1 Uptrend")
+            br.append(f"Strong {tf_trend.upper()} Uptrend")
         elif "uptrend" in trend_regime or "bullish" in trend_regime:
             bull += 0.10
-            br.append("H1 Uptrend")
+            br.append(f"{tf_trend.upper()} Uptrend")
         elif "strong" in trend_regime and "downtrend" in trend_regime:
             bear += 0.15
-            ber.append("Strong H1 Downtrend")
+            ber.append(f"Strong {tf_trend.upper()} Downtrend")
         elif "downtrend" in trend_regime or "bearish" in trend_regime:
             bear += 0.10
-            ber.append("H1 Downtrend")
+            ber.append(f"{tf_trend.upper()} Downtrend")
 
-        # ── Momentum M15 (max 0.12) ─────────────────────────────────────
-        momentum = technical.get("momentum_m15", {})
+        # ── Momentum (max 0.12) ─────────────────────────────────────
+        momentum = technical.get(f"momentum_{tf_mom}", {})
         mom_bias = str(momentum.get("momentum_bias", "Neutral")).lower()
         rsi = momentum.get("rsi", 50)
 
         # Removed strict RSI boundaries that penalized strong trends
         if "bullish" in mom_bias:
             bull += 0.12
-            br.append(f"Bullish momentum M15 (RSI {rsi:.0f})")
+            br.append(f"Bullish momentum {tf_mom.upper()} (RSI {rsi:.0f})")
         elif "bearish" in mom_bias:
             bear += 0.12
-            ber.append(f"Bearish momentum M15 (RSI {rsi:.0f})")
+            ber.append(f"Bearish momentum {tf_mom.upper()} (RSI {rsi:.0f})")
 
-        # ── Price Action M5 (max 0.08) ──────────────────────────────────
-        pa = technical.get("price_action_m5", {})
+        # ── Price Action (max 0.08) ──────────────────────────────────
+        pa = technical.get(f"price_action_{tf_pa}", {})
         pa_bias = str(pa.get("pa_bias", "Neutral")).lower()
 
         if "bullish" in pa_bias:
             bull += 0.08
-            br.append("Bullish price action M5")
+            br.append(f"Bullish price action {tf_pa.upper()}")
         elif "bearish" in pa_bias:
             bear += 0.08
-            ber.append("Bearish price action M5")
+            ber.append(f"Bearish price action {tf_pa.upper()}")
 
         # Candlestick patterns
         if pa.get("is_bullish_engulfing") or pa.get("is_hammer"):
@@ -354,13 +366,23 @@ class SignalDetector:
         Bonus jika ada divergence antara RSI dan trend direction.
         Divergence = potensi reversal, meningkatkan signal.
         """
+        from config.settings import get_config
+        config = get_config()
+        mode = config.get("trading", {}).get("mode", "scalping").lower()
+        if mode == "swing":
+            tf_trend = "4h"
+            tf_mom = "1h"
+        else:
+            tf_trend = "1h"
+            tf_mom = "15m"
+
         bull = 0.0
         bear = 0.0
         br: List[str] = []
         ber: List[str] = []
 
-        trend = technical.get("trend_h1", {})
-        momentum = technical.get("momentum_m15", {})
+        trend = technical.get(f"trend_{tf_trend}", {})
+        momentum = technical.get(f"momentum_{tf_mom}", {})
         trend_regime = str(trend.get("trend_regime", "")).lower()
         rsi = momentum.get("rsi", 50)
 
@@ -368,12 +390,12 @@ class SignalDetector:
         # Increased to 0.15 to better overcome the negative trend penalty
         if ("downtrend" in trend_regime or "bearish" in trend_regime) and rsi < 35:
             bull += 0.15
-            br.append(f"Bullish divergence (downtrend + RSI oversold {rsi:.0f})")
+            br.append(f"Bullish divergence ({tf_trend.upper()} downtrend + {tf_mom.upper()} RSI oversold {rsi:.0f})")
 
         # Bearish divergence: uptrend tapi RSI mulai turun (overbought)
         if ("uptrend" in trend_regime or "bullish" in trend_regime) and rsi > 65:
             bear += 0.15
-            ber.append(f"Bearish divergence (uptrend + RSI overbought {rsi:.0f})")
+            ber.append(f"Bearish divergence ({tf_trend.upper()} uptrend + {tf_mom.upper()} RSI overbought {rsi:.0f})")
 
         # Extreme RSI bonus
         if rsi < 25:
@@ -389,6 +411,16 @@ class SignalDetector:
         self, technical: Dict, current_price: float
     ) -> Tuple[float, float, List[str], List[str]]:
         """Score if price is inside or very close to an unmitigated Order Block."""
+        from config.settings import get_config
+        config = get_config()
+        mode = config.get("trading", {}).get("mode", "scalping").lower()
+        if mode == "swing":
+            tf_ob_primary = "4h"
+            tf_ob_secondary = "1h"
+        else:
+            tf_ob_primary = "1h"
+            tf_ob_secondary = "15m"
+
         bull = 0.0
         bear = 0.0
         br: List[str] = []
@@ -397,46 +429,46 @@ class SignalDetector:
         if not current_price:
             return bull, bear, br, ber
 
-        ob_h1 = technical.get("order_block_h1", {})
-        bull_ob_h1 = ob_h1.get("nearest_bullish_ob")
-        bear_ob_h1 = ob_h1.get("nearest_bearish_ob")
+        ob_primary = technical.get(f"order_block_{tf_ob_primary}", {})
+        bull_ob_primary = ob_primary.get("nearest_bullish_ob")
+        bear_ob_primary = ob_primary.get("nearest_bearish_ob")
         
-        ob_m15 = technical.get("order_block_m15", {})
-        bull_ob_m15 = ob_m15.get("nearest_bullish_ob")
-        bear_ob_m15 = ob_m15.get("nearest_bearish_ob")
+        ob_secondary = technical.get(f"order_block_{tf_ob_secondary}", {})
+        bull_ob_secondary = ob_secondary.get("nearest_bullish_ob")
+        bear_ob_secondary = ob_secondary.get("nearest_bearish_ob")
 
         # Threshold to consider "in or near" OB (e.g. within 0.2% of the OB boundary)
         threshold_pct = 0.002
         
-        if bull_ob_h1:
-            top = bull_ob_h1["top"]
-            bottom = bull_ob_h1["bottom"]
+        if bull_ob_primary:
+            top = bull_ob_primary["top"]
+            bottom = bull_ob_primary["bottom"]
             # If price is inside the OB or very close to the top
             if (current_price >= bottom) and (current_price <= top * (1 + threshold_pct)):
                 bull += 0.20
-                br.append(f"Price in Bullish OB H1 ({bottom}-{top})")
+                br.append(f"Price in Bullish OB {tf_ob_primary.upper()} ({bottom}-{top})")
                 
-        if bear_ob_h1:
-            top = bear_ob_h1["top"]
-            bottom = bear_ob_h1["bottom"]
+        if bear_ob_primary:
+            top = bear_ob_primary["top"]
+            bottom = bear_ob_primary["bottom"]
             # If price is inside the OB or very close to the bottom
             if (current_price <= top) and (current_price >= bottom * (1 - threshold_pct)):
                 bear += 0.20
-                ber.append(f"Price in Bearish OB H1 ({bottom}-{top})")
+                ber.append(f"Price in Bearish OB {tf_ob_primary.upper()} ({bottom}-{top})")
 
-        if bull_ob_m15:
-            top = bull_ob_m15["top"]
-            bottom = bull_ob_m15["bottom"]
+        if bull_ob_secondary:
+            top = bull_ob_secondary["top"]
+            bottom = bull_ob_secondary["bottom"]
             if (current_price >= bottom) and (current_price <= top * (1 + threshold_pct)):
                 bull += 0.10
-                br.append(f"Price in Bullish OB M15 ({bottom}-{top})")
+                br.append(f"Price in Bullish OB {tf_ob_secondary.upper()} ({bottom}-{top})")
                 
-        if bear_ob_m15:
-            top = bear_ob_m15["top"]
-            bottom = bear_ob_m15["bottom"]
+        if bear_ob_secondary:
+            top = bear_ob_secondary["top"]
+            bottom = bear_ob_secondary["bottom"]
             if (current_price <= top) and (current_price >= bottom * (1 - threshold_pct)):
                 bear += 0.10
-                ber.append(f"Price in Bearish OB M15 ({bottom}-{top})")
+                ber.append(f"Price in Bearish OB {tf_ob_secondary.upper()} ({bottom}-{top})")
 
         return bull, bear, br, ber
 

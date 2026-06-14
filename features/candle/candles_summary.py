@@ -24,8 +24,15 @@ class CandleSummaryEngine:
             Dict containing the "summaries" key with timeframes as sub-keys.
         """
         # 1. Prepare raw data for the LLM
+        from config.settings import get_config
+        config = get_config()
+        mode = config.get("trading", {}).get("mode", "scalping").lower()
+        if mode == "swing":
+            target_tfs = ["15m", "1h", "4h", "1d"]
+        else:
+            target_tfs = ["3m", "5m", "15m", "1h"]
+
         raw_candles: Dict[str, Any] = {}
-        target_tfs = ["3m", "5m", "15m", "1h"]
         
         has_data = False
         for tf in target_tfs:

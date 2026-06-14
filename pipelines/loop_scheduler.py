@@ -46,10 +46,17 @@ class LoopScheduler:
         from bot.telegram import TelegramNotifier
 
         config = get_config()
+        trading_config = config.get("trading", {})
         scheduler_config = config.get("scheduler", {})
         detector_config = config.get("signal_detector", {})
 
-        self.tick_interval = scheduler_config.get("tick_interval", 60)
+        mode = trading_config.get("mode", "scalping").lower()
+
+        # Dynamic defaults based on mode
+        default_tick = 300 if mode == "swing" else 60
+        default_cooldown = 14400 if mode == "swing" else 1200
+
+        self.tick_interval = scheduler_config.get("tick_interval", default_tick)
 
         self.data_manager = DataManager()
         self.context_builder = ContextBuilder()
@@ -57,8 +64,10 @@ class LoopScheduler:
             min_confidence=detector_config.get("min_confidence", 0.65),
             divergence_threshold=detector_config.get("divergence_threshold", 0.15),
         )
+        
+        cooldown_seconds = detector_config.get("cooldown_seconds", default_cooldown)
         self.decision_logger = DecisionLogger(
-            cooldown_seconds=detector_config.get("cooldown_seconds", 900)
+            cooldown_seconds=cooldown_seconds
         )
         self.telegram = TelegramNotifier()
 
@@ -349,7 +358,9 @@ class LoopScheduler:
     def _inject_last_candles(self, ctx: Dict, tf_data: Dict, n: int = 10) -> Dict:
         """Tambahkan data candlestick terbaru ke context."""
         last_candles: Dict[str, Any] = {}
-        for tf in ["3m", "5m", "15m", "1h"]:
+        # Loop over active timeframes except "1d"
+        tfs_to_inject = [tf for tf in self.data_manager.timeframes if tf != "1d"]
+        for tf in tfs_to_inject:
             df = tf_data.get(tf, {}).get("aggregated", pd.DataFrame())
             if df.empty:
                 continue
@@ -372,7 +383,7 @@ class LoopScheduler:
         try:
             from features.snapshot.market_snapshot import build_market_snapshot
 
-            snapshot = build_market_snapshot(tf_data)
+            snapshot = build_market_snapshot(tf_data, self.data_manager.mode)
             ctx["market_snapshot"] = snapshot
         except Exception as e:
             logger.warning(f"Market snapshot build failed: {e}")
