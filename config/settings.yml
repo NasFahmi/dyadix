@@ -4,13 +4,13 @@ trading:
     - BTCUSDC
     - SOLUSDC
     - ETHUSDC
-    - XRPUSDC
+    - SUIUSDC
   correlation_pairs:
     - BTCUSDC
     - ETHUSDC
     - SOLUSDC
-    - XRPUSDC
-  active_session: "ny" # Opsi: "all", "ny", "london", "asia", "asia_london", "london_ny", "asia_ny"
+    - SUIUSDC
+  active_session: "all" # Opsi: "all", "ny", "london", "asia", "asia_london", "london_ny", "asia_ny"
   timeframes:
     - "3m"
     - "5m"
@@ -52,8 +52,8 @@ features:
 
 
 exchange:
-  provider: "binance"
-  # Testnet dikontrol via .env: BINANCE_TESTNET=true / false
+  provider: "hyperliquid"
+  # Testnet dikontrol via .env: HYPERLIQUID_TESTNET=true / false
 
 risk_management:
   risk_per_trade_pct: 1 # % modal yang di-risk per trade (0 = tidak dibatasi / menggunakan 100% balance)

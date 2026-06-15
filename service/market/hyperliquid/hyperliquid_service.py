@@ -19,6 +19,14 @@ class HyperliquidService:
         self.info = Info(base_url, skip_ws=True)
         mode = "TESTNET" if testnet else "PRODUCTION"
         logger.info(f"HyperliquidService initialized [{mode}]")
+        
+        self.valid_coins = set()
+        try:
+            meta = self.info.meta()
+            self.valid_coins = {s["name"] for s in meta.get("universe", [])}
+            logger.info(f"HyperliquidService: Loaded {len(self.valid_coins)} valid coins from universe.")
+        except Exception as e:
+            logger.error(f"Failed to fetch Hyperliquid universe meta: {e}")
 
     def fetch_ohlcv(self, symbol: str, timeframe: str = '1h', limit: int = 100) -> pd.DataFrame:
         """
@@ -34,6 +42,10 @@ class HyperliquidService:
         """
         # Konversi symbol dari format Binance (e.g. BTCUSDT) ke Hyperliquid coin (e.g. BTC)
         coin = symbol.replace("USDT", "").replace("USDC", "").replace("/", "").replace(":", "")
+
+        if self.valid_coins and coin not in self.valid_coins:
+            logger.warning(f"Coin '{coin}' (from {symbol}) does not exist in Hyperliquid universe. Skipping fetch.")
+            return pd.DataFrame()
 
         interval = timeframe
         interval_mapping_seconds = {

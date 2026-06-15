@@ -298,7 +298,7 @@ class LoopScheduler:
             decision = self._call_decision_llm(ctx)
             llm_calls += 1
 
-            self.decision_logger.log_decision(pair, signal_result, decision, ctx)
+            decision_id = self.decision_logger.log_decision(pair, signal_result, decision, ctx)
 
             # Notify Telegram: decision result (with realtime price)
             telegram_sent = self.telegram.notify_decision(
@@ -317,6 +317,7 @@ class LoopScheduler:
                         pair=pair,
                         decision=decision,
                         realtime_price=realtime_price,
+                        decision_id=decision_id,
                     )
                     if result:
                         trade_id = result.get("trade_id")

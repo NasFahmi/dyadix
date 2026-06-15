@@ -47,18 +47,18 @@ class OHLCVAggregator:
         """
         # Handle empty DataFrames
         if df_binance.empty and df_bybit.empty:
-            logger.warning("Kedua DataFrame kosong.")
+            logger.debug("Both OHLCV dataframes are empty.")
             return pd.DataFrame()
 
         if allow_fallback:
             if df_binance.empty:
-                logger.warning("Data Binance kosong. Menggunakan data Bybit sebagai fallback.")
+                logger.debug("Primary OHLCV data empty. Using secondary fallback.")
                 return OHLCVAggregator._create_fallback_df(df_bybit, "bybit")
             if df_bybit.empty:
-                logger.warning("Data Bybit kosong. Menggunakan data Binance sebagai fallback.")
+                logger.debug("Secondary OHLCV data empty. Using primary fallback.")
                 return OHLCVAggregator._create_fallback_df(df_binance, "binance")
         elif df_binance.empty or df_bybit.empty:
-            logger.warning("Salah satu DataFrame kosong. Mengembalikan DataFrame kosong.")
+            logger.debug("One of the OHLCV dataframes is empty. Returning empty.")
             return pd.DataFrame()
 
         # Copy untuk menghindari modifying original

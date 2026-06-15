@@ -40,8 +40,28 @@ class HyperliquidMicrostructureCollector:
         trading_config = config.get("trading", {})
         self.pairs: List[str] = trading_config.get("pairs") or ["BTCUSDC"]
         
+        # Ambil list valid coins dari universe Hyperliquid untuk mencegah disconnect websocket
+        from hyperliquid.info import Info
+        from hyperliquid.utils import constants
+        testnet = os.getenv("HYPERLIQUID_TESTNET", "true").lower() == "true"
+        base_url = constants.TESTNET_API_URL if testnet else constants.MAINNET_API_URL
+        info = Info(base_url, skip_ws=True)
+        valid_coins = set()
+        try:
+            meta = info.meta()
+            valid_coins = {s["name"] for s in meta.get("universe", [])}
+        except Exception as e:
+            logger.error(f"Failed to fetch Hyperliquid universe for WebSocket subscription: {e}")
+
         # Konversi ke format koin Hyperliquid (e.g. BTCUSDC -> BTC)
-        self.coins = [self._to_coin(p) for p in self.pairs]
+        all_coins = [self._to_coin(p) for p in self.pairs]
+        if valid_coins:
+            self.coins = [c for c in all_coins if c in valid_coins]
+            ignored = [c for c in all_coins if c not in valid_coins]
+            if ignored:
+                logger.warning(f"Ignoring coins for WebSocket subscription because they do not exist in the Hyperliquid universe: {ignored}")
+        else:
+            self.coins = all_coins
         
         # Buffers thread-safe (1 jam lookback maksimal)
         self.trades_buffers = {coin: collections.deque() for coin in self.coins}

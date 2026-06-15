@@ -131,7 +131,7 @@ class MainPipeline:
             }
 
             # ── Save Decision to Database ─────────────────────────────
-            self.decision_logger.log_decision(pair, ctx.get("signal_detector_result", {}), decision)
+            self.decision_logger.log_decision(pair, ctx.get("signal_detector_result", {}), decision, ctx)
 
             logger.info(
                 f"  ✅ {pair} → {decision.get('decision')} | "

@@ -17,6 +17,13 @@ class HyperliquidDerivativesService:
         testnet = os.getenv("HYPERLIQUID_TESTNET", "true").lower() == "true"
         base_url = constants.TESTNET_API_URL if testnet else constants.MAINNET_API_URL
         self.info = Info(base_url, skip_ws=True)
+        
+        self.valid_coins = set()
+        try:
+            meta = self.info.meta()
+            self.valid_coins = {s["name"] for s in meta.get("universe", [])}
+        except Exception as e:
+            logger.error(f"Failed to fetch Hyperliquid universe meta for derivatives: {e}")
 
     def fetch_funding_rate(self, symbol: str, limit: int = 24) -> pd.DataFrame:
         """
@@ -30,6 +37,9 @@ class HyperliquidDerivativesService:
             pd.DataFrame: DataFrame berisi kolom timestamp dan funding_rate.
         """
         coin = symbol.replace("USDT", "").replace("USDC", "").replace("/", "").replace(":", "")
+        if self.valid_coins and coin not in self.valid_coins:
+            logger.warning(f"Coin '{coin}' (from {symbol}) does not exist in Hyperliquid universe. Skipping funding rate fetch.")
+            return pd.DataFrame()
         try:
             # Karena funding rate di Hyperliquid diperbarui setiap jam,
             # kita ambil data historis 1 jam * limit.
@@ -74,6 +84,9 @@ class HyperliquidDerivativesService:
             pd.DataFrame: DataFrame dengan baris tunggal berisi timestamp dan open_interest.
         """
         coin = symbol.replace("USDT", "").replace("USDC", "").replace("/", "").replace(":", "")
+        if self.valid_coins and coin not in self.valid_coins:
+            logger.warning(f"Coin '{coin}' (from {symbol}) does not exist in Hyperliquid universe. Skipping open interest fetch.")
+            return pd.DataFrame()
         try:
             logger.debug(f"Fetching asset contexts (for Open Interest) from Hyperliquid...")
             meta, asset_ctxs = self.info.meta_and_asset_ctxs()

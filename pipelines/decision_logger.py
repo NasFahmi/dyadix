@@ -36,7 +36,7 @@ class DecisionLogger:
 
     def log_decision(
         self, pair: str, signal_result: Dict, decision: Dict, full_context: Optional[Dict] = None
-    ) -> None:
+    ) -> Optional[str]:
         """Log ketika LLM dipanggil dan memberikan decision."""
         now = datetime.utcnow()
         self._last_llm_call[pair] = now
@@ -65,12 +65,59 @@ class DecisionLogger:
 
         self._append_entry(entry)
 
-
-
         logger.info(
             f"📝 Decision logged: {pair} → {decision.get('decision')} "
             f"(confidence {decision.get('confidence')})"
         )
+
+        # Simpan ke Database (PostgreSQL)
+        try:
+            from data.database import SessionFactory
+            from data.models import DecisionRecord
+            from utils.entry_calculator import parse_entry_midpoint, parse_price
+            
+            realtime_price = 0.0
+            if full_context:
+                realtime_price = full_context.get("realtime_price", 0.0)
+            
+            entry_zone_str = decision.get("entry_zone", "")
+            entry_price_calc = parse_entry_midpoint(entry_zone_str, realtime_price)
+            
+            sl_price = parse_price(decision.get("stop_loss", ""), fallback=None)
+            tp_price = parse_price(decision.get("target", ""), fallback=None)
+            
+            try:
+                confidence = float(decision.get("confidence", 0.0))
+            except (ValueError, TypeError):
+                confidence = 0.0
+
+            db_record = DecisionRecord(
+                pair=pair,
+                decision=decision.get("decision", "WAIT"),
+                confidence=confidence,
+                bias=decision.get("bias"),
+                entry_zone=entry_zone_str,
+                entry_price_calc=entry_price_calc,
+                stop_loss=sl_price,
+                target=tp_price,
+                risk_reward=decision.get("risk_reward"),
+                execution_type=decision.get("execution_type"),
+                recommended_timeframe=decision.get("recommended_timeframe"),
+                reason=decision.get("reason"),
+                llm_context=full_context if full_context else {},
+                timestamp=now,
+            )
+            
+            with SessionFactory() as session:
+                session.add(db_record)
+                session.commit()
+                session.refresh(db_record)
+                decision_id = str(db_record.id)
+                logger.info(f"💾 Decision saved to DB: {pair} -> ID: {decision_id}")
+                return decision_id
+        except Exception as e:
+            logger.error(f"Failed to save decision to DB: {e}")
+            return None
 
     def log_telegram_sent(
         self,
