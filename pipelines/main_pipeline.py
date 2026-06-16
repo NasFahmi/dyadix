@@ -396,10 +396,14 @@ class MainPipeline:
                     json_schema=decision_schema,
                 )
                 if result and "error" not in result and "decision" in result:
+                    logger.info(f"  🤖 Decision LLM Response (Structured):\n{json.dumps(result, indent=2, ensure_ascii=False)}")
                     return result
+                
                 logger.warning(
                     "structured_generate tidak mengembalikan keputusan valid, fallback ke generate()"
                 )
+                if result:
+                    logger.warning(f"structured_generate result: {json.dumps(result, indent=2, ensure_ascii=False)}")
             except Exception as e:
                 logger.warning(
                     f"structured_generate gagal ({e}), fallback ke generate()"
@@ -407,6 +411,8 @@ class MainPipeline:
 
             # Fallback ke generate() biasa
             raw = llm.generate(system_prompt=system_prompt, user_input=user_input)
+            logger.info(f"  🤖 Decision LLM Response (Raw Generate):\n{json.dumps(raw, indent=2, ensure_ascii=False)}")
+            
             content = raw.get("content", "").strip()
 
             # Bersihkan markdown
@@ -421,14 +427,16 @@ class MainPipeline:
                 content = content[start : end + 1]
 
             try:
-                return json.loads(content.strip())
-            except json.JSONDecodeError:
-                logger.error("Decision LLM tidak mengembalikan JSON yang valid")
-                logger.debug(f"Raw LLM output: {content[:300]}")
+                parsed = json.loads(content.strip())
+                logger.info(f"  🤖 Decision LLM parsed response successfully.")
+                return parsed
+            except json.JSONDecodeError as e:
+                logger.error(f"Decision LLM tidak mengembalikan JSON yang valid: {e}")
+                logger.error(f"Content yang gagal di-parse:\n{content}")
                 return self._fallback_decision()
 
         except Exception as e:
-            logger.error(f"Failed to call Decision LLM: {e}")
+            logger.error(f"Failed to call Decision LLM: {e}", exc_info=True)
             return self._fallback_decision()
 
     def _fallback_decision(self) -> Dict:

@@ -22,8 +22,25 @@ class SentimentEngine:
         """
         Menggabungkan hasil dari LLM (News + Social) dengan Fear & Greed + Economic.
         """
+        from config.settings import get_config
+        config = get_config()
+        features = config.get("features", {})
+        enable_news = features.get("enable_news", True)
+        enable_twitter = features.get("enable_twitter_influencer", True)
+        enable_reddit = features.get("enable_reddit_scraper", False)
+        enable_fg = features.get("enable_fear_greed", True)
+
+        has_llm_sentiment = enable_news or enable_twitter or enable_reddit
+
         eco_result = EconomicAnalysis.analyze(economic_data) if economic_data is not None else {}
-        fg_result = FearGreedAnalysis.analyze(fear_greed_data) if fear_greed_data else {}
+        fg_result = FearGreedAnalysis.analyze(fear_greed_data) if (enable_fg and fear_greed_data) else {}
+
+        components = {}
+        if has_llm_sentiment:
+            components["llm_news_social"] = llm_result or {}
+        if enable_fg:
+            components["fear_greed"] = fg_result
+        components["economic"] = eco_result
 
         final = {
             "timestamp": datetime.utcnow().isoformat(),
@@ -33,11 +50,7 @@ class SentimentEngine:
             "dominant_narrative": "",
             "key_insights": [],
             "trading_implication": "",
-            "components": {
-                "llm_news_social": llm_result or {},
-                "fear_greed": fg_result,
-                "economic": eco_result,
-            },
+            "components": components,
         }
 
         # Hitung Final Score (Weighted)
@@ -48,10 +61,10 @@ class SentimentEngine:
         # Fear & Greed     = 35%
         # Economic         = 10%
 
-        llm_score = llm_result.get("sentiment_score", 50) if llm_result else 50
+        llm_score = llm_result.get("sentiment_score", 50) if (has_llm_sentiment and llm_result) else 50
         final_score += (llm_score - 50) * 0.55
 
-        if fg_result:
+        if enable_fg and fg_result:
             fg_value = fg_result.get("value", 50)
             final_score += (fg_value - 50) * 0.35
 
@@ -105,32 +118,53 @@ class SentimentEngine:
 
     @staticmethod
     def _get_dominant_narrative(llm_result: Dict, fg_result: Dict) -> str:
-        if fg_result and fg_result.get("value", 50) <= 25:
+        from config.settings import get_config
+        config = get_config()
+        features = config.get("features", {})
+        enable_news = features.get("enable_news", True)
+        enable_twitter = features.get("enable_twitter_influencer", True)
+        enable_reddit = features.get("enable_reddit_scraper", False)
+        enable_fg = features.get("enable_fear_greed", True)
+
+        has_llm_sentiment = enable_news or enable_twitter or enable_reddit
+
+        if enable_fg and fg_result and fg_result.get("value", 50) <= 25:
             return "Extreme Fear driven by security incidents"
-        if llm_result and llm_result.get("dominant_narrative") and llm_result.get("dominant_narrative") != "Unable to analyze sentiment":
+        if has_llm_sentiment and llm_result and llm_result.get("dominant_narrative") and llm_result.get("dominant_narrative") != "Unable to analyze sentiment":
             return llm_result["dominant_narrative"]
+        if not has_llm_sentiment and not enable_fg:
+            return "Sentiment analysis (news/social/fear-greed) is disabled."
         return "Mixed Market Sentiment"
 
     @staticmethod
     def _generate_key_insights(
         llm_result: Dict, fg_result: Dict, eco_result: Dict, economic_data: List
     ) -> List[str]:
+        from config.settings import get_config
+        config = get_config()
+        features = config.get("features", {})
+        enable_news = features.get("enable_news", True)
+        enable_twitter = features.get("enable_twitter_influencer", True)
+        enable_reddit = features.get("enable_reddit_scraper", False)
+        enable_fg = features.get("enable_fear_greed", True)
+
+        has_llm_sentiment = enable_news or enable_twitter or enable_reddit
         insights = []
 
-        if fg_result:
+        if enable_fg and fg_result:
             insights.append(
                 f"Fear & Greed Index berada di {fg_result.get('classification', 'Neutral')} ({fg_result.get('value', 50)}) — level yang sangat rendah"
             )
 
-        if llm_result and llm_result.get("key_insights"):
+        if has_llm_sentiment and llm_result and llm_result.get("key_insights"):
             # Exclude fallback messages
-            valid_insights = [i for i in llm_result["key_insights"] if "LLM analysis failed" not in i]
+            valid_insights = [i for i in llm_result["key_insights"] if "LLM analysis failed" not in i and "fetching are disabled" not in i]
             if not valid_insights:
                 insights.append("Berita hari ini didominasi isu keamanan (Fake Ledger app curi $9.5M)")
                 insights.append("Social mood di Twitter dan Reddit masih mixed, dengan volume diskusi tinggi")
             else:
                 insights.extend(valid_insights[:2])
-        else:
+        elif has_llm_sentiment:
             insights.append("Berita hari ini didominasi isu keamanan (Fake Ledger app curi $9.5M)")
             insights.append("Social mood di Twitter dan Reddit masih mixed, dengan volume diskusi tinggi")
 
@@ -146,8 +180,17 @@ class SentimentEngine:
 
     @staticmethod
     def _calculate_confidence(llm_result: Dict, fg_result: Dict) -> float:
-        base_conf = llm_result.get("confidence", 0.6) if llm_result else 0.6
-        if fg_result:
+        from config.settings import get_config
+        config = get_config()
+        features = config.get("features", {})
+        enable_news = features.get("enable_news", True)
+        enable_twitter = features.get("enable_twitter_influencer", True)
+        enable_reddit = features.get("enable_reddit_scraper", False)
+        enable_fg = features.get("enable_fear_greed", True)
+
+        has_llm_sentiment = enable_news or enable_twitter or enable_reddit
+        base_conf = llm_result.get("confidence", 0.6) if (has_llm_sentiment and llm_result) else 0.6
+        if enable_fg and fg_result:
             base_conf = (base_conf + 0.84) / 2  # Fear & Greed meningkatkan confidence, kita atur supaya pas 0.72
         return round(max(0.3, min(1.0, base_conf)), 2)
 
