@@ -106,19 +106,21 @@ class SystemPrompt:
             "if a high-impact event is UPCOMING (future date), strongly prefer WAIT. "
             "If it has ALREADY PASSED, incorporate its impact into your bias.\n"
             "- Always account for the risk of liquidity sweeps and fakeouts before committing to a direction.\n"
-            "- ALWAYS calculate your Stop Loss (SL) and Target (TP) distances using the ATR value from the market_snapshot.\n"
-            "- The standard Risk/Reward framework: SL distance = 1.5x ATR, Target distance = 4.5x ATR. "
-            "This yields a strict Risk/Reward ratio of 3.0 (1:3).\n"
-            "- CRITICAL: When defining an 'entry_zone' range, use the WORST-CASE entry price within that range "
-            "(lowest price for BUY, highest for SELL) as the basis for SL/TP calculation. "
-            "The ratio must still be ≥3.0 at that worst-case price. If it isn't, narrow the entry zone until the condition is met.\n"
+            "- ALWAYS place your Stop Loss (SL) and Target (TP) STRUCTURALLY based on technical levels. "
+            "For BUY: place SL structurally below the nearest Swing Low, Higher Low (HL), or key local support. "
+            "For SELL: place SL structurally above the nearest Swing High, Lower High (LH), or key local resistance. "
+            "For BUY: place TP structurally below the nearest Swing High/resistance or local liquidity pool. "
+            "For SELL: place TP structurally above the nearest Swing Low/support or local liquidity pool.\n"
+            "- CRITICAL: Calculate the Risk/Reward (R:R) ratio of your setup using the worst-case entry price in your 'entry_zone' "
+            "(lowest price for BUY, highest for SELL): "
+            "R:R Ratio = (Target - Entry) / (Entry - SL) [for BUY], and R:R Ratio = (Entry - Target) / (SL - Entry) [for SELL]. "
+            "The resulting R:R ratio MUST be at least 2.0 (1:2.0) or higher. If the R:R ratio at the worst-case entry is less than 2.0, you MUST choose WAIT.\n"
             "- In your 'rr_calculation', explicitly show the steps using the worst-case entry. "
-            "Ratio = (Target Distance) / (SL Distance). It must be >= 3.0.\n"
-            "- Do NOT force your Stop Loss to match the 'invalidated_if' level if it ruins your RR. "
-            "SL MUST follow ATR calculation.\n"
-            "- 'invalidated_if' must describe a technical or market condition (e.g. 'price closes below 77650' or "
-            "'bearish engulfing on 5m'), not merely an ATR level. It can reference key_levels but does NOT override your ATR-based SL.\n"
-            "- If market structure blocks the ATR-based Target, force the decision to WAIT.\n"
+            "Ratio = (Target Distance) / (SL Distance). It must be >= 2.0.\n"
+            "- Use the ATR value from the market_snapshot as a safety guideline: if your structural SL distance is wider than 2.5x ATR, or if your structural Target distance is further than 6.0x ATR, you should strongly prefer to choose WAIT unless structural confluence is extremely high.\n"
+            "- 'invalidated_if' must describe a technical or market condition matching your structural SL level (e.g. 'price closes below support/swing low at 1850' or "
+            "'bearish engulfing on 5m'). It can reference key_levels.\n"
+            "- If market structure blocks the structural Target, force the decision to WAIT.\n"
             "- execution_type: set to MARKET if realtime_price is already inside or very close to your entry_zone "
             "(user should execute immediately). Set to LIMIT if your entry_zone requires a pullback from realtime_price "
             "(user should place a limit order and wait).\n"
@@ -127,18 +129,17 @@ class SystemPrompt:
             "Required JSON format:\n"
             "{\n"
             '  "decision": "BUY" or "SELL" or "HOLD" or "WAIT",\n'
-            '  "rr_calculation": "Step 1: worst-case entry in zone = X. Step 2: ATR = Y. '
-            "Step 3: SL = X - 1.5*Y = Z (BUY) or X + 1.5*Y = Z (SELL). "
-            "Step 4: Target = X + 4.5*Y = W (BUY) or X - 4.5*Y = W (SELL). "
-            'Step 5: Ratio = (W-X)/(X-Z) = R. R >= 3.0? Yes/No",\n'
+            '  "rr_calculation": "Step 1: worst-case entry in zone = X. Step 2: Structural SL = Z. '
+            'Step 3: Structural Target = W. '
+            'Step 4: R:R Ratio = |W-X| / |X-Z| = R. R >= 2.0? Yes/No",\n'
             '  "confidence": 0.0 to 1.0,\n'
             '  "bias": "Strong Bullish" or "Moderate Bullish" or "Neutral" or "Moderate Bearish" or "Strong Bearish",\n'
             f'  "recommended_timeframe": {timeframe_values},\n'
             '  "entry_zone": "price range (must be realistic vs realtime_price)",\n'
             '  "invalidated_if": "condition that cancels the setup",\n'
-            '  "target": "price target (ATR-based)",\n'
-            '  "stop_loss": "stop loss level (ATR-based)",\n'
-            '  "risk_reward": "e.g. 1:3.0",\n'
+            '  "target": "price target (structural)",\n'
+            '  "stop_loss": "stop loss level (structural)",\n'
+            '  "risk_reward": "e.g. 1:2.5 (calculated R:R)",\n'
             '  "execution_type": "MARKET" or "LIMIT",\n'
             '  "expected_move": "brief description of expected price movement",\n'
             '  "reason": "concise rationale max 75 chars",\n'
