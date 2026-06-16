@@ -7,6 +7,10 @@ Mendukung environment variables dan settings.yaml
 
 import os
 import logging
+from dotenv import load_dotenv
+
+# Pastikan file .env dibaca
+load_dotenv()
 
 from llm.base import BaseLLMClient
 from llm.groq_client import GroqClient
@@ -97,7 +101,9 @@ def get_llm_client(provider_type: str = "decision") -> BaseLLMClient:
     elif provider == "deepseek":
         return DeepseekClient(model=model)
     elif provider == "ninerouter":
-        return NinerouterClient(model=model)
+        ninerouter_base_url = env.get("NINEROUTER_BASE_URL", config.get("ninerouter_base_url"))
+        ninerouter_api_key = env.get("NINEROUTER_API_KEY", config.get("ninerouter_api_key"))
+        return NinerouterClient(model=model, base_url=ninerouter_base_url, api_key=ninerouter_api_key)
 
     else:
         logger.warning(

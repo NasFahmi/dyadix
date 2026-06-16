@@ -11,6 +11,10 @@ import json
 import logging
 import requests
 from typing import Dict, Any
+from dotenv import load_dotenv
+
+# Pastikan file .env dibaca
+load_dotenv()
 
 from llm.base import BaseLLMClient
 
@@ -31,12 +35,15 @@ class NinerouterClient(BaseLLMClient):
     Client untuk 9router API menggunakan requests library.
     """
 
-    def __init__(self, model: str = "cmc/deepseek/deepseek-v4-pro"):
-        api_key = os.getenv("NINEROUTER_API_KEY")
+    def __init__(self, model: str = "cmc/deepseek/deepseek-v4-pro", base_url: str = None, api_key: str = None):
+        if not api_key:
+            api_key = os.getenv("NINEROUTER_API_KEY")
         if not api_key:
             api_key = "nr-placeholder"
 
-        base_url = os.getenv("NINEROUTER_BASE_URL", "http://localhost:20128/v1")
+        if not base_url:
+            base_url = os.getenv("NINEROUTER_BASE_URL", "http://localhost:20128/v1")
+            
         self.endpoint = f"{base_url.rstrip('/')}/chat/completions"
         
         # Gunakan NINEROUTER_COMBO jika didefinisikan di environment
