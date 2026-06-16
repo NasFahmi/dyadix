@@ -68,6 +68,7 @@ class NinerouterClient(BaseLLMClient):
             "max_tokens": 8192,
             "top_p": 0.95,
             "stream": False,  # Eksplisit False
+            "thinking": {"type": "disabled"},  # Force nonaktifkan reasoning/thinking
         }
 
         try:
@@ -116,6 +117,7 @@ class NinerouterClient(BaseLLMClient):
             "top_p": 0.9,
             "response_format": {"type": "json_object"},
             "stream": False,
+            "thinking": {"type": "disabled"},  # Force nonaktifkan reasoning/thinking
         }
 
         try:
@@ -139,6 +141,7 @@ class NinerouterClient(BaseLLMClient):
                     "max_tokens": 8192,
                     "top_p": 0.9,
                     "stream": False,
+                    "thinking": {"type": "disabled"},  # Force nonaktifkan reasoning/thinking
                 }
                 response = requests.post(
                     self.endpoint,
@@ -188,7 +191,8 @@ class NinerouterClient(BaseLLMClient):
             "model": self.model,
             "messages": [{"role": "user", "content": "Hello"}],
             "max_tokens": 10,
-            "stream": False
+            "stream": False,
+            "thinking": {"type": "disabled"}
         }
         try:
             response = requests.post(

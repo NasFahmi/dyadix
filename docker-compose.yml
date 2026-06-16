@@ -27,6 +27,8 @@ services:
     volumes:
       - ./cache:/app/cache
       - ./data/logs:/app/data/logs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 volumes:
   pgdata:
