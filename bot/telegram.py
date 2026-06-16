@@ -21,6 +21,7 @@ import logging
 import requests
 import threading
 import time
+import html
 from typing import Dict, Optional, Callable
 from datetime import datetime
 
@@ -29,6 +30,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 logger = logging.getLogger(__name__)
+
+
+def escape_html(val) -> str:
+    """Escape HTML special characters to prevent Telegram parse errors."""
+    if val is None:
+        return ""
+    if not isinstance(val, str):
+        val = str(val)
+    return html.escape(val, quote=False)
 
 
 class TelegramNotifier:
@@ -178,20 +188,20 @@ class TelegramNotifier:
         Kirim notifikasi saat signal terdeteksi (SEBELUM LLM call).
         """
         confidence = signal_result.get("confidence", 0)
-        bias = signal_result.get("suggested_bias", "Unknown")
-        signal_type = signal_result.get("signal_type", "N/A")
+        bias = escape_html(signal_result.get("suggested_bias", "Unknown"))
+        signal_type = escape_html(signal_result.get("signal_type", "N/A"))
         reasons = signal_result.get("reasons", [])
         scores = signal_result.get("scores", {})
 
         # Emoji berdasarkan bias
         emoji = "🟢" if "Bullish" in bias else "🔴" if "Bearish" in bias else "⚪"
 
-        reasons_text = "\n".join(f"  • {r}" for r in reasons[:6])
+        reasons_text = "\n".join(f"  • {escape_html(r)}" for r in reasons[:6])
 
         text = (
             f"{emoji} <b>SIGNAL DETECTED</b>\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"<b>Pair:</b> {pair}\n"
+            f"<b>Pair:</b> {escape_html(pair)}\n"
             f"<b>Type:</b> {signal_type}\n"
             f"<b>Bias:</b> {bias}\n"
             f"<b>Confidence:</b> {confidence}\n"
@@ -209,18 +219,18 @@ class TelegramNotifier:
         """
         Kirim notifikasi hasil Decision LLM.
         """
-        action = decision.get("decision", "N/A")
+        action = escape_html(decision.get("decision", "N/A"))
         confidence = decision.get("confidence", "N/A")
-        bias = decision.get("bias", "N/A")
-        timeframe = decision.get("recommended_timeframe", "N/A")
-        entry_zone = decision.get("entry_zone", "N/A")
-        target = decision.get("target", "N/A")
-        stop_loss = decision.get("stop_loss", "N/A")
-        risk_reward = decision.get("risk_reward", "N/A")
-        execution_type = decision.get("execution_type", "N/A")
-        expected_move = decision.get("expected_move", "N/A")
-        reason = decision.get("reason", "N/A")
-        invalidated_if = decision.get("invalidated_if", "N/A")
+        bias = escape_html(decision.get("bias", "N/A"))
+        timeframe = escape_html(decision.get("recommended_timeframe", "N/A"))
+        entry_zone = escape_html(decision.get("entry_zone", "N/A"))
+        target = escape_html(decision.get("target", "N/A"))
+        stop_loss = escape_html(decision.get("stop_loss", "N/A"))
+        risk_reward = escape_html(decision.get("risk_reward", "N/A"))
+        execution_type = escape_html(decision.get("execution_type", "N/A"))
+        expected_move = escape_html(decision.get("expected_move", "N/A"))
+        reason = escape_html(decision.get("reason", "N/A"))
+        invalidated_if = escape_html(decision.get("invalidated_if", "N/A"))
         key_risks = decision.get("key_risks", [])
 
         # Emoji berdasarkan action
@@ -242,15 +252,15 @@ class TelegramNotifier:
             exec_emoji = execution_type
 
         signal_conf = signal_result.get("confidence", 0)
-        signal_bias = signal_result.get("suggested_bias", "N/A")
+        signal_bias = escape_html(signal_result.get("suggested_bias", "N/A"))
 
-        risks_text = " | ".join(key_risks[:3]) if key_risks else "N/A"
+        risks_text = " | ".join(escape_html(r) for r in key_risks[:3]) if key_risks else "N/A"
 
         # Format realtime price
         price_text = f"${realtime_price:,.2f}" if realtime_price else "N/A"
 
         text = (
-            f"📊 <b>DECISION — {pair}</b>\n"
+            f"📊 <b>DECISION — {escape_html(pair)}</b>\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"\n"
             f"<b>Action:</b> {action_emoji}\n"
@@ -291,7 +301,7 @@ class TelegramNotifier:
         sl_price = parse_price(decision.get("stop_loss", ""), 0.0)
         tp_price = parse_price(decision.get("target", ""), 0.0)
         execution_type = decision.get("execution_type", "LIMIT")
-        risk_reward = decision.get("risk_reward", "N/A")
+        risk_reward = escape_html(decision.get("risk_reward", "N/A"))
 
         action_emoji = "🟢" if action == "BUY" else "🔴"
         exec_emoji = "⚡ MARKET" if execution_type == "MARKET" else "📋 LIMIT"
@@ -301,9 +311,9 @@ class TelegramNotifier:
         entry_label = "Entry (Filled)" if actual_entry and actual_entry > 0 else "Entry Planned"
 
         text = (
-            f"✅ <b>ORDER EXECUTED — {pair}</b>\n"
+            f"✅ <b>ORDER EXECUTED — {escape_html(pair)}</b>\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"<b>Action:</b> {action_emoji} {action} ({exec_emoji})\n"
+            f"<b>Action:</b> {action_emoji} {escape_html(action)} ({exec_emoji})\n"
             f"<b>{entry_label}:</b> {entry_display}\n"
             f"<b>Stop Loss:</b> ${sl_price:,.2f}\n"
             f"<b>Target:</b> ${tp_price:,.2f}\n"

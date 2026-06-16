@@ -7,6 +7,9 @@ class SystemPrompt:
         config = get_config()
         features = config.get("features", {})
         
+        llm_signal = config.get("llm_signal", {})
+        min_confidence_decision = llm_signal.get("min_confidence_decision", 0.70)
+        
         enable_news = features.get("enable_news", True)
         enable_fg = features.get("enable_fear_greed", True)
         enable_twitter = features.get("enable_twitter_influencer", True)
@@ -88,7 +91,7 @@ class SystemPrompt:
             "Orderbook Imbalance represents order depth asymmetry (positive imbalance = stronger bid support, negative = stronger ask resistance). "
             "Whale Activity indicates large player execution presence. "
             "Liquidation spikes (long or short liquidations) indicate squeeze conditions that can act as reversal or continuation triggers.\n"
-            "- If the overall confidence score is below 0.70, you MUST default to WAIT.\n"
+            "- If the overall confidence score is below {min_confidence_decision}, you MUST default to WAIT.\n"
             f"{trend_alignment_rule}\n"
             "- IMPORTANT: Your decision direction (BUY/SELL) should align with signal_detector_result.suggested_bias. "
             "If signal_detector says Bearish, do NOT output BUY unless you have overwhelming evidence to contradict it.\n"

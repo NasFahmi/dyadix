@@ -280,25 +280,29 @@ class AutopsyEngine:
         if not self.telegram:
             return
 
+        import html
+
         pnl_str = f"-${abs(trade.realized_pnl):.2f}" if trade.realized_pnl else "N/A"
 
         # Potong teks analisis (maks 800 karakter untuk Telegram)
         analysis_short = analysis_text
-        lesson_tag = f"\n[LESSON]: {lesson}" if lesson else ""
         # Hapus [LESSON] dari body agar tidak duplikat
         body = re.sub(r"\[LESSON\]:.*", "", analysis_short, flags=re.IGNORECASE).strip()
         if len(body) > 700:
             body = body[:700] + "..."
 
+        escaped_body = html.escape(body, quote=False)
+        escaped_lesson = html.escape(lesson, quote=False) if lesson else 'N/A'
+
         text = (
-            f"🔬 <b>TRADE AUTOPSY — {trade.pair}</b>\n"
+            f"🔬 <b>TRADE AUTOPSY — {html.escape(trade.pair, quote=False)}</b>\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"<b>Entry:</b> ${trade.entry_price:,.2f} | "
             f"<b>SL:</b> ${trade.stop_loss_price:,.2f} | "
             f"<b>PnL:</b> {pnl_str}\n\n"
             f"📋 <b>Analysis:</b>\n"
-            f"{body}\n\n"
-            f"💡 <b>[LESSON]:</b> {lesson or 'N/A'}"
+            f"{escaped_body}\n\n"
+            f"💡 <b>[LESSON]:</b> {escaped_lesson}"
         )
 
         self.telegram.send_message(text)

@@ -39,6 +39,9 @@ signal_detector:
   divergence_threshold: 0.15 # Minimum difference between bullish and bearish scores
   cooldown_seconds: 1200 # 20 menit cooldown per pair setelah LLM call
 
+llm_signal:
+  min_confidence_decision: 0.6 # Threshold untuk LLM decision agar tidak default Wait 
+
 database:
   pool_size: 5
   max_overflow: 10

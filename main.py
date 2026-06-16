@@ -30,11 +30,17 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def run_once():
+def run_once(pair: str = None):
     """Mode one-shot: jalankan pipeline lengkap sekali lalu exit."""
     from pipelines.main_pipeline import MainPipeline
 
     pipeline = MainPipeline()
+    if pair:
+        logger.info(f"Running one-shot mode for specific pair: {pair}")
+        pipeline.market_service.pairs = [pair]
+        # Optional: clear correlation pairs if you want to speed up and only analyze this single pair
+        # pipeline.market_service.correlation_pairs = []
+
     results = pipeline.run(ignore_session=True)
 
     # ── Print ringkasan keputusan per pair ────────────────────────────
@@ -84,16 +90,22 @@ def run_loop():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Dyadix Trading DSS — Decision Support System"
+        description="High-Frequency DSS — Trading Decision Support System"
     )
     parser.add_argument(
         "--once",
         action="store_true",
         help="Run pipeline once then exit (one-shot mode)",
     )
+    parser.add_argument(
+        "--pair",
+        type=str,
+        default=None,
+        help="Specify a single pair to run in one-shot mode (e.g., SOLUSDC)",
+    )
     args = parser.parse_args()
 
     if args.once:
-        run_once()
+        run_once(pair=args.pair)
     else:
         run_loop()
