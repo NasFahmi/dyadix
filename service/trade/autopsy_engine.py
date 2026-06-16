@@ -160,8 +160,8 @@ class AutopsyEngine:
     def _get_btc_correlation(self, trade, mode: str = "scalping") -> Dict[str, Any]:
         """Hitung pergerakan BTC selama trade berlangsung di Hyperliquid."""
         try:
-            if trade.pair == "BTCUSDT":
-                return {"note": "Trade is BTCUSDT itself"}
+            if trade.pair in ("BTCUSDT", "BTCUSDC"):
+                return {"note": "Trade is BTC itself"}
 
             from service.exchange.hyperliquid_client import HyperliquidClient
             hl_client = HyperliquidClient()

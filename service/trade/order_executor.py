@@ -136,7 +136,8 @@ class OrderExecutor:
             for _ in range(10):
                 filled = self.exchange.check_order_fill(pair, exchange_order_id)
                 if filled:
-                    actual_entry = filled.get("avgPrice", entry_price_planned)
+                    avg_px = filled.get("avgPrice")
+                    actual_entry = avg_px if (avg_px and avg_px > 0) else entry_price_planned
                     if actual_entry and actual_entry > 0:
                         break
                 time.sleep(0.5)
@@ -149,7 +150,7 @@ class OrderExecutor:
 
             # Check the filled order to get actual entry price
             filled = self.exchange.check_order_fill(pair, exchange_order_id)
-            if filled:
+            if filled and filled.get("avgPrice", 0.0) > 0.0:
                 actual_entry = filled.get("avgPrice")
                 logger.info(f"  [ENTRY] {pair}: Market order filled @ avgPrice: {actual_entry}")
             else:

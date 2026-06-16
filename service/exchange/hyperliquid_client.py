@@ -59,6 +59,17 @@ class HyperliquidClient:
         mode = "TESTNET" if testnet else "PRODUCTION"
         logger.info(f"HyperliquidClient initialized [{mode}] for user {self.account_address}")
 
+        # Determine quote asset from settings (USDC or USDT)
+        try:
+            from config.settings import get_config
+            config = get_config()
+            pairs = config.get("trading", {}).get("pairs", ["BTCUSDC"])
+            self.quote_asset = "USDC"
+            if pairs and any(p.endswith("USDT") for p in pairs):
+                self.quote_asset = "USDT"
+        except Exception:
+            self.quote_asset = "USDC"
+
         # Cache untuk informasi presisi coin (szDecimals)
         self.symbols_info = {}
         self._load_symbols_info()
@@ -161,14 +172,16 @@ class HyperliquidClient:
                 if statuses:
                     status = statuses[0]
                     oid = None
+                    avg_px = 0.0
                     if "resting" in status:
                         oid = status["resting"]["oid"]
                     elif "filled" in status:
                         oid = status["filled"]["oid"]
+                        avg_px = float(status["filled"].get("avgPx") or 0.0)
                     
                     if oid is not None:
                         logger.info(f"Market order placed: {coin} {side} {qty} -> ID: {oid}")
-                        return {"orderId": str(oid), "raw": order_result}
+                        return {"orderId": str(oid), "avgPrice": avg_px, "raw": order_result}
             
             logger.error(f"Market order rejected or failed: {order_result}")
             return None
@@ -203,14 +216,16 @@ class HyperliquidClient:
                 if statuses:
                     status = statuses[0]
                     oid = None
+                    avg_px = 0.0
                     if "resting" in status:
                         oid = status["resting"]["oid"]
                     elif "filled" in status:
                         oid = status["filled"]["oid"]
+                        avg_px = float(status["filled"].get("avgPx") or 0.0)
                     
                     if oid is not None:
                         logger.info(f"Limit order placed: {coin} {side} {qty} @ {px} -> ID: {oid}")
-                        return {"orderId": str(oid), "raw": order_result}
+                        return {"orderId": str(oid), "avgPrice": avg_px, "raw": order_result}
             
             logger.error(f"Limit order rejected or failed: {order_result}")
             return None
@@ -317,6 +332,41 @@ class HyperliquidClient:
     #  ORDER STATUS
     # ---------------------------------------------------------------------
 
+    def get_avg_fill_price_from_fills(self, order_id: str) -> float:
+        """Cari average fill price dari user fills untuk order_id tertentu."""
+        if not self.account_address:
+            return 0.0
+        try:
+            # Ambil fills terbaru
+            fills = self.info.user_fills(self.account_address)
+            if not fills:
+                return 0.0
+            
+            matching_fills = []
+            target_oid = int(order_id)
+            for fill in fills:
+                if fill.get("oid") == target_oid:
+                    matching_fills.append(fill)
+            
+            if not matching_fills:
+                return 0.0
+            
+            # Hitung weighted average price
+            total_sz = 0.0
+            total_val = 0.0
+            for fill in matching_fills:
+                px = float(fill.get("px", 0.0))
+                sz = float(fill.get("sz", 0.0))
+                total_sz += sz
+                total_val += px * sz
+            
+            if total_sz > 0:
+                return total_val / total_sz
+            return 0.0
+        except Exception as e:
+            logger.error(f"Error getting avg fill price from fills for order #{order_id}: {e}")
+            return 0.0
+
     def get_order_status(self, pair: str, order_id: str, is_algo: bool = False) -> Optional[Dict[str, Any]]:
         """Cek status order."""
         try:
@@ -335,9 +385,15 @@ class HyperliquidClient:
                     mapped_status = "REJECTED"
                 
                 inner_order = order_info.get("order", {})
+                avg_price = float(inner_order.get("avgPx") or 0.0)
+
+                # Jika status FILLED tapi avgPrice kosong/0, coba cari dari user_fills
+                if mapped_status == "FILLED" and avg_price == 0.0:
+                    avg_price = self.get_avg_fill_price_from_fills(order_id)
+
                 return {
                     "status": mapped_status,
-                    "avgPrice": float(inner_order.get("avgPx") or 0.0),
+                    "avgPrice": avg_price,
                     "raw": res
                 }
             return None
@@ -388,7 +444,7 @@ class HyperliquidClient:
                 
                 if size != 0.0:
                     coin = pos.get("coin")
-                    mapped_pair = f"{coin}USDT"  # Kembalikan ke format pair internal DB
+                    mapped_pair = f"{coin}{self.quote_asset}"  # Kembalikan ke format pair internal DB
                     
                     if pair and mapped_pair != pair:
                         continue
@@ -424,7 +480,7 @@ class HyperliquidClient:
             normalized_orders = []
             for o in orders:
                 coin = o.get("coin")
-                mapped_pair = f"{coin}USDT"
+                mapped_pair = f"{coin}{self.quote_asset}"
                 
                 if pair and mapped_pair != pair:
                     continue
