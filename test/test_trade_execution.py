@@ -1,12 +1,12 @@
 """
 test_trade_execution.py
 
-Test eksekusi order ke Binance Futures (Testnet) ketika ada signal
+Test eksekusi order ke Hyperliquid Perpetual DEX (Testnet) ketika ada signal
 dari Decision LLM. Script ini mensimulasikan keseluruhan alur:
 
   Simulated LLM Decision (BUY/SELL)
       -> OrderExecutor.execute()
-          -> BinanceFuturesClient (Testnet)
+          -> HyperliquidClient (Testnet)
               -> place_market_order / place_limit_order
               -> place_stop_loss_order
               -> place_take_profit_order
@@ -117,7 +117,7 @@ def check_account(client) -> tuple[float, bool]:
 
 
 def fetch_price(client, pair: str) -> float:
-    """Ambil mark price terkini dari Binance."""
+    """Ambil mark price terkini dari Hyperliquid."""
     print("\n" + "=" * 60)
     print("  STEP 2: Realtime Price")
     print("=" * 60)
@@ -260,7 +260,7 @@ def verify_positions(client, pair: str):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Test trade execution via OrderExecutor ke Binance (Testnet)"
+        description="Test trade execution via OrderExecutor ke Hyperliquid (Testnet)"
     )
     parser.add_argument(
         "--pair",

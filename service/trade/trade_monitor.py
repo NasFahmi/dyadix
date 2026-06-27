@@ -1,7 +1,7 @@
 """
 service/trade/trade_monitor.py
 
-Background thread yang memantau status semua trade RUNNING di Binance Futures.
+Background thread yang memantau status semua trade RUNNING di Hyperliquid DEX.
 Jika mendeteksi TP atau SL tercapai:
   - Update status di PostgreSQL
   - Kirim notifikasi Telegram
@@ -22,7 +22,7 @@ TP_SL_CHECK_INTERVAL = 5   # Tapi cek TP/SL lebih sering (5 detik)
 
 class TradeMonitor:
     """
-    Background service untuk monitoring status order di Binance.
+    Background service untuk monitoring status order di Hyperliquid.
     Berjalan di thread terpisah agar tidak blocking loop utama.
     """
 

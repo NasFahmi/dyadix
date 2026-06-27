@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class DerivativesEngine:
     """
-    Engine untuk mengolah data Funding Rate dan Open Interest dari Binance & Bybit.
+    Engine untuk mengolah data Funding Rate dan Open Interest dari Hyperliquid DEX.
     """
 
     @staticmethod

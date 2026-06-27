@@ -62,14 +62,12 @@ class MarketService:
                         symbol=pair, timeframe=tf, limit=limit
                     )
 
-                    # Ganti Bybit dengan empty DataFrame untuk memicu fallback di aggregator
                     df_aggregated = OHLCVAggregator.aggregate(
                         df_binance=df_hl, df_bybit=pd.DataFrame(), method=agg_method
                     )
 
                     pair_data[tf] = {
-                        "binance": df_hl,
-                        "bybit": pd.DataFrame(),
+                        "hyperliquid": df_hl,
                         "aggregated": df_aggregated,
                         "last_updated": datetime.utcnow(),
                     }
@@ -82,8 +80,7 @@ class MarketService:
                 except Exception as e:
                     logger.error(f"❌ Failed to fetch {pair} {tf}: {e}")
                     pair_data[tf] = {
-                        "binance": pd.DataFrame(),
-                        "bybit": pd.DataFrame(),
+                        "hyperliquid": pd.DataFrame(),
                         "aggregated": pd.DataFrame(),
                         "last_updated": datetime.utcnow(),
                         "error": str(e),
@@ -114,8 +111,7 @@ class MarketService:
                 )
 
                 pair_data[tf] = {
-                    "binance": df_hl,
-                    "bybit": pd.DataFrame(),
+                    "hyperliquid": df_hl,
                     "aggregated": df_aggregated,
                 }
             except Exception as e:

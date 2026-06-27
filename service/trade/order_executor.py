@@ -1,7 +1,7 @@
 """
 service/trade/order_executor.py
 
-Mengeksekusi order di Binance Futures berdasarkan output Decision LLM.
+Mengeksekusi order di Hyperliquid Perpetual DEX berdasarkan output Decision LLM.
 Menghitung quantity berdasarkan risk management settings,
 parse entry_zone menjadi midpoint, lalu place order.
 """
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class OrderExecutor:
     """
-    Eksekutor order Binance Futures.
+    Eksekutor order Hyperliquid DEX.
     Dipanggil oleh LoopScheduler setelah Decision LLM menghasilkan BUY/SELL.
     """
 
@@ -158,7 +158,7 @@ class OrderExecutor:
                 actual_entry = realtime_price
                 logger.info(f"  [ENTRY] {pair}: Using realtime price as entry: {actual_entry}")
 
-        # Wait a moment for position to be recognized in Binance
+        # Wait a moment for position to be recognized in Hyperliquid
         import time
         time.sleep(0.5)
 

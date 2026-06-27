@@ -1,7 +1,7 @@
 """
 utils/ohlcv_aggregator.py
 
-Modul untuk mengagregasi OHLCV dari Binance Futures dan Bybit Futures.
+Modul untuk mengagregasi dan memformat data OHLCV pasar.
 Mendukung dua metode: simple_average dan volume_weighted (rekomendasi untuk MVP).
 """
 
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class OHLCVAggregator:
     """
-    Class untuk mengagregasi OHLCV dari dua exchange (Binance & Bybit).
+    Class untuk mengagregasi dan memformat OHLCV.
     """
 
     @staticmethod

@@ -9,7 +9,6 @@ asn1crypto==1.5.1
 attrs==26.1.0
 beautifulsoup4==4.14.3
 bitarray==3.8.1
-ccxt==4.5.48
 certifi==2026.2.25
 cffi==2.0.0
 charset-normalizer==3.4.7
@@ -82,7 +81,6 @@ pydantic==2.13.2
 pydantic-core==2.46.2
 pygments==2.20.0
 pyparsing==3.3.2
-python-binance==1.0.19
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.2
 pytz==2026.1.post1
