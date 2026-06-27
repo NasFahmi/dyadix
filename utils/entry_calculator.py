@@ -36,11 +36,16 @@ def parse_entry_midpoint(entry_zone: Any, fallback_price: float) -> float:
         return float(entry_zone)
 
     if not entry_zone or not isinstance(entry_zone, str):
-        logger.warning(f"entry_zone tidak valid: '{entry_zone}', menggunakan fallback {fallback_price}")
+        logger.debug(f"entry_zone kosong/bukan string: '{entry_zone}', menggunakan fallback {fallback_price}")
         return fallback_price
 
     # Normalisasi: hapus spasi ekstra, tilde, simbol $
     cleaned = entry_zone.replace("$", "").replace(",", "").strip()
+
+    # Jika bernilai placeholder standar seperti N/A
+    if cleaned.upper() in ("N/A", "NA", "NONE", "NULL", "-", ""):
+        logger.debug(f"entry_zone adalah placeholder '{entry_zone}', menggunakan fallback {fallback_price}")
+        return fallback_price
 
     # Cari semua angka (integer atau float) dalam string
     numbers = re.findall(r"\d+(?:\.\d+)?", cleaned)
@@ -65,11 +70,11 @@ def parse_entry_midpoint(entry_zone: Any, fallback_price: float) -> float:
 
     else:
         # Tidak ada angka ditemukan
-        logger.warning(f"Tidak bisa parse entry_zone '{entry_zone}', menggunakan fallback {fallback_price}")
+        logger.debug(f"Tidak ada angka di entry_zone '{entry_zone}', menggunakan fallback {fallback_price}")
         return fallback_price
 
 
-def parse_price(price_str: Any, fallback: float = 0.0) -> float:
+def parse_price(price_str: Any, fallback: Any = 0.0) -> Any:
     """
     Parse harga tunggal dari LLM (stop_loss, target) ke float.
 
@@ -78,7 +83,7 @@ def parse_price(price_str: Any, fallback: float = 0.0) -> float:
         fallback : Nilai jika parsing gagal.
 
     Returns:
-        Harga sebagai float.
+        Harga sebagai float atau fallback (misal None).
     """
     if isinstance(price_str, (int, float)):
         return float(price_str)
@@ -87,10 +92,16 @@ def parse_price(price_str: Any, fallback: float = 0.0) -> float:
         return fallback
 
     cleaned = price_str.replace("$", "").replace(",", "").strip()
+
+    if cleaned.upper() in ("N/A", "NA", "NONE", "NULL", "-", ""):
+        logger.debug(f"Harga adalah placeholder '{price_str}', menggunakan fallback {fallback}")
+        return fallback
+
     numbers = re.findall(r"\d+(?:\.\d+)?", cleaned)
 
     if numbers:
         return float(numbers[0])
 
-    logger.warning(f"Tidak bisa parse harga '{price_str}', menggunakan fallback {fallback}")
+    logger.debug(f"Tidak ada angka di harga '{price_str}', menggunakan fallback {fallback}")
     return fallback
+

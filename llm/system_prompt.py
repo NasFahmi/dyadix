@@ -8,7 +8,13 @@ class SystemPrompt:
         features = config.get("features", {})
         
         llm_signal = config.get("llm_signal", {})
+        enable_threshold = llm_signal.get("enable_threshold", True)
         min_confidence_decision = llm_signal.get("min_confidence_decision", 0.70)
+        
+        if enable_threshold:
+            threshold_rule = f"- If the overall confidence score is below {min_confidence_decision}, you MUST default to WAIT.\n"
+        else:
+            threshold_rule = ""
         
         enable_news = features.get("enable_news", True)
         enable_fg = features.get("enable_fear_greed", True)
@@ -86,12 +92,15 @@ class SystemPrompt:
             "- BUY or SELL signals are ONLY given if at least 4 strongly supportive factors align "
             "(e.g. technical bias + momentum + liquidity sweep/key level + sentiment/derivatives/microstructure all pointing in the exact same direction).\n"
             "- If fewer than 4 factors align, or if there is any major indicator mismatch, you MUST default to WAIT. Do not compromise.\n"
+            "- CONFIDENCE FIELD: Your confidence score must reflect confidence in the DECISION YOU ARE MAKING, not confidence in a trade opportunity. "
+            "If you decide WAIT and you are certain this is the right call"
+            "Confidence 0.0 is NEVER acceptable — it means you have no opinion on your own decision, which is impossible.\n"
             "- Incorporate microstructure confluence into your final bias: "
             "CVD (Cumulative Volume Delta) trends show real-time buying/selling pressure (positive CVD = buying pressure, negative = selling pressure). "
             "Orderbook Imbalance represents order depth asymmetry (positive imbalance = stronger bid support, negative = stronger ask resistance). "
             "Whale Activity indicates large player execution presence. "
             "Liquidation spikes (long or short liquidations) indicate squeeze conditions that can act as reversal or continuation triggers.\n"
-            "- If the overall confidence score is below {min_confidence_decision}, you MUST default to WAIT.\n"
+            f"{threshold_rule}"
             f"{trend_alignment_rule}\n"
             "- IMPORTANT: Your decision direction (BUY/SELL) should align with signal_detector_result.suggested_bias. "
             "If signal_detector says Bearish, do NOT output BUY unless you have overwhelming evidence to contradict it.\n"
@@ -132,7 +141,7 @@ class SystemPrompt:
             '  "rr_calculation": "Step 1: worst-case entry in zone = X. Step 2: Structural SL = Z. '
             'Step 3: Structural Target = W. '
             'Step 4: R:R Ratio = |W-X| / |X-Z| = R. R >= 2.0? Yes/No",\n'
-            '  "confidence": 0.0 to 1.0,\n'
+            '  "confidence": 0.0 to 1.0 (how confident you are in THIS decision — WAIT can have high confidence),\n'
             '  "bias": "Strong Bullish" or "Moderate Bullish" or "Neutral" or "Moderate Bearish" or "Strong Bearish",\n'
             f'  "recommended_timeframe": {timeframe_values},\n'
             '  "entry_zone": "price range (must be realistic vs realtime_price)",\n'

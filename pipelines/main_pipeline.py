@@ -395,6 +395,9 @@ class MainPipeline:
                     user_input=user_input,
                     json_schema=decision_schema,
                 )
+                print('==================result=================')
+                print(result)
+                print('==================result=================')
                 if result and "error" not in result and "decision" in result:
                     logger.info(f"  🤖 Decision LLM Response (Structured):\n{json.dumps(result, indent=2, ensure_ascii=False)}")
                     return result

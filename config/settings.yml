@@ -40,6 +40,7 @@ signal_detector:
   cooldown_seconds: 1200 # 20 menit cooldown per pair setelah LLM call
 
 llm_signal:
+  enable_threshold: false # Toggle untuk mengaktifkan/menonaktifkan aturan min_confidence threshold di system prompt
   min_confidence_decision: 0.56 # Threshold untuk LLM decision agar tidak default Wait 
 
 database:
