@@ -159,7 +159,8 @@ class LiquidityEngine:
                 continue
 
             # Filter: hanya pool dalam radius 5% dari harga sekarang
-            distance_pct = abs(val - current_price) / current_price
+            price_base = current_price if current_price > 0 else 1.0
+            distance_pct = abs(val - current_price) / price_base
             if distance_pct > LiquidityEngine.RELEVANCE_RADIUS_PCT:
                 continue
 
@@ -194,8 +195,9 @@ class LiquidityEngine:
         # Deduplication: buang pool yang terlalu berdekatan (< 0.4%)
         unique_pools = []
         for p in candidates:
+            price_base = p["price"] if p["price"] > 0 else 1.0
             too_close = any(
-                abs(p["price"] - ex["price"]) / p["price"] < LiquidityEngine.MIN_POOL_DISTANCE_PCT
+                abs(p["price"] - ex["price"]) / price_base < LiquidityEngine.MIN_POOL_DISTANCE_PCT
                 for ex in unique_pools
             )
             if not too_close:

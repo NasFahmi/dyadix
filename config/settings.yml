@@ -18,6 +18,17 @@ trading:
     - "1h"
     - "1d"
 
+screening:
+  enabled: true
+  scan_candidates: 10
+  max_tradeable: 3
+  min_volume_24h: 1000000
+  refresh_interval_minutes: 5.0
+  volume_weight: 0.30
+  atr_weight: 0.30
+  oi_weight: 0.25
+  funding_weight: 0.15
+
 llm:
   temperature: 0.25
   max_tokens: 1100

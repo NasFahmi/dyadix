@@ -40,7 +40,19 @@ class MainPipeline:
         self.context_builder = ContextBuilder()
         
         from pipelines.decision_logger import DecisionLogger
+        from pipelines.signal_detector import SignalDetector
+        from config.settings import get_config
+
+        config = get_config()
+        detector_config = config.get("signal_detector", {})
+        screening_config = config.get("screening", {})
+
         self.decision_logger = DecisionLogger()
+        self.signal_detector = SignalDetector(
+            min_confidence=detector_config.get("min_confidence", 0.55),
+            divergence_threshold=detector_config.get("divergence_threshold", 0.15),
+        )
+        self.max_tradeable = screening_config.get("max_tradeable", 3)
 
         # Pastikan timeframe 1d selalu ada untuk daily bias
         if "1d" not in self.market_service.timeframes:
@@ -101,28 +113,57 @@ class MainPipeline:
             target_pairs=self.market_service.pairs,
         )
 
-        # ── Decision LLM per pair ─────────────────────────────────────
+        # ── Step 6: Signal Pre-Scoring Filter & Decision LLM per pair ──
         results: Dict[str, Any] = {}
+        evaluated_candidates = []
+
         for pair, ctx in full_contexts.items():
-            if "error" in ctx:
-                logger.error(f"  ❌ {pair} context error: {ctx['error']}")
+            if "error" in ctx and "technical" not in ctx:
+                logger.error(f"  ❌ {pair} context error: {ctx.get('error')}")
                 results[pair] = ctx
                 continue
 
-            # Tambah LLM-generated candle summary
-            ctx = self._inject_candle_summary(ctx, market_data.get(pair, {}))
+            # Signal Detection Assessment
+            signal_result = self.signal_detector.detect(ctx)
 
-            # Tambah market snapshot (ringkasan candle M5/M15/H1 untuk precision entry)
+            if not signal_result["has_potential_signal"]:
+                logger.info(
+                    f"  ⏭ {pair} → No signal "
+                    f"(confidence {signal_result['confidence']}, "
+                    f"bull={signal_result['scores']['bullish']}, "
+                    f"bear={signal_result['scores']['bearish']})"
+                )
+                results[pair] = {"full_context": ctx, "signal_skipped": True, "reason": "No signal / Below confidence threshold"}
+                continue
+
+            evaluated_candidates.append((pair, ctx, signal_result))
+
+        # Sort candidate pairs by signal confidence score (descending)
+        evaluated_candidates.sort(key=lambda x: x[2]["confidence"], reverse=True)
+        selected_tradeables = evaluated_candidates[: self.max_tradeable]
+
+        if evaluated_candidates:
+            logger.info(
+                f"🎯 Signal Pre-Scoring Filter: Selected {len(selected_tradeables)} tradeable pairs "
+                f"(out of {len(evaluated_candidates)} signals found, max_tradeable={self.max_tradeable})"
+            )
+        else:
+            logger.info("ℹ️ No pairs passed Signal Detector confidence threshold in this run.")
+
+        for pair, ctx, signal_result in selected_tradeables:
+            # Tambah LLM-generated candle summary & market snapshot hanya untuk tradeable pairs
+            ctx = self._inject_candle_summary(ctx, market_data.get(pair, {}))
             ctx = self._inject_market_snapshot(ctx, market_data.get(pair, {}))
 
-            # Debug: Print full context before sending to LLM
-            print("\n" + "=" * 60)
-            print(f" DEBUG: PROMPTING DECISION LLM FOR {pair}")
-            print("=" * 60)
-            print(json.dumps(ctx, indent=2, default=str, ensure_ascii=True))
-            print("=" * 60 + "\n")
+            # Inject signal detector result into context
+            ctx["signal_detector_result"] = {
+                "suggested_bias": signal_result.get("suggested_bias"),
+                "signal_type": signal_result.get("signal_type"),
+                "confidence": signal_result.get("confidence"),
+                "reasons": signal_result.get("reasons", []),
+            }
 
-            logger.info(f"  ⚙  Calling Decision LLM for {pair}...")
+            logger.info(f"  ⚙  Calling Decision LLM for {pair} (confidence={signal_result['confidence']})...")
             decision = self._call_decision_llm(ctx)
 
             results[pair] = {
@@ -131,7 +172,7 @@ class MainPipeline:
             }
 
             # ── Save Decision to Database ─────────────────────────────
-            self.decision_logger.log_decision(pair, ctx.get("signal_detector_result", {}), decision, ctx)
+            self.decision_logger.log_decision(pair, signal_result, decision, ctx)
 
             logger.info(
                 f"  ✅ {pair} → {decision.get('decision')} | "

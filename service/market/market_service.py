@@ -26,8 +26,27 @@ class MarketService:
         self.hyperliquid = HyperliquidService()
 
         # Ambil konfigurasi dari settings.yaml
-        self.pairs: List[str] = self.config.get("trading", {}).get("pairs") or ["BTCUSDT"]
+        static_pairs: List[str] = self.config.get("trading", {}).get("pairs") or ["BTCUSDC"]
         self.correlation_pairs: List[str] = self.config.get("trading", {}).get("correlation_pairs", [])
+
+        # Cek apakah modul screening aktif
+        screening_cfg = self.config.get("screening", {})
+        if screening_cfg.get("enabled", True):
+            try:
+                from service.market.screening.screening_service import ScreeningService
+                screening_svc = ScreeningService()
+                screened_pairs = screening_svc.get_candidate_symbols()
+                if screened_pairs:
+                    self.pairs = screened_pairs
+                    logger.info(f"MarketService dynamic screening active: Loaded Top {len(self.pairs)} pairs.")
+                else:
+                    self.pairs = static_pairs
+                    logger.warning("Screening returned empty pairs list. Fallback to static pairs.")
+            except Exception as e:
+                logger.error(f"Failed to load dynamic screened pairs in MarketService: {e}")
+                self.pairs = static_pairs
+        else:
+            self.pairs = static_pairs
         
         self.timeframes: List[str] = self.config.get("trading", {}).get(
             "timeframes", ["5m", "15m", "1h"]
@@ -35,7 +54,7 @@ class MarketService:
         self.agg_method: str = "volume_weighted"
 
         logger.info(
-            f"MarketService initialized with {len(self.pairs)} pairs "
+            f"MarketService initialized with {len(self.pairs)} pairs ({self.pairs[:3]}...) "
             f"and timeframes: {self.timeframes} using Hyperliquid DEX"
         )
 

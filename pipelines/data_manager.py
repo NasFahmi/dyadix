@@ -63,9 +63,9 @@ class DataManager:
         self._market_service = None
         self._derivatives_service = None
 
-        # Pairs dari config
+        # Pairs dari MarketService (dinamis jika screening aktif)
         trading_config = config.get("trading", {})
-        self.pairs: List[str] = trading_config.get("pairs") or ["BTCUSDT"]
+        self.pairs: List[str] = self.market_service.pairs
         self.correlation_pairs: List[str] = trading_config.get("correlation_pairs", [])
         
         # Determine mode
@@ -145,6 +145,10 @@ class DataManager:
         Cek dan refresh semua data yang sudah expired.
         Return dict {data_key: was_refreshed}.
         """
+        # Sinkronkan pasangan aktif jika screening memperbarui kandidat
+        if self._market_service is not None:
+            self.pairs = self._market_service.pairs
+
         refreshed = {}
 
         # ── OHLCV Fast (M3 & M5) ────────────────────────────────────────

@@ -65,6 +65,9 @@ class LoopScheduler:
             divergence_threshold=detector_config.get("divergence_threshold", 0.15),
         )
         
+        screening_config = config.get("screening", {})
+        self.max_tradeable = screening_config.get("max_tradeable", 3)
+
         cooldown_seconds = detector_config.get("cooldown_seconds", default_cooldown)
         self.decision_logger = DecisionLogger(
             cooldown_seconds=cooldown_seconds
@@ -225,10 +228,11 @@ class LoopScheduler:
             logger.error(f"Failed to build full context: {e}")
             return
 
-        # ── Step 3: Signal detection + LLM gate per pair ─────────────
+        # ── Step 3: Signal detection + Pre-scoring filter (Top candidates -> max tradeable) ──
         signals_found = 0
         llm_calls = 0
 
+        evaluated_candidates = []
         for pair, ctx in full_contexts.items():
             if "error" in ctx and "technical" not in ctx:
                 logger.error(f"  ❌ {pair} context error: {ctx.get('error')}")
@@ -264,7 +268,20 @@ class LoopScheduler:
                 continue
 
             signals_found += 1
+            evaluated_candidates.append((pair, ctx, signal_result))
 
+        # Sort candidate pairs by signal confidence score (descending)
+        evaluated_candidates.sort(key=lambda x: x[2]["confidence"], reverse=True)
+        
+        # Limit to max_tradeable pairs
+        selected_tradeables = evaluated_candidates[: self.max_tradeable]
+        if evaluated_candidates:
+            logger.info(
+                f"🎯 Signal Pre-Scoring Filter: Selected {len(selected_tradeables)} tradeable pairs "
+                f"(out of {signals_found} signals found, max_tradeable={self.max_tradeable})"
+            )
+
+        for pair, ctx, signal_result in selected_tradeables:
             # Cooldown check
             if self.decision_logger.is_in_cooldown(pair):
                 remaining = self.decision_logger.get_cooldown_remaining(pair)
