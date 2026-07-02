@@ -15,7 +15,7 @@ graph TD
     Top_10 -->|Signal Detector| Qualified[Qualified Pairs]
     
     %% LangGraph Flow (Event-Driven)
-    Qualified -->|Trigger Graph| START((START))
+    Qualified -->|Trigger Graph for All Qualified| START((START))
     
     START --> TA[Technical Analyst Node]
     START --> LA[Liquidity Analyst Node]
@@ -32,8 +32,10 @@ graph TD
     
     FD --> END((END))
     
-    %% Post-processing
-    END -->|BUY/SELL| Exec[Order Executor]
+    %% Portfolio & Correlation Filter Layer
+    END -->|All Decisions| PS[Portfolio Selector]
+    PS -->|Ranked BUY/SELL Signals| CA[Correlation Analysis]
+    CA -->|Final Trade List| Exec[Order Executor]
 ```
 
 ---
@@ -119,7 +121,7 @@ Alur integrasi diimplementasikan pada `pipelines/main_pipeline.py` dan `pipeline
 
 1.  **Staggered Data Fetching:** `DataManager` menyegarkan cache data pasar (OHLCV, Funding, OI, Sentiment) yang sudah stale secara staggered.
 2.  **Screening & Pre-filtering:** `ScreeningService` memperbarui Top 10 Candidate secara dinamis (tanpa hardcode pair di settings). `SignalDetector` melakukan scoring confluence.
-3.  **Graph Execution:** Pair yang lolos pre-filter akan di-map ke dalam initial state `DyadixState` dan dieksekusi melalui:
+3.  **Graph Execution (All Decisions):** Seluruh pair yang lolos pre-filter (Qualified Pairs) akan dieksekusi secara independen di LangGraph untuk menghasilkan keputusan trading final (`BUY`, `SELL`, `WAIT`, `HOLD`):
     ```python
     from workflows.trading_workflow import create_trading_workflow
     
@@ -127,7 +129,11 @@ Alur integrasi diimplementasikan pada `pipelines/main_pipeline.py` dan `pipeline
     workflow_result = workflow.invoke(initial_state)
     decision = workflow_result.get("final_decision", {})
     ```
-4.  **Order Placement:** Jika output `decision` adalah `BUY` atau `SELL`, `OrderExecutor` mengeksekusi order market/limit beserta stop-loss & take-profit order di Hyperliquid.
+4.  **Portfolio Selection & Correlation Analysis:**
+    *   **Portfolio Selector:** Menyaring semua keputusan yang menghasilkan tindakan aktif (`BUY` / `SELL`) dan mengurutkannya berdasarkan nilai `confidence` sinyal (tertinggi ke terendah).
+    *   **Correlation Filter:** Menggunakan data korelasi historis (`correlation_data["matrix"]`), sistem membandingkan korelasi secara berpasangan (*pairwise*). Jika korelasi antar kandidat melanggar batas (`abs(corr) > 0.7`), koin dengan prioritas lebih rendah akan dibuang/dilewati guna menghindari over-exposure.
+    *   **Final Trade List:** Daftar final yang aman dibatasi hingga kapasitas maksimal (`max_tradeable`).
+5.  **Order Placement:** `OrderExecutor` hanya mengeksekusi order market/limit beserta stop-loss & take-profit order di Hyperliquid untuk koin-koin yang masuk dalam **Final Trade List**. Koin yang tereliminasi oleh filter portofolio/korelasi akan di-downgrade keputusannya menjadi `WAIT`.
 
 ---
 
