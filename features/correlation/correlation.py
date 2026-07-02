@@ -23,7 +23,7 @@ class CorrelationEngine:
         self.pairs: List[str] = self.config.get("trading", {}).get(
             "correlation_pairs", []
         )
-        self.benchmark = "BTCUSDT"
+        self.benchmark = "BTCUSDC"
 
     def calculate(
         self,

@@ -1,15 +1,5 @@
 trading:
   mode: "scalping" # Opsi: "scalping" atau "swing"
-  pairs:
-    - BTCUSDC
-    # - SOLUSDC
-    # - ETHUSDC
-    # - SUIUSDC
-  correlation_pairs:
-    - BTCUSDC
-    # - ETHUSDC
-    # - SOLUSDC
-    # - SUIUSDC
   active_session: "all" # Opsi: "all", "ny", "london", "asia", "asia_london", "london_ny", "asia_ny"
   timeframes:
     - "3m"

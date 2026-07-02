@@ -296,7 +296,7 @@ class LoopScheduler:
             logger.info(
                 f"  🚀 {pair} → Signal! confidence={signal_result['confidence']} "
                 f"| bias={signal_result['suggested_bias']} "
-                f"| Calling LLM..."
+                f"| Running LangGraph Multi-Agent Workflow..."
             )
 
             # Notify Telegram: signal detected
@@ -312,7 +312,28 @@ class LoopScheduler:
                 "reasons": signal_result.get("reasons", []),
             }
 
-            decision = self._call_decision_llm(ctx)
+            # Map context to DyadixState for LangGraph
+            initial_state = {
+                "symbol": pair,
+                "realtime_price": realtime_price,
+                "current_market_session": ctx.get("current_market_session", "Unknown"),
+                "market_data": ctx.get("technical", {}),
+                "sentiment_data": ctx.get("sentiment", {}),
+                "derivatives_data": ctx.get("derivatives", {}),
+                "liquidity_data": ctx.get("liquidity", {}),
+                "correlation_data": ctx.get("correlation", {}),
+                "microstructure_data": ctx.get("microstructure", {}),
+                "signal_detector_result": ctx.get("signal_detector_result", {}),
+                "errors": []
+            }
+            if "current_price" not in initial_state["market_data"] and "current_price" in ctx:
+                initial_state["market_data"]["current_price"] = ctx["current_price"]
+                
+            from workflows.trading_workflow import create_trading_workflow
+            workflow = create_trading_workflow()
+            workflow_result = workflow.invoke(initial_state)
+            
+            decision = workflow_result.get("final_decision", {})
             llm_calls += 1
 
             decision_id = self.decision_logger.log_decision(pair, signal_result, decision, ctx)

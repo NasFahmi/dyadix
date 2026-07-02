@@ -163,8 +163,30 @@ class MainPipeline:
                 "reasons": signal_result.get("reasons", []),
             }
 
-            logger.info(f"  ⚙  Calling Decision LLM for {pair} (confidence={signal_result['confidence']})...")
-            decision = self._call_decision_llm(ctx)
+            logger.info(f"  ⚙  Invoking LangGraph Trading Workflow for {pair}...")
+            
+            # Map full context to DyadixState
+            initial_state = {
+                "symbol": pair,
+                "realtime_price": ctx.get("current_price", 0.0),
+                "current_market_session": ctx.get("current_market_session", "Unknown"),
+                "market_data": ctx.get("technical", {}),
+                "sentiment_data": ctx.get("sentiment", {}),
+                "derivatives_data": ctx.get("derivatives", {}),
+                "liquidity_data": ctx.get("liquidity", {}),
+                "correlation_data": ctx.get("correlation", {}),
+                "microstructure_data": ctx.get("microstructure", {}),
+                "signal_detector_result": ctx.get("signal_detector_result", {}),
+                "errors": []
+            }
+            if "current_price" not in initial_state["market_data"] and "current_price" in ctx:
+                initial_state["market_data"]["current_price"] = ctx["current_price"]
+                
+            from workflows.trading_workflow import create_trading_workflow
+            workflow = create_trading_workflow()
+            workflow_result = workflow.invoke(initial_state)
+            
+            decision = workflow_result.get("final_decision", {})
 
             results[pair] = {
                 "full_context": ctx,
