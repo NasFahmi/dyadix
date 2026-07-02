@@ -30,8 +30,8 @@ class DyadixState(TypedDict):
     aggregated_verdict: Dict[str, Any]
     risk_verdict: Dict[str, Any]
     
-    # Final Decision Output (LLM-based)
-    final_decision: Dict[str, Any]
+    # Trade Verdict Output (LLM-based)
+    trade_verdict: Dict[str, Any]
     
     # Error tracking
     errors: List[str]

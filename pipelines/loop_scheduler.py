@@ -329,7 +329,7 @@ class LoopScheduler:
                 from workflows.trading_workflow import create_trading_workflow
                 workflow = create_trading_workflow()
                 workflow_result = workflow.invoke(initial_state)
-                decision = workflow_result.get("final_decision", {})
+                decision = workflow_result.get("trade_verdict", {})
             except Exception as e:
                 logger.error(f"  ❌ LangGraph failed for {pair}: {e}")
                 decision = {"decision": "WAIT", "reason": f"LangGraph failure: {e}"}

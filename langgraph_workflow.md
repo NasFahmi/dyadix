@@ -15,12 +15,10 @@ graph TD
     Top_10 -->|Signal Detector| Qualified[Qualified Pairs]
     
     %% LangGraph Flow (Event-Driven)
-    Qualified -->|Trigger Graph for All Qualified| START((START))
-    
-    START --> TA[Technical Analyst Node]
-    START --> LA[Liquidity Analyst Node]
-    START --> DA[Derivatives Analyst Node]
-    START --> SA[Sentiment Analyst Node]
+    Qualified -->|Trigger Graph| TA[Technical Analyst Node]
+    Qualified -->|Trigger Graph| LA[Liquidity Analyst Node]
+    Qualified -->|Trigger Graph| DA[Derivatives Analyst Node]
+    Qualified -->|Trigger Graph| SA[Sentiment Analyst Node]
     
     TA --> AGG[Agent Aggregator Node]
     LA --> AGG
@@ -30,12 +28,11 @@ graph TD
     AGG --> RM[Risk Manager Node]
     RM --> FD[Final Decision LLM Node]
     
-    FD --> END((END))
-    
     %% Portfolio & Correlation Filter Layer
-    END -->|All Decisions| PS[Portfolio Selector]
+    FD -->|All Decisions| PS[Portfolio Selector]
     PS -->|Ranked BUY/SELL Signals| CA[Correlation Analysis]
     CA -->|Final Trade List| Exec[Order Executor]
+    Exec --> END((END))
 ```
 
 ---
@@ -72,8 +69,8 @@ class DyadixState(TypedDict):
     aggregated_verdict: Dict[str, Any]
     risk_verdict: Dict[str, Any]
     
-    # Final Decision Output
-    final_decision: Dict[str, Any]
+    # Trade Verdict Output
+    trade_verdict: Dict[str, Any]
     
     # Error tracking
     errors: List[str]
@@ -109,9 +106,9 @@ Setelah node analis selesai berjalan secara paralel, grafik menyatukan (join) st
     *   *Tugas:* Menentukan parameter risiko entry. Jika consensus bias valid (Bullish/Bearish), Risk Manager menghitung dynamic Stop Loss (entry ± 2 * ATR) dan Target Take Profit (min. Risk/Reward 1:3.0).
     *   *Output:* status `cleared` (True/False), stop_loss price, take_profit price, dan leverage.
 
-### 3. Final Decision Node (LLM Coordinator)
-*   **Final Decision Node** (`workflows/nodes/final_decision.py`):
-    *   *Tugas:* Menerima hasil agregasi dan parameter risiko. Jika `cleared` bernilai `False`, node langsung mengembalikan keputusan `WAIT`. Jika `True`, node memanggil **Decision LLM** dengan JSON Schema ketat untuk merumuskan koordinat order final (BUY/SELL, Entry Zone, Target, Stop Loss, Invalidated If, dan Key Risks).
+### 3. Trade Verdict Node (LLM Coordinator)
+*   **Trade Verdict Node** (`workflows/nodes/trade_verdict.py`):
+    *   *Tugas:* Menerima hasil agregasi dan parameter risiko. Jika `cleared` bernilai `False`, node langsung mengembalikan keputusan `WAIT`. Jika `True`, node memanggil **Decision LLM** dengan JSON Schema ketat untuk merumuskan koordinat verdict trading (BUY/SELL, Entry Zone, Target, Stop Loss, Invalidated If, dan Key Risks).
 
 ---
 
@@ -127,7 +124,7 @@ Alur integrasi diimplementasikan pada `pipelines/main_pipeline.py` dan `pipeline
     
     workflow = create_trading_workflow()
     workflow_result = workflow.invoke(initial_state)
-    decision = workflow_result.get("final_decision", {})
+    decision = workflow_result.get("trade_verdict", {})
     ```
 4.  **Portfolio Selection & Correlation Analysis:**
     *   **Portfolio Selector:** Menyaring semua keputusan yang menghasilkan tindakan aktif (`BUY` / `SELL`) dan mengurutkannya berdasarkan nilai `confidence` sinyal (tertinggi ke terendah).

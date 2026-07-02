@@ -87,7 +87,7 @@ def run_test():
     print(f"Sentiment Verdict: {result.get('sentiment_verdict')}")
     print(f"Consensus        : {result.get('aggregated_verdict')}")
     print(f"Risk Verdict     : {result.get('risk_verdict')}")
-    print(f"Final Decision   : {result.get('final_decision')}")
+    print(f"Trade Verdict    : {result.get('trade_verdict')}")
     print("=" * 60 + "\n")
 
 if __name__ == "__main__":

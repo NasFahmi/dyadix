@@ -7,7 +7,7 @@ from workflows.nodes.derivatives_analyst import derivatives_analyst_node
 from workflows.nodes.sentiment_analyst import sentiment_analyst_node
 from workflows.nodes.agent_aggregator import aggregator_node
 from workflows.nodes.risk_manager import risk_manager_node
-from workflows.nodes.final_decision import final_decision_node
+from workflows.nodes.trade_verdict import trade_verdict_node
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ def create_trading_workflow():
       1. Jalankan 4 Analyst secara PARALEL dari START
       2. Kumpulkan hasilnya di Aggregator
       3. Evaluasi parameter di Risk Manager
-      4. Buat keputusan final di Final Decision LLM Agent
+      4. Buat keputusan verdict trading di Trade Verdict LLM Agent
     """
     workflow = StateGraph(DyadixState)
     
@@ -29,7 +29,7 @@ def create_trading_workflow():
     workflow.add_node("sentiment_analyst", sentiment_analyst_node)
     workflow.add_node("aggregator", aggregator_node)
     workflow.add_node("risk_manager", risk_manager_node)
-    workflow.add_node("final_decision", final_decision_node)
+    workflow.add_node("trade_verdict", trade_verdict_node)
     
     # 2. Definisikan Edges (START ke 4 Analyst paralel)
     workflow.add_edge(START, "technical_analyst")
@@ -43,10 +43,10 @@ def create_trading_workflow():
     workflow.add_edge("derivatives_analyst", "aggregator")
     workflow.add_edge("sentiment_analyst", "aggregator")
     
-    # 4. Alur linear dari Aggregator ke Risk Manager ke Final Decision ke END
+    # 4. Alur linear dari Aggregator ke Risk Manager ke Trade Verdict ke END
     workflow.add_edge("aggregator", "risk_manager")
-    workflow.add_edge("risk_manager", "final_decision")
-    workflow.add_edge("final_decision", END)
+    workflow.add_edge("risk_manager", "trade_verdict")
+    workflow.add_edge("trade_verdict", END)
     
     # Kompilasi Graph
     return workflow.compile()

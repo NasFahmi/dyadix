@@ -84,7 +84,7 @@ def test_live_integration():
         workflow = create_trading_workflow()
         workflow_result = workflow.invoke(initial_state)
         
-        decision = workflow_result.get("final_decision", {})
+        decision = workflow_result.get("trade_verdict", {})
         all_decisions.append((pair, ctx, signal_result, decision))
         
         print("\n" + "=" * 60)
