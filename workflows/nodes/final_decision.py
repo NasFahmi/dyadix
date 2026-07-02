@@ -15,9 +15,11 @@ def final_decision_node(state: DyadixState) -> dict:
     """
     symbol = state.get("symbol", "UNKNOWN")
     risk_verdict = state.get("risk_verdict", {})
+    print(f"[MONITORING] [Final Decision] Start node for {symbol}...")
     
     # Jika Risk Manager tidak meloloskan trade clearance, default ke WAIT
     if not risk_verdict.get("cleared", False):
+        print(f"[MONITORING] [Final Decision] Risk Manager clearance failed for {symbol}. Defaulting to WAIT.")
         logger.info(f"[Final Decision] Risk Manager did not clear {symbol}. Defaulting to WAIT.")
         return {
             "final_decision": {
@@ -37,6 +39,7 @@ def final_decision_node(state: DyadixState) -> dict:
             }
         }
         
+    print(f"[MONITORING] [Final Decision] Invoking Decision LLM for {symbol}...")
     logger.info(f"[Final Decision] Invoking Decision LLM for {symbol}...")
     
     system_prompt = SystemPrompt().get_system_prompt_decision()
@@ -171,6 +174,7 @@ def final_decision_node(state: DyadixState) -> dict:
                 json_schema=decision_schema,
             )
             if result and "error" not in result and "decision" in result:
+                print(f"[MONITORING] [Final Decision] Structured decision: {result.get('decision')} | confidence: {result.get('confidence')} | reason: {result.get('reason')}")
                 logger.info(f"[Final Decision] Structured output received successfully for {symbol}")
                 return {"final_decision": result}
         except Exception as e:
@@ -191,10 +195,12 @@ def final_decision_node(state: DyadixState) -> dict:
             content = content[start : end + 1]
             
         parsed = json.loads(content.strip())
+        print(f"[MONITORING] [Final Decision] Standard parsed decision: {parsed.get('decision')} | confidence: {parsed.get('confidence')} | reason: {parsed.get('reason')}")
         logger.info(f"[Final Decision] Generated standard output successfully parsed for {symbol}")
         return {"final_decision": parsed}
         
     except Exception as e:
+        print(f"[MONITORING] [Final Decision] LLM call failed for {symbol}: {e}")
         logger.error(f"[Final Decision] Failed to call Decision LLM for {symbol}: {e}", exc_info=True)
         # Fallback decision
         fallback = {

@@ -9,6 +9,7 @@ def sentiment_analyst_node(state: DyadixState) -> dict:
     Mengekstrak overall_sentiment, sentiment_score, fear_greed index, dsb.
     """
     symbol = state.get("symbol", "UNKNOWN")
+    print(f"[MONITORING] [Sentiment Analyst] Analyzing {symbol}...")
     logger.info(f"[Sentiment Analyst] Analyzing {symbol}...")
     
     from config.settings import get_config
@@ -23,6 +24,7 @@ def sentiment_analyst_node(state: DyadixState) -> dict:
     )
     
     if not sentiment_enabled:
+        print(f"[MONITORING] [Sentiment Analyst] Disabled in settings. Skipping analysis for {symbol}.")
         logger.info(f"[Sentiment Analyst] Sentiment analysis is disabled in settings. Skipping analysis for {symbol}.")
         verdict = {
             "bias": "Neutral",
@@ -75,5 +77,6 @@ def sentiment_analyst_node(state: DyadixState) -> dict:
         "sentiment_raw": sentiment_raw
     }
     
+    print(f"[MONITORING] [Sentiment Analyst] Verdict for {symbol}: bias={bias}, confidence={confidence}")
     logger.info(f"[Sentiment Analyst] Verdict for {symbol}: bias={bias}, confidence={confidence}")
     return {"sentiment_verdict": verdict}

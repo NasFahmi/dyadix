@@ -9,6 +9,7 @@ def derivatives_analyst_node(state: DyadixState) -> dict:
     Mengekstrak derivatives_sentiment, trend funding rate, open interest (OI) change, dll.
     """
     symbol = state.get("symbol", "UNKNOWN")
+    print(f"[MONITORING] [Derivatives Analyst] Analyzing {symbol}...")
     logger.info(f"[Derivatives Analyst] Analyzing {symbol}...")
     
     derivatives_data = state.get("derivatives_data", {})
@@ -55,5 +56,6 @@ def derivatives_analyst_node(state: DyadixState) -> dict:
         "sentiment_raw": sentiment_raw
     }
     
+    print(f"[MONITORING] [Derivatives Analyst] Verdict for {symbol}: bias={bias}, confidence={confidence}")
     logger.info(f"[Derivatives Analyst] Verdict for {symbol}: bias={bias}, confidence={confidence}")
     return {"derivatives_verdict": verdict}

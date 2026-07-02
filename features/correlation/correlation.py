@@ -89,6 +89,7 @@ class CorrelationEngine:
                 k: round(v, 2) for k, v in btc_corr.items() if k != self.benchmark
             },
             "insights": self._generate_insights(corr_matrix, btc_corr),
+            "matrix": corr_matrix.to_dict(),
         }
 
         logger.info(

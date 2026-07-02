@@ -9,6 +9,7 @@ def technical_analyst_node(state: DyadixState) -> dict:
     Mengekstrak bias, confidence, dan alasan pendukung dari market_data.
     """
     symbol = state.get("symbol", "UNKNOWN")
+    print(f"\n[MONITORING] [Technical Analyst] Analyzing {symbol}...")
     logger.info(f"[Technical Analyst] Analyzing {symbol}...")
     
     market_data = state.get("market_data", {})
@@ -100,5 +101,6 @@ def technical_analyst_node(state: DyadixState) -> dict:
         "daily_bias": daily_bias
     }
     
+    print(f"[MONITORING] [Technical Analyst] Verdict for {symbol}: bias={overall_bias}, confidence={confidence}")
     logger.info(f"[Technical Analyst] Verdict for {symbol}: bias={overall_bias}, confidence={confidence}")
     return {"technical_verdict": verdict}

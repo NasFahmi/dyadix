@@ -9,6 +9,7 @@ def liquidity_analyst_node(state: DyadixState) -> dict:
     Mengekstrak status liquidity sweeps, support/resistance pools, dan status likuiditas lainnya.
     """
     symbol = state.get("symbol", "UNKNOWN")
+    print(f"[MONITORING] [Liquidity Analyst] Analyzing {symbol}...")
     logger.info(f"[Liquidity Analyst] Analyzing {symbol}...")
     
     liquidity_data = state.get("liquidity_data", {})
@@ -56,5 +57,6 @@ def liquidity_analyst_node(state: DyadixState) -> dict:
         "key_levels": liquidity_data.get("key_levels", {})
     }
     
+    print(f"[MONITORING] [Liquidity Analyst] Verdict for {symbol}: bias={bias}, confidence={confidence}")
     logger.info(f"[Liquidity Analyst] Verdict for {symbol}: bias={bias}, confidence={confidence}")
     return {"liquidity_verdict": verdict}

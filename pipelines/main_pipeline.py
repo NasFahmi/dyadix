@@ -138,20 +138,15 @@ class MainPipeline:
 
             evaluated_candidates.append((pair, ctx, signal_result))
 
-        # Sort candidate pairs by signal confidence score (descending)
-        evaluated_candidates.sort(key=lambda x: x[2]["confidence"], reverse=True)
-        selected_tradeables = evaluated_candidates[: self.max_tradeable]
-
+        # 1. Run LangGraph on ALL Qualified Candidates (Qualified Pairs -> LangGraph -> All Decisions)
+        all_decisions = []
         if evaluated_candidates:
-            logger.info(
-                f"🎯 Signal Pre-Scoring Filter: Selected {len(selected_tradeables)} tradeable pairs "
-                f"(out of {len(evaluated_candidates)} signals found, max_tradeable={self.max_tradeable})"
-            )
+            logger.info(f"🎯 Running LangGraph on all {len(evaluated_candidates)} Qualified Candidate Pairs...")
         else:
             logger.info("ℹ️ No pairs passed Signal Detector confidence threshold in this run.")
 
-        for pair, ctx, signal_result in selected_tradeables:
-            # Tambah LLM-generated candle summary & market snapshot hanya untuk tradeable pairs
+        for pair, ctx, signal_result in evaluated_candidates:
+            # Tambah LLM-generated candle summary & market snapshot untuk all qualified candidates
             ctx = self._inject_candle_summary(ctx, market_data.get(pair, {}))
             ctx = self._inject_market_snapshot(ctx, market_data.get(pair, {}))
 
@@ -182,12 +177,16 @@ class MainPipeline:
             if "current_price" not in initial_state["market_data"] and "current_price" in ctx:
                 initial_state["market_data"]["current_price"] = ctx["current_price"]
                 
-            from workflows.trading_workflow import create_trading_workflow
-            workflow = create_trading_workflow()
-            workflow_result = workflow.invoke(initial_state)
-            
-            decision = workflow_result.get("final_decision", {})
+            try:
+                from workflows.trading_workflow import create_trading_workflow
+                workflow = create_trading_workflow()
+                workflow_result = workflow.invoke(initial_state)
+                decision = workflow_result.get("final_decision", {})
+            except Exception as e:
+                logger.error(f"  ❌ LangGraph failed for {pair}: {e}")
+                decision = {"decision": "WAIT", "reason": f"LangGraph failure: {e}"}
 
+            all_decisions.append((pair, ctx, signal_result, decision))
             results[pair] = {
                 "full_context": ctx,
                 "decision": decision,
@@ -202,6 +201,56 @@ class MainPipeline:
                 f"Bias: {decision.get('bias')} | "
                 f"Reason: {decision.get('reason')}"
             )
+
+        # 2. Portfolio Selector: Filter active trade decisions (BUY/SELL)
+        active_candidates = [item for item in all_decisions if item[3].get("decision") in ["BUY", "SELL"]]
+        # Rank by signal confidence score (descending)
+        active_candidates.sort(key=lambda x: x[2]["confidence"], reverse=True)
+
+        logger.info(f"💼 Portfolio Selector: Found {len(active_candidates)} active trade signals (BUY/SELL)")
+
+        # 3. Correlation Analysis & Final Trade List Construction
+        final_trade_list = []
+        correlation_limit = 0.7  # Default correlation threshold
+
+        for candidate in active_candidates:
+            pair, ctx, signal_result, decision = candidate
+            
+            # Check correlation against already selected candidates in final_trade_list
+            is_correlated = False
+            for selected in final_trade_list:
+                sel_pair = selected[0]
+                # Look up pairwise correlation in correlation_data
+                matrix = correlation_data.get("matrix", {})
+                corr_val = matrix.get(pair, {}).get(sel_pair, 0.0)
+                
+                if abs(corr_val) > correlation_limit:
+                    logger.info(f"  ⚠️ Correlation Limit Exceeded: {pair} and {sel_pair} have correlation {corr_val:.2f} > {correlation_limit}")
+                    is_correlated = True
+                    break
+            
+            if not is_correlated:
+                final_trade_list.append(candidate)
+                logger.info(f"  📥 Added {pair} to Final Trade List (decision: {decision.get('decision')})")
+                if len(final_trade_list) >= self.max_tradeable:
+                    logger.info(f"🎯 Reached maximum tradeable capacity ({self.max_tradeable}). Stopping portfolio selection.")
+                    break
+            else:
+                logger.info(f"  ⏭️ Skipped {pair} due to correlation constraints.")
+
+        # Log final trade list summary
+        final_pairs = [x[0] for x in final_trade_list]
+        logger.info(f"📋 Final Trade List to execute ({len(final_trade_list)}): {final_pairs}")
+
+        # Filter results to only keep those in the final trade list or mark skipped ones
+        # So pipeline consumer knows which ones are actually selected for execution.
+        for pair in results:
+            if pair in results and "decision" in results[pair]:
+                dec_val = results[pair]["decision"].get("decision")
+                if dec_val in ["BUY", "SELL"] and pair not in final_pairs:
+                    # Downgrade decisions not in final trade list to HOLD/WAIT due to portfolio constraints
+                    results[pair]["decision"]["decision"] = "WAIT"
+                    results[pair]["decision"]["reason"] = "Wait - Filtered out by Portfolio Selector & Correlation Analysis"
 
         return results
 

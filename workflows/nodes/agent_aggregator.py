@@ -35,6 +35,7 @@ def aggregator_node(state: DyadixState) -> dict:
     menggunakan model weighted consensus.
     """
     symbol = state.get("symbol", "UNKNOWN")
+    print(f"[MONITORING] [Agent Aggregator] Aggregating verdicts for {symbol}...")
     logger.info(f"[Agent Aggregator] Aggregating verdicts for {symbol}...")
     
     tech = state.get("technical_verdict", {})
@@ -75,6 +76,7 @@ def aggregator_node(state: DyadixState) -> dict:
         w_tech, w_sent, w_deriv, w_liq = 0.40, 0.30, 0.20, 0.10
     else:
         w_tech, w_sent, w_deriv, w_liq = 0.60, 0.00, 0.30, 0.10
+        print(f"[MONITORING] [Agent Aggregator] Sentiment is disabled in settings. Redistributing weights (Tech: {w_tech * 100}%, Derivatives: {w_deriv * 100}%, Liquidity: {w_liq * 100}%)")
         logger.info(f"[Agent Aggregator] Sentiment is disabled in settings. Redistributing weights (Tech: {w_tech * 100}%, Derivatives: {w_deriv * 100}%, Liquidity: {w_liq * 100}%)")
         
     # Pembobotan consensus
@@ -121,5 +123,6 @@ def aggregator_node(state: DyadixState) -> dict:
         }
     }
     
+    print(f"[MONITORING] [Agent Aggregator] Aggregated Verdict: bias={final_bias}, confidence={weighted_conf:.2f}")
     logger.info(f"[Agent Aggregator] Aggregated Verdict: bias={final_bias}, confidence={weighted_conf:.2f}")
     return {"aggregated_verdict": verdict}

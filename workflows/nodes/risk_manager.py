@@ -11,6 +11,7 @@ def risk_manager_node(state: DyadixState) -> dict:
     dan position sizing.
     """
     symbol = state.get("symbol", "UNKNOWN")
+    print(f"[MONITORING] [Risk Manager] Evaluating risk for {symbol}...")
     logger.info(f"[Risk Manager] Evaluating risk for {symbol}...")
     
     config = get_config()
@@ -26,6 +27,7 @@ def risk_manager_node(state: DyadixState) -> dict:
         
     if current_price <= 0:
         # Fallback jika harga tidak terdeteksi
+        print(f"[MONITORING] [Risk Manager] Error: price is 0 for {symbol}")
         logger.error(f"[Risk Manager] Error: price is 0 for {symbol}")
         return {
             "risk_verdict": {
@@ -47,6 +49,7 @@ def risk_manager_node(state: DyadixState) -> dict:
     # Fallback ATR jika 0 (gunakan 0.5% dari harga sekarang)
     if atr <= 0.0:
         atr = current_price * 0.005
+        print(f"[MONITORING] [Risk Manager] Volatility ATR not found, using fallback 0.5% price ATR: {atr}")
         logger.warning(f"[Risk Manager] Volatility ATR not found, using fallback 0.5% price ATR: {atr}")
         
     bias_lower = bias.lower()
@@ -103,5 +106,6 @@ def risk_manager_node(state: DyadixState) -> dict:
         "max_running_trades": rm_config.get("max_running_trades", 1)
     }
     
+    print(f"[MONITORING] [Risk Manager] Verdict for {symbol}: cleared={cleared}, entry={current_price}, SL={sl_price}, TP={tp_price}")
     logger.info(f"[Risk Manager] Verdict for {symbol}: cleared={cleared}, entry={current_price}, SL={sl_price}, TP={tp_price}")
     return {"risk_verdict": risk_verdict}
