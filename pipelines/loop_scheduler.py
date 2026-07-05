@@ -191,8 +191,12 @@ class LoopScheduler:
             if is_limit_reached:
                 logger.info(f"⏳ Daily limit reached: {limit_reason}. Sleeping...")
                 return
+                
+            if TradeGuard.is_max_positions_reached():
+                logger.info("⏳ Max concurrent positions reached. Sleeping...")
+                return
         except Exception as e:
-            logger.warning(f"Failed to check daily limits: {e}")
+            logger.warning(f"Failed to check daily limits or max positions: {e}")
 
         # ── Step 1: Refresh stale data ────────────────────────────────
         refreshed = self.data_manager.refresh_stale_data()

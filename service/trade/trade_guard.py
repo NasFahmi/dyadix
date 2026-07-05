@@ -89,6 +89,26 @@ class TradeGuard:
             return False, ""
 
     @staticmethod
+    def is_max_positions_reached() -> bool:
+        """
+        Mengecek apakah jumlah posisi running saat ini sudah mencapai batas maksimum (max_positions).
+        """
+        try:
+            from config.settings import get_config
+            
+            config = get_config().get("risk_management", {})
+            max_positions = config.get("max_positions", 3)
+            
+            if max_positions <= 0:
+                return False
+                
+            running_trades = TradeGuard.get_all_running_trades()
+            return len(running_trades) >= max_positions
+        except Exception as e:
+            logger.error(f"TradeGuard max positions check error: {e}")
+            return False
+
+    @staticmethod
     def get_running_trade(pair: str):
         """
         Ambil record trade RUNNING untuk pair ini (jika ada).

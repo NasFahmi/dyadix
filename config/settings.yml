@@ -64,6 +64,7 @@ risk_management:
   risk_per_trade_pct: 1 # % modal yang di-risk per trade (0 = tidak dibatasi / menggunakan 100% balance)
   leverage: 2 # Leverage minimal (1x) 
   max_running_trades: 1 # Maksimal 1 trade aktif bersamaan per pair
+  max_positions: 3 # Maksimal total posisi running bersamaan
   max_daily_trades: 5 # Maksimal trade per hari (0 = tidak dibatasi)
   max_daily_sl: 3 # Maksimal total hit Stop Loss per hari (0 = tidak dibatasi)
 
