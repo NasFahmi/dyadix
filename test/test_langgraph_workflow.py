@@ -24,7 +24,11 @@ def test_rule_based_analysts_confluence():
             "volatility_5m": {"atr": 450.0},
             "trend_1h": {"trend_regime": "Strong Uptrend"},
             "momentum_15m": {"rsi": 62.0},
-            "price_action_5m": {"pa_bias": "Bullish", "is_bullish_engulfing": True}
+            "price_action_5m": {"pa_bias": "Bullish", "is_bullish_engulfing": True},
+            "order_block_1h": {
+                "nearest_bullish_ob": {"top": 95100.0, "bottom": 94800.0},
+                "nearest_bearish_ob": None
+            }
         },
         "sentiment_data": {
             "overall_sentiment": "Bullish",
@@ -43,7 +47,15 @@ def test_rule_based_analysts_confluence():
             "key_levels": {"pdl": 94500.0, "pdh": 96200.0}
         },
         "correlation_data": {},
-        "microstructure_data": {},
+        "microstructure_data": {
+            "cvd_5m_usd": 150000.0,
+            "cvd_15m_usd": 450000.0,
+            "orderbook_imbalance_top5": 0.25,
+            "whale_buy_count_15m": 5,
+            "whale_sell_count_15m": 2,
+            "long_liquidations_usd_15m": 0.0,
+            "short_liquidations_usd_15m": 30000.0
+        },
         "signal_detector_result": {
             "confidence": 0.78,
             "suggested_bias": "Bullish"
@@ -56,10 +68,13 @@ def test_rule_based_analysts_confluence():
     assert "technical_verdict" in tech_out
     assert tech_out["technical_verdict"]["bias"] == "Strong Bullish"
     assert tech_out["technical_verdict"]["confidence"] >= 0.70
+    assert any("Order Block" in r for r in tech_out["technical_verdict"]["reasons"])
     
     liq_out = liquidity_analyst_node(mock_state)
     assert "liquidity_verdict" in liq_out
     assert liq_out["liquidity_verdict"]["bias"] == "Bullish"
+    assert any("CVD" in r for r in liq_out["liquidity_verdict"]["reasons"])
+    assert any("Orderbook" in r for r in liq_out["liquidity_verdict"]["reasons"])
     
     deriv_out = derivatives_analyst_node(mock_state)
     assert "derivatives_verdict" in deriv_out
@@ -102,3 +117,98 @@ def test_risk_manager_calculations():
     # TP = 95000 + 3.0 * (95000 - 94000) = 98000
     assert verdict["take_profit"] == 98000.0
     assert verdict["risk_reward"] == "1:3.0"
+
+def test_aggregator_market_regimes():
+    """Memastikan aggregator_node menggunakan bobot yang benar untuk NORMAL dan HIGH_IMPACT_EVENT."""
+    from workflows.nodes.agent_aggregator import aggregator_node
+    from datetime import datetime, timezone
+    
+    # 1. NORMAL Regime State
+    state_normal = {
+        "symbol": "BTCUSDC",
+        "technical_verdict": {"bias": "Bullish", "confidence": 0.8, "reasons": []},
+        "liquidity_verdict": {"bias": "Bearish", "confidence": 0.7, "reasons": []},
+        "derivatives_verdict": {"bias": "Bullish", "confidence": 0.6, "reasons": []},
+        "sentiment_verdict": {"bias": "Neutral", "confidence": 0.5, "reasons": []},
+        "sentiment_data": {
+            "components": {
+                "economic": {
+                    "events": []
+                }
+            }
+        }
+    }
+    
+    res_normal = aggregator_node(state_normal)
+    assert "aggregated_verdict" in res_normal
+    assert res_normal["aggregated_verdict"]["market_regime"] == "NORMAL"
+    
+    # 2. HIGH_IMPACT_EVENT Regime State (CPI within 24h)
+    state_high_impact = {
+        "symbol": "BTCUSDC",
+        "technical_verdict": {"bias": "Bullish", "confidence": 0.8, "reasons": []},
+        "liquidity_verdict": {"bias": "Bearish", "confidence": 0.7, "reasons": []},
+        "derivatives_verdict": {"bias": "Bullish", "confidence": 0.6, "reasons": []},
+        "sentiment_verdict": {"bias": "Neutral", "confidence": 0.5, "reasons": []},
+        "sentiment_data": {
+            "components": {
+                "economic": {
+                    "events": [
+                        {
+                            "title": "Core CPI m/m",
+                            "timestamp": datetime.now(timezone.utc).isoformat()
+                        }
+                    ]
+                }
+            }
+        }
+    }
+    
+    res_high_impact = aggregator_node(state_high_impact)
+    assert "aggregated_verdict" in res_high_impact
+    assert res_high_impact["aggregated_verdict"]["market_regime"] == "HIGH_IMPACT_EVENT"
+
+def test_aggregator_veto_logic():
+    """Memastikan veto diaktifkan saat terjadi konflik arah (Bullish vs Bearish) di antara analis inti (Liquidity vs Derivatives)."""
+    from workflows.nodes.agent_aggregator import aggregator_node
+    
+    # 1. Core conflict: Liquidity = Bullish (0.8), Derivatives = Bearish (0.75) -> Harus VETO ke Neutral
+    state_conflict = {
+        "symbol": "BTCUSDC",
+        "technical_verdict": {"bias": "Bullish", "confidence": 0.8, "reasons": ["Uptrend strong"]},
+        "liquidity_verdict": {"bias": "Bullish", "confidence": 0.8, "reasons": ["Sweep PDL"]},
+        "derivatives_verdict": {"bias": "Bearish", "confidence": 0.75, "reasons": ["Funding negative"]},
+        "sentiment_verdict": {"bias": "Neutral", "confidence": 0.5, "reasons": []},
+        "sentiment_data": {
+            "components": {
+                "economic": {"events": []}
+            }
+        }
+    }
+    
+    res = aggregator_node(state_conflict)
+    assert "aggregated_verdict" in res
+    verdict = res["aggregated_verdict"]
+    assert verdict["consensus_bias"] == "Neutral"
+    assert verdict["consensus_confidence"] == 0.0
+    assert any("[Veto] Core Conflict" in r for r in verdict["aggregated_reasons"])
+
+    # 2. Consensus Anchoring: Liquidity = Bullish (0.8), Derivatives = Bullish (0.8) -> Anchor to Bullish
+    # Technical = Bearish (0.7) -> Disagrees, reduces confidence but final bias remains Bullish
+    state_anchoring = {
+        "symbol": "BTCUSDC",
+        "technical_verdict": {"bias": "Bearish", "confidence": 0.7, "reasons": ["Lagging structure"]},
+        "liquidity_verdict": {"bias": "Bullish", "confidence": 0.8, "reasons": ["Sweep PDL"]},
+        "derivatives_verdict": {"bias": "Bullish", "confidence": 0.8, "reasons": ["Whale buys"]},
+        "sentiment_verdict": {"bias": "Neutral", "confidence": 0.5, "reasons": []},
+        "sentiment_data": {
+            "components": {
+                "economic": {"events": []}
+            }
+        }
+    }
+    
+    res_anchor = aggregator_node(state_anchoring)
+    verdict_anchor = res_anchor["aggregated_verdict"]
+    assert "Bullish" in verdict_anchor["consensus_bias"]
+    assert any("Tech disagrees with Core Consensus" in r for r in verdict_anchor["aggregated_reasons"])

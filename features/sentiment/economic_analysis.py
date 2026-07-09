@@ -38,6 +38,7 @@ class EconomicAnalysis:
                 "title": e.get("title", ""),
                 "date": e.get("date", ""),
                 "time": e.get("time", ""),
+                "timestamp": e.get("timestamp", ""),
             }
             for e in events
         ]

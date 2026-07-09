@@ -84,11 +84,11 @@ class DyadixState(TypedDict):
 Untuk meminimalkan biaya token LLM dan mengoptimalkan latensi, 4 node analis pertama berjalan secara **paralel** menggunakan fungsi Python deterministik:
 
 *   **Technical Analyst Node** (`workflows/nodes/technical_analyst.py`):
-    *   *Tugas:* Menganalisis daily bias, trend regime (EMA), RSI momentum, dan candlestick patterns (engulfing/hammer).
-    *   *Output:* Bias (Bullish/Bearish/Neutral), confidence score, dan pendukung teknikal.
+    *   *Tugas:* Menganalisis daily bias, trend regime (EMA), RSI momentum, candlestick patterns (engulfing/hammer), serta unmitigated **SMC Order Blocks** (menyesuaikan bias dan menambah +0.20 confidence jika harga berada di dalam threshold 0.2% dari Bullish/Bearish OB terdekat).
+    *   *Output:* Bias (Bullish/Bearish/Neutral), confidence score, dan pendukung teknikal/OB.
 *   **Liquidity Analyst Node** (`workflows/nodes/liquidity_analyst.py`):
-    *   *Tugas:* Mendeteksi PDH/PDL sweeps, support/resistance pools, dan status likuiditas.
-    *   *Output:* Bias likuiditas, confidence score, dan level likuiditas relevan.
+    *   *Tugas:* Mendeteksi PDH/PDL sweeps, support/resistance pools, dan data **WebSocket Microstructure** (confluence dari CVD 5m/15m alignment, top-5 orderbook imbalance, whale execution buy/sell, dan liquidation squeezes).
+    *   *Output:* Bias likuiditas/microstructure, confidence score, dan level likuiditas relevan.
 *   **Derivatives Analyst Node** (`workflows/nodes/derivatives_analyst.py`):
     *   *Tugas:* Menganalisis trend funding rate dan perubahan Open Interest (OI).
     *   *Output:* Bias positioning futures (Longs/Shorts increasing) dan tingkat keyakinan.
@@ -100,15 +100,15 @@ Untuk meminimalkan biaya token LLM dan mengoptimalkan latensi, 4 node analis per
 Setelah node analis selesai berjalan secara paralel, grafik menyatukan (join) state-nya menuju:
 
 *   **Agent Aggregator Node** (`workflows/nodes/agent_aggregator.py`):
-    *   *Tugas:* Menggabungkan verdict dari 4 analis menggunakan model *weighted consensus* (Technical: 40%, Sentiment: 30%, Derivatives: 20%, Liquidity: 10%).
-    *   *Output:* `consensus_bias`, `consensus_score`, `consensus_confidence`, serta gabungan alasan terformat.
+    *   *Tugas:* Menggabungkan verdict dari 4 analis menggunakan model *weighted consensus* dinamis berdasarkan `MarketRegime` (NORMAL/HIGH_IMPACT_EVENT). Menerapkan **Core-Secondary Veto Logic** di mana *Liquidity* dan *Derivatives* bertindak sebagai analis inti (*core*). Jika mereka sepakat arahnya, bias final di-anchor ke arah tersebut dan *Technical* (Secondary) hanya memodifikasi confidence (-0.15 jika bertentangan). Veto (Neutral/WAIT) hanya dipicu jika *Liquidity* dan *Derivatives* berlawanan arah dengan keyakinan tinggi ($> 0.70$).
+    *   *Output:* `consensus_bias`, `consensus_score`, `consensus_confidence` (terpenalti jika Technical bertentangan), `market_regime` (NORMAL/HIGH_IMPACT_EVENT), serta gabungan alasan terformat.
 *   **Risk Manager Node** (`workflows/nodes/risk_manager.py`):
     *   *Tugas:* Menentukan parameter risiko entry. Jika consensus bias valid (Bullish/Bearish), Risk Manager menghitung dynamic Stop Loss (entry ± 2 * ATR) dan Target Take Profit (min. Risk/Reward 1:3.0).
     *   *Output:* status `cleared` (True/False), stop_loss price, take_profit price, dan leverage.
 
 ### 3. Trade Verdict Node (LLM Coordinator)
 *   **Trade Verdict Node** (`workflows/nodes/trade_verdict.py`):
-    *   *Tugas:* Menerima hasil agregasi dan parameter risiko. Jika `cleared` bernilai `False`, node langsung mengembalikan keputusan `WAIT`. Jika `True`, node memanggil **Decision LLM** dengan JSON Schema ketat untuk merumuskan koordinat verdict trading (BUY/SELL, Entry Zone, Target, Stop Loss, Invalidated If, dan Key Risks).
+    *   *Tugas:* Menerima hasil agregasi dan parameter risiko. Jika `cleared` bernilai `False`, node langsung mengembalikan keputusan `WAIT`. Jika `True`, node memanggil **Decision LLM** dengan JSON Schema ketat untuk merumuskan koordinat verdict trading (BUY/SELL, Entry Zone, Target, Stop Loss, Invalidated If, dan Key Risks). Data real-time **WebSocket Microstructure** (`microstructure_data`) ikut disalurkan di dalam payload konteks LLM ini.
 
 ---
 

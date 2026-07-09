@@ -55,7 +55,8 @@ def trade_verdict_node(state: DyadixState) -> dict:
         "sentiment_analyst_verdict": state.get("sentiment_verdict"),
         "consensus_verdict": state.get("aggregated_verdict"),
         "risk_manager_parameters": risk_verdict,
-        "raw_key_levels": state.get("market_data", {}).get("key_levels", {})
+        "raw_key_levels": state.get("market_data", {}).get("key_levels", {}),
+        "microstructure_data": state.get("microstructure_data", {})
     }
     
     user_input = (

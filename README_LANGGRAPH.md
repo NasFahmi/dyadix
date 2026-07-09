@@ -6,7 +6,7 @@
 
 ## ✨ Fitur Utama
 
-- 🧠 **Multi-Agent Architecture**: Analyzer, Risk Manager, dan Trader bekerja sama
+- 🧠 **Multi-Agent Architecture**: Analyzer (Technical with SMC Order Blocks, Liquidity with real-time WebSocket Microstructure), Risk Manager, dan LLM Trader Coordinator bekerja sama
 - 📊 **State Management**: Centralized state dengan LangGraph
 - ⚡ **Real-time Trading**: Monitoring pasar dan eksekusi otomatis
 - 🛡️ **Risk Management**: Proteksi modal dengan stop-loss dinamis
@@ -97,10 +97,9 @@ graph LR
 ## 🎯 Trading Strategy
 
 ### Signals
-- **RSI**: Overbought/Oversold detection
-- **MACD**: Trend confirmation
-- **Bollinger Bands**: Volatility analysis
-- **Volume**: Market strength validation
+- **RSI & EMA**: Trend and momentum regimes
+- **SMC Order Blocks**: Unmitigated Bullish/Bearish zones for high-probability entry levels
+- **WebSocket Microstructure**: Real-time CVD (Cumulative Volume Delta) alignment, top-5 orderbook imbalance, whale execution tracking, and liquidation squeezes
 
 ### Risk Management
 - **Position Sizing**: Kelly Criterion based

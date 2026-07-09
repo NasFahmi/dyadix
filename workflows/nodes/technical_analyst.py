@@ -42,15 +42,46 @@ def technical_analyst_node(state: DyadixState) -> dict:
             break
     pa_bias = pa_info.get("pa_bias", "Neutral")
     
+    # Buat summary technical indicators
+    reasons = []
+    
     # Cari order block
     ob_info = {}
     for key in market_data:
         if key.startswith("order_block_"):
             ob_info = market_data[key]
             break
+            
+    # Evaluation of Order Blocks
+    threshold_pct = 0.002
+    current_price = state.get("realtime_price") or market_data.get("current_price")
+    ob_confluence_score = 0.0
     
-    # Buat summary technical indicators
-    reasons = []
+    if current_price and ob_info:
+        bull_ob = ob_info.get("nearest_bullish_ob")
+        bear_ob = ob_info.get("nearest_bearish_ob")
+        
+        if bull_ob:
+            top = bull_ob["top"]
+            bottom = bull_ob["bottom"]
+            if (current_price >= bottom) and (current_price <= top * (1 + threshold_pct)):
+                ob_confluence_score += 0.20
+                reasons.append(f"Price in Bullish Order Block ({bottom}-{top})")
+                if overall_bias == "Neutral":
+                    overall_bias = "Bullish"
+                elif "Bearish" in overall_bias:
+                    overall_bias = "Neutral"
+                    
+        if bear_ob:
+            top = bear_ob["top"]
+            bottom = bear_ob["bottom"]
+            if (current_price <= top) and (current_price >= bottom * (1 - threshold_pct)):
+                ob_confluence_score += 0.20
+                reasons.append(f"Price in Bearish Order Block ({bottom}-{top})")
+                if overall_bias == "Neutral":
+                    overall_bias = "Bearish"
+                elif "Bullish" in overall_bias:
+                    overall_bias = "Neutral"
     if overall_bias != "Neutral":
         reasons.append(f"Overall technical bias is {overall_bias}")
     if daily_bias != "Neutral":
@@ -76,6 +107,8 @@ def technical_analyst_node(state: DyadixState) -> dict:
     # Hitung confidence berdasarkan confluence
     # Kita bisa set confidence dasar sesuai keselarasan bias harian, trend, dan momentum
     confluence_score = 0
+    confluence_score += ob_confluence_score
+    
     if daily_bias == "Bullish" and "uptrend" in trend_regime.lower():
         confluence_score += 0.3
     elif daily_bias == "Bearish" and "downtrend" in trend_regime.lower():
