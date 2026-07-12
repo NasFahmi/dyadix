@@ -7,6 +7,7 @@ Dibaca dari environment variables via .env.
 
 import os
 import logging
+import urllib.parse
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from dotenv import load_dotenv
@@ -26,7 +27,8 @@ def get_database_url() -> str:
     db = os.getenv("POSTGRES_DB", "dyadix")
     user = os.getenv("POSTGRES_USER", "dyadix")
     password = os.getenv("POSTGRES_PASSWORD", "")
-    return f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{db}"
+    safe_password = urllib.parse.quote_plus(password)
+    return f"postgresql+psycopg2://{user}:{safe_password}@{host}:{port}/{db}"
 
 
 def get_engine():
