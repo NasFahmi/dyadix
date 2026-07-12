@@ -115,6 +115,7 @@ class TradeRecord(Base):
     # TP/SL order IDs from exchange
     stop_loss_order_id = Column(String(50), nullable=True)  # Exchange order ID for SL
     take_profit_order_id = Column(String(50), nullable=True)  # Exchange order ID for TP
+    is_break_even = Column(Boolean, default=False, nullable=False)
 
     # Hasil trade
     exit_price = Column(Float)

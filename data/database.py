@@ -52,9 +52,20 @@ def init_db():
     Dipanggil saat bot pertama kali start.
     """
     from data.models import SentimentRecord, DecisionRecord, TradeRecord  # noqa: F401
+    from sqlalchemy import text
 
     engine = get_engine()
     Base.metadata.create_all(bind=engine)
+
+    # Tambahkan kolom is_break_even secara dinamis jika belum ada
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE trades ADD COLUMN IF NOT EXISTS is_break_even BOOLEAN DEFAULT FALSE"))
+            conn.commit()
+            logger.info("Checked and updated 'trades' schema for 'is_break_even' column.")
+    except Exception as e:
+        logger.warning(f"Failed to check/update trades schema (non-fatal): {e}")
+
     logger.info("Database tables initialized.")
 
 
