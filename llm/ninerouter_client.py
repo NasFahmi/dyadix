@@ -90,7 +90,11 @@ class NinerouterClient(BaseLLMClient):
                 logger.error(f"9router error: {response.status_code} - {response.text}")
                 return {"content": "", "error": f"HTTP {response.status_code}", "provider": "ninerouter"}
 
-            result = response.json()
+            text = response.text.strip()
+            last_bracket = text.rfind("}")
+            if last_bracket != -1:
+                text = text[:last_bracket + 1]
+            result = json.loads(text)
             if "choices" in result and len(result["choices"]) > 0:
                 content = result["choices"][0]["message"].get("content", "")
                 content = strip_thinking(content)
@@ -161,7 +165,11 @@ class NinerouterClient(BaseLLMClient):
                 logger.error(f"9router structured error: {response.status_code} - {response.text}")
                 return {"error": f"HTTP {response.status_code}", "provider": "ninerouter"}
 
-            result = response.json()
+            text = response.text.strip()
+            last_bracket = text.rfind("}")
+            if last_bracket != -1:
+                text = text[:last_bracket + 1]
+            result = json.loads(text)
             if "choices" in result and len(result["choices"]) > 0:
                 content = result["choices"][0]["message"].get("content", "").strip()
                 content = strip_thinking(content)
