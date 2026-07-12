@@ -67,6 +67,9 @@ risk_management:
   max_positions: 3 # Maksimal total posisi running bersamaan
   max_daily_trades: 5 # Maksimal trade per hari (0 = tidak dibatasi)
   max_daily_sl: 3 # Maksimal total hit Stop Loss per hari (0 = tidak dibatasi)
+  auto_be:
+    enabled: true
+    rr_trigger: 0.8  # Pindahkan SL ke entry saat profit mencapai 0.8x risk (RR)
 
   # ───────────────────────────────────────────────────────────────
   # CONTOH KALKULASI RISK (panduan penyesuaian):

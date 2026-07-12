@@ -94,7 +94,9 @@ class TradeMonitor:
                 # Check TP/SL first (even if position still exists)
                 position = positions_by_pair.get(trade.pair)
                 if position:
-                    self._check_manual_tp_sl(trade, position)
+                    is_closed = self._check_manual_tp_sl(trade, position)
+                    if not is_closed:
+                        self._check_auto_break_even(trade, position)
 
                 # Then check if position still exists
                 self._sync_trade(trade)
@@ -176,17 +178,17 @@ class TradeMonitor:
         # Default
         return "Position Closed"
 
-    def _check_manual_tp_sl(self, trade, position):
+    def _check_manual_tp_sl(self, trade, position) -> bool:
         """
         Manual TP/SL check - untuk testnet yang tidak support TP/SL orders.
         Jika harga market mencapai SL atau TP, tutup posisi secara manual.
         """
         if not trade.stop_loss_price or not trade.target_price:
-            return
+            return False
 
         current_price = self.exchange.get_realtime_price(trade.pair)
         if current_price <= 0:
-            return
+            return False
 
         entry_price = float(position.get("entryPrice", 0))
         side = trade.side
@@ -268,6 +270,8 @@ class TradeMonitor:
                         daemon=True,
                         name=f"AutopsyThread-{trade.pair}",
                     ).start()
+                return True
+        return False
 
     def _close_trade(self, trade, order, reason=None):
         """Update DB saat trade ditutup, kirim notifikasi, trigger autopsy jika SL."""
@@ -413,3 +417,104 @@ class TradeMonitor:
             engine.run(trade)
         except Exception as e:
             logger.error(f"Autopsy failed for {trade.pair} trade {trade.id}: {e}")
+
+    def _check_auto_break_even(self, trade, position):
+        """
+        Cek apakah trade berhak mendapatkan pemindahan Stop Loss ke Break Even.
+        """
+        from config.settings import get_config
+        config = get_config()
+        rm = config.get("risk_management", {})
+        auto_be_cfg = rm.get("auto_be", {})
+        
+        if not auto_be_cfg.get("enabled", False):
+            return
+            
+        # Jika sudah break-even atau tidak punya SL/Entry, tidak perlu cek lagi
+        if getattr(trade, "is_break_even", False) or not trade.stop_loss_price or not trade.entry_price:
+            return
+
+        current_price = self.exchange.get_realtime_price(trade.pair)
+        if current_price <= 0:
+            return
+            
+        entry_price = trade.entry_price
+        sl_price = trade.stop_loss_price
+        side = trade.side.upper()
+        
+        sl_dist = abs(entry_price - sl_price)
+        rr_trigger = float(auto_be_cfg.get("rr_trigger", 0.8))
+        
+        if side == "BUY":
+            # Long: trigger jika harga naik >= entry + (rr_trigger * sl_dist)
+            trigger_price = entry_price + (rr_trigger * sl_dist)
+            is_triggered = current_price >= trigger_price
+        else: # SELL
+            # Short: trigger jika harga turun <= entry - (rr_trigger * sl_dist)
+            trigger_price = entry_price - (rr_trigger * sl_dist)
+            is_triggered = current_price <= trigger_price
+
+        if is_triggered:
+            logger.info(
+                f"[AUTO BE] Triggered for {trade.pair} {side}! "
+                f"Current: {current_price}, Trigger: {trigger_price}, Entry: {entry_price}"
+            )
+            self._move_to_break_even(trade, entry_price)
+
+    def _move_to_break_even(self, trade, entry_price):
+        """Pindahkan stop loss ke entry_price di bursa dan update database."""
+        # 1. Batal SL order yang lama jika ada
+        if trade.stop_loss_order_id:
+            try:
+                logger.info(f"[AUTO BE] Canceling old SL order #{trade.stop_loss_order_id} for {trade.pair}")
+                self.exchange.cancel_order(trade.pair, trade.stop_loss_order_id, is_algo=True)
+            except Exception as e:
+                logger.warning(f"[AUTO BE] Failed to cancel old SL order: {e}")
+
+        # 2. Place new stop loss order at entry_price
+        new_sl_order_id = None
+        try:
+            logger.info(f"[AUTO BE] Placing new SL order at entry_price {entry_price} for {trade.pair}")
+            sl_result = self.exchange.place_stop_loss_order(
+                pair=trade.pair,
+                side=trade.side,
+                quantity=trade.quantity,
+                sl_price=entry_price
+            )
+            if sl_result:
+                new_sl_order_id = str(sl_result.get("orderId"))
+                logger.info(f"[AUTO BE] New SL placed at entry: {entry_price} -> ID: {new_sl_order_id}")
+            else:
+                logger.warning(f"[AUTO BE] Failed to place new SL order (will fallback to manual check)")
+        except Exception as e:
+            logger.error(f"[AUTO BE] Error placing new SL order at entry: {e}")
+
+        # 3. Update database
+        from data.database import SessionFactory
+        from data.models import TradeRecord
+
+        try:
+            with SessionFactory() as session:
+                db_trade = session.query(TradeRecord).filter_by(id=trade.id).first()
+                if db_trade:
+                    db_trade.stop_loss_price = entry_price
+                    db_trade.stop_loss_order_id = new_sl_order_id
+                    db_trade.is_break_even = True
+                    session.commit()
+                    
+                    # Update local trade object to prevent duplicate trigger in this thread run
+                    trade.stop_loss_price = entry_price
+                    trade.stop_loss_order_id = new_sl_order_id
+                    trade.is_break_even = True
+        except Exception as e:
+            logger.error(f"[AUTO BE] Error updating database for Break Even: {e}")
+
+        # 4. Kirim Telegram notification
+        if self.telegram:
+            text = (
+                f"🛡️ <b>AUTO BREAK EVEN — {trade.pair}</b>\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"Posisi {trade.side} telah mencapai target profit.\n"
+                f"Stop Loss berhasil digeser ke <b>Harga Entry</b>: ${entry_price:,.2f} (Risk-Free Trade!)."
+            )
+            self.telegram.send_message(text)
