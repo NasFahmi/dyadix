@@ -5,10 +5,7 @@ __pycache__
 .vscode
 .idea
 
-cache/economic/*
-cache/influencers/*
-cache/news/*
-
+cache/
 data/logs/decisions/*
 data/processed/daily_bias/*
 data/processed/signals/*
