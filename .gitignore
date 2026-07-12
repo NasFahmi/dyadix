@@ -6,6 +6,6 @@ __pycache__
 .idea
 
 cache/
-data/logs/decisions/*
+data/logs/*
 data/processed/daily_bias/*
 data/processed/signals/*
