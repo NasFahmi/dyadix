@@ -61,12 +61,12 @@ exchange:
   # Testnet dikontrol via .env: HYPERLIQUID_TESTNET=true / false
 
 risk_management:
-  risk_per_trade_pct: 1 # % modal yang di-risk per trade (0 = tidak dibatasi / menggunakan 100% balance)
-  leverage: 2 # Leverage minimal (1x) 
+  risk_per_trade_pct: 3 # % modal yang di-risk per trade (dengan leverage 10x, nominal = 3% * 50 * 10 = $15.0)
+  leverage: 10 # Set ke 10x leverage
   max_running_trades: 1 # Maksimal 1 trade aktif bersamaan per pair
   max_positions: 3 # Maksimal total posisi running bersamaan
-  max_daily_trades: 5 # Maksimal trade per hari (0 = tidak dibatasi)
-  max_daily_sl: 3 # Maksimal total hit Stop Loss per hari (0 = tidak dibatasi)
+  max_daily_trades: 5 # Maksimal trade per hari
+  max_daily_sl: 3 # Maksimal total hit Stop Loss per hari
   auto_be:
     enabled: true
     rr_trigger: 0.8  # Pindahkan SL ke entry saat profit mencapai 0.8x risk (RR)
