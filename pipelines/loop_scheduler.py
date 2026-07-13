@@ -387,6 +387,10 @@ class LoopScheduler:
                 decision["decision"] = "WAIT"
                 decision["reason"] = "Wait - Filtered out by Portfolio Selector & Correlation Analysis"
 
+            # Inject raw payload and response into context for database logging
+            ctx["raw_llm_payload"] = decision.get("raw_payload")
+            ctx["raw_llm_response"] = decision.get("raw_response")
+
             # Log to DB
             decision_id = self.decision_logger.log_decision(pair, signal_result, decision, ctx)
 

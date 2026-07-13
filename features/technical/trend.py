@@ -123,10 +123,27 @@ class TrendEngine:
 
         latest = df_with_trend.iloc[-1]
 
+        # Handle case where indicators were not computed (e.g. len(df) < 50)
+        if "trend_regime" not in latest:
+            return {
+                "timeframe": timeframe,
+                "current_price": round(float(latest.get("close", 0)), 2),
+                "trend_regime": "Unknown",
+                "supertrend_trend": "Neutral",
+                "adx": 0.0,
+                "trend_strength": "Weak",
+                "above_ema50": False,
+                "above_ema200": False,
+                "above_supertrend": False,
+                "distance_to_supertrend_pct": 0.0,
+                "calculated_at": datetime.utcnow().isoformat(),
+                "error": "Insufficient data points for trend calculation"
+            }
+
         summary = {
             "timeframe": timeframe,
-            "current_price": round(float(latest["close"]), 2),
-            "trend_regime": str(latest["trend_regime"]),
+            "current_price": round(float(latest.get("close", 0)), 2),
+            "trend_regime": str(latest.get("trend_regime", "Unknown")),
             "supertrend_trend": str(latest.get("supertrend_trend", "Neutral")),
             "adx": round(float(latest.get("adx", 0)), 2),
             "trend_strength": "Strong" if float(latest.get("adx", 0)) > 25 else "Weak",
@@ -137,8 +154,8 @@ class TrendEngine:
             # Distance to Supertrend
             "distance_to_supertrend_pct": round(
                 float(
-                    (latest["close"] - latest.get("supertrend", latest["close"]))
-                    / latest["close"]
+                    (latest.get("close", 0) - latest.get("supertrend", latest.get("close", 0)))
+                    / (latest.get("close") or 1.0)
                     * 100
                 ),
                 2,

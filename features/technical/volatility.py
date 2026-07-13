@@ -97,7 +97,7 @@ class VolatilityEngine:
         latest = df.iloc[-1]
         recent_avg_atr = (
             df["atr"].rolling(window=20).mean().iloc[-1]
-            if len(df) > 20
+            if ("atr" in df.columns and len(df) > 20)
             else latest.get("atr", 0)
         )
 

@@ -192,6 +192,10 @@ class MainPipeline:
                 "decision": decision,
             }
 
+            # Inject raw payload and response into context for database logging
+            ctx["raw_llm_payload"] = decision.get("raw_payload")
+            ctx["raw_llm_response"] = decision.get("raw_response")
+
             # ── Save Decision to Database ─────────────────────────────
             self.decision_logger.log_decision(pair, signal_result, decision, ctx)
 

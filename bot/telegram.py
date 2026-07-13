@@ -285,7 +285,48 @@ class TelegramNotifier:
             f"<i>{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC</i>"
         )
 
-        return self.send_message(text)
+        success = self.send_message(text)
+        
+        # Kirim debug details LLM jika enabled
+        if self.enabled:
+            import json
+            try:
+                # 1. Response dari verdict (signal_result)
+                verdict_str = json.dumps(signal_result, indent=2, ensure_ascii=False)
+                
+                # 2. Payload final decision
+                payload_str = decision.get("raw_payload", "N/A")
+                try:
+                    payload_json = json.loads(payload_str)
+                    payload_str = json.dumps(payload_json, indent=2, ensure_ascii=False)
+                except Exception:
+                    pass
+                    
+                # 3. Response final decision (raw response)
+                response_str = decision.get("raw_response", "N/A")
+                
+                # 4. Hasil final decision
+                clean_decision = {k: v for k, v in decision.items() if k not in ["raw_payload", "raw_response"]}
+                hasil_str = json.dumps(clean_decision, indent=2, ensure_ascii=False)
+                
+                # Potong agar tidak melebihi limit Telegram (4096 karakter)
+                debug_text = (
+                    f"🔍 <b>LLM DECISION DETAILS — {escape_html(pair)}</b>\n"
+                    f"━━━━━━━━━━━━━━━━━━━━\n\n"
+                    f"<b>1. Verdict / Signal Result:</b>\n"
+                    f"<pre><code class=\"language-json\">{escape_html(verdict_str)}</code></pre>\n\n"
+                    f"<b>2. Payload Final Decision (Context):</b>\n"
+                    f"<pre><code class=\"language-json\">{escape_html(payload_str[:1500])}{'...' if len(payload_str) > 1500 else ''}</code></pre>\n\n"
+                    f"<b>3. Response Final Decision (Raw):</b>\n"
+                    f"<pre><code>{escape_html(response_str[:1000])}{'...' if len(response_str) > 1000 else ''}</code></pre>\n\n"
+                    f"<b>4. Hasil Final Decision (Parsed):</b>\n"
+                    f"<pre><code class=\"language-json\">{escape_html(hasil_str)}</code></pre>"
+                )
+                self.send_message(debug_text)
+            except Exception as e:
+                logger.error(f"Failed to send decision details to Telegram: {e}")
+                
+        return success
 
     def notify_order_placed(
         self, pair: str, action: str, decision: Dict, realtime_price: float = 0.0,

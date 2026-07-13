@@ -177,6 +177,11 @@ def trade_verdict_node(state: DyadixState) -> dict:
             if result and "error" not in result and "decision" in result:
                 print(f"[MONITORING] [Trade Verdict] Structured decision: {result.get('decision')} | confidence: {result.get('confidence')} | reason: {result.get('reason')}")
                 logger.info(f"[Trade Verdict] Structured output received successfully for {symbol}")
+                
+                # Capture payload and response
+                result["raw_payload"] = result.get("raw_payload") or json.dumps({"system": system_prompt, "user": user_input}, ensure_ascii=False)
+                result["raw_response"] = result.get("raw_response") or json.dumps(result, ensure_ascii=False)
+                
                 return {"trade_verdict": result}
         except Exception as e:
             logger.warning(f"[Trade Verdict] structured_generate failed ({e}), falling back to standard generate...")
@@ -196,6 +201,9 @@ def trade_verdict_node(state: DyadixState) -> dict:
             content = content[start : end + 1]
             
         parsed = json.loads(content.strip())
+        parsed["raw_payload"] = raw.get("raw_payload") or json.dumps({"system": system_prompt, "user": user_input}, ensure_ascii=False)
+        parsed["raw_response"] = raw.get("raw_response") or content
+        
         print(f"[MONITORING] [Trade Verdict] Standard parsed decision: {parsed.get('decision')} | confidence: {parsed.get('confidence')} | reason: {parsed.get('reason')}")
         logger.info(f"[Trade Verdict] Generated standard output successfully parsed for {symbol}")
         return {"trade_verdict": parsed}
@@ -217,6 +225,8 @@ def trade_verdict_node(state: DyadixState) -> dict:
             "execution_type": "LIMIT",
             "expected_move": "N/A",
             "reason": f"Decision LLM call failed: {str(e)}",
-            "key_risks": ["LLM failure"]
+            "key_risks": ["LLM failure"],
+            "raw_payload": json.dumps({"system": system_prompt, "user": user_input}, ensure_ascii=False),
+            "raw_response": f"Exception raised: {str(e)}"
         }
         return {"trade_verdict": fallback}
