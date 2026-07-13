@@ -39,7 +39,17 @@ def trade_verdict_node(state: DyadixState) -> dict:
             }
         }
         
-    print(f"[MONITORING] [Trade Verdict] Invoking Decision LLM for {symbol}...")
+    # ── Pre-entry Logging ──────────────────────────────────────────
+    consensus = state.get("aggregated_verdict", {})
+    print(f"[PRE-NODE]  [Trade Verdict] {symbol} | "
+          f"Consensus: {consensus.get('consensus_bias','?')} (conf={consensus.get('consensus_confidence','?')}) | "
+          f"Risk cleared: {risk_verdict.get('cleared','?')} | "
+          f"Entry: {risk_verdict.get('entry_midpoint','?')} "
+          f"SL: {risk_verdict.get('stop_loss','?')} "
+          f"TP: {risk_verdict.get('take_profit','?')}")
+    logger.info(f"[Trade Verdict] [PRE-NODE] {symbol} | consensus_bias={consensus.get('consensus_bias')} "
+                f"conf={consensus.get('consensus_confidence')} | cleared={risk_verdict.get('cleared')} "
+                f"entry={risk_verdict.get('entry_midpoint')} sl={risk_verdict.get('stop_loss')} tp={risk_verdict.get('take_profit')}")
     logger.info(f"[Trade Verdict] Invoking Decision LLM for {symbol}...")
     
     system_prompt = SystemPrompt().get_system_prompt_decision()
@@ -183,13 +193,32 @@ def trade_verdict_node(state: DyadixState) -> dict:
                 result["raw_response"] = result.get("raw_response") or json.dumps(result, ensure_ascii=False)
                 
                 return {"trade_verdict": result}
+            elif result and "error" in result:
+                err_msg = result.get('error', 'Unknown error')
+                print(f"[MONITORING] [Trade Verdict] structured_generate error for {symbol}: {err_msg}")
+                logger.error(f"[Trade Verdict] structured_generate returned error for {symbol}: {err_msg}")
+                raise RuntimeError(f"structured_generate API error: {err_msg}")
+            else:
+                no_decision_msg = "Response missing 'decision' key or empty"
+                print(f"[MONITORING] [Trade Verdict] structured_generate invalid response for {symbol}: {no_decision_msg}")
+                logger.warning(f"[Trade Verdict] structured_generate: {no_decision_msg} for {symbol}")
+                raise RuntimeError(no_decision_msg)
         except Exception as e:
             logger.warning(f"[Trade Verdict] structured_generate failed ({e}), falling back to standard generate...")
             
         # Fallback ke generate standar
+        print(f"[MONITORING] [Trade Verdict] Attempting standard generate() fallback for {symbol}...")
         raw = llm.generate(system_prompt=system_prompt, user_input=user_input)
+        
+        # Periksa jika generate() mengembalikan error
+        if raw.get("error"):
+            raise RuntimeError(f"LLM generate() returned error: {raw['error']}")
+        
         content = raw.get("content", "").strip()
         
+        if not content:
+            raise RuntimeError("LLM generate() returned empty content — model overloaded or request timed out.")
+            
         if content.startswith("```"):
             content = content.split("```")[1]
             if content.startswith("json"):
@@ -206,6 +235,12 @@ def trade_verdict_node(state: DyadixState) -> dict:
         
         print(f"[MONITORING] [Trade Verdict] Standard parsed decision: {parsed.get('decision')} | confidence: {parsed.get('confidence')} | reason: {parsed.get('reason')}")
         logger.info(f"[Trade Verdict] Generated standard output successfully parsed for {symbol}")
+        # ── Post-exit Logging ────────────────────────────────────────────
+        print(f"[POST-NODE] [Trade Verdict] {symbol} | decision={parsed.get('decision')} | bias={parsed.get('bias')} | "
+              f"conf={parsed.get('confidence')} | entry={parsed.get('entry_zone')} "
+              f"sl={parsed.get('stop_loss')} tp={parsed.get('target')} rr={parsed.get('risk_reward')}")
+        logger.info(f"[Trade Verdict] [POST-NODE] {symbol} | decision={parsed.get('decision')} bias={parsed.get('bias')} "
+                    f"conf={parsed.get('confidence')} sl={parsed.get('stop_loss')} tp={parsed.get('target')}")
         return {"trade_verdict": parsed}
         
     except Exception as e:

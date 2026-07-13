@@ -95,6 +95,14 @@ class NinerouterClient(BaseLLMClient):
             if last_bracket != -1:
                 text = text[:last_bracket + 1]
             result = json.loads(text)
+            
+            # Cek error di dalam response body (HTTP 200 tapi model gagal)
+            if "error" in result:
+                err = result["error"]
+                err_msg = err.get("message", str(err)) if isinstance(err, dict) else str(err)
+                logger.error(f"9router API error in response body (generate): {err_msg}")
+                return {"content": "", "error": err_msg, "provider": "ninerouter"}
+            
             if "choices" in result and len(result["choices"]) > 0:
                 content = result["choices"][0]["message"].get("content", "")
                 content = strip_thinking(content)
@@ -104,7 +112,7 @@ class NinerouterClient(BaseLLMClient):
                     "model": self.model,
                 }
             else:
-                return {"content": "", "error": "No output from 9router", "provider": "ninerouter"}
+                return {"content": "", "error": "No choices in 9router response", "provider": "ninerouter"}
 
         except Exception as e:
             logger.error(f"Error calling 9router: {e}")
@@ -170,6 +178,14 @@ class NinerouterClient(BaseLLMClient):
             if last_bracket != -1:
                 text = text[:last_bracket + 1]
             result = json.loads(text)
+            
+            # Cek error di dalam response body (HTTP 200 tapi model gagal)
+            if "error" in result:
+                err = result["error"]
+                err_msg = err.get("message", str(err)) if isinstance(err, dict) else str(err)
+                logger.error(f"9router API error in response body (structured_generate): {err_msg}")
+                return {"error": err_msg, "provider": "ninerouter"}
+            
             if "choices" in result and len(result["choices"]) > 0:
                 content = result["choices"][0]["message"].get("content", "").strip()
                 content = strip_thinking(content)
@@ -194,7 +210,7 @@ class NinerouterClient(BaseLLMClient):
                         "provider": "ninerouter",
                     }
             else:
-                return {"error": "No output from 9router", "provider": "ninerouter"}
+                return {"error": "No choices in 9router response", "provider": "ninerouter"}
 
         except Exception as e:
             logger.error(f"Error in 9router structured generate: {e}")

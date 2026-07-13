@@ -9,6 +9,28 @@ def liquidity_analyst_node(state: DyadixState) -> dict:
     Mengekstrak status liquidity sweeps, support/resistance pools, dan status likuiditas lainnya.
     """
     symbol = state.get("symbol", "UNKNOWN")
+    # ── Pre-entry Logging ──────────────────────────────────────────
+    liq_pre = state.get("liquidity_data", {})
+    micro_pre = state.get("microstructure_data", {})
+    _micro_info = (
+        f"{len(micro_pre)} keys: {list(micro_pre.keys())[:4]}"
+        if micro_pre
+        else "empty (websocket-only, not active in --once/test mode)"
+    )
+    _pools = liq_pre.get("liquidity_pools", {})
+    _sweeps = liq_pre.get("recent_sweeps", [])
+    print(f"[PRE-NODE]  [Liquidity Analyst] {symbol} | "
+          f"sentiment='{liq_pre.get('liquidity_sentiment','?')}' | "
+          f"sweep_type='{liq_pre.get('sweep_type','None')}' | "
+          f"high_pools={len(_pools.get('highs', []))} | low_pools={len(_pools.get('lows', []))} | "
+          f"recent_sweeps={len(_sweeps)} | "
+          f"microstructure={_micro_info}")
+    logger.info(f"[Liquidity Analyst] [PRE-NODE] {symbol} | "
+                f"sentiment={liq_pre.get('liquidity_sentiment')} | "
+                f"sweep_type={liq_pre.get('sweep_type')} | "
+                f"pools={len(_pools.get('highs',[]))}H/{len(_pools.get('lows',[]))}L | "
+                f"sweeps={len(_sweeps)} | "
+                f"microstructure={'active' if micro_pre else 'empty (websocket-only)'}")
     print(f"[MONITORING] [Liquidity Analyst] Analyzing {symbol}...")
     logger.info(f"[Liquidity Analyst] Analyzing {symbol}...")
     
@@ -120,4 +142,10 @@ def liquidity_analyst_node(state: DyadixState) -> dict:
     
     print(f"[MONITORING] [Liquidity Analyst] Verdict for {symbol}: bias={bias}, confidence={confidence}")
     logger.info(f"[Liquidity Analyst] Verdict for {symbol}: bias={bias}, confidence={confidence}")
+    # ── Post-exit Logging ────────────────────────────────────────────
+    print(f"[POST-NODE] [Liquidity Analyst] {symbol} | bias={bias} | conf={round(confidence,2)} | "
+          f"sentiment='{sentiment_raw}' | micro_bull={micro_bull_score:.2f} micro_bear={micro_bear_score:.2f} | "
+          f"reasons_count={len(reasons)}")
+    logger.info(f"[Liquidity Analyst] [POST-NODE] {symbol} | bias={bias} conf={round(confidence,2)} "
+                f"micro_bull={micro_bull_score:.2f} micro_bear={micro_bear_score:.2f}")
     return {"liquidity_verdict": verdict}

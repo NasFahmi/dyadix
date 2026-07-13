@@ -11,6 +11,17 @@ def risk_manager_node(state: DyadixState) -> dict:
     dan position sizing.
     """
     symbol = state.get("symbol", "UNKNOWN")
+    # ── Pre-entry Logging ──────────────────────────────────────────
+    consensus_pre = state.get("aggregated_verdict", {})
+    price_pre = state.get("realtime_price", 0.0)
+    print(f"[PRE-NODE]  [Risk Manager] {symbol} | "
+          f"consensus_bias='{consensus_pre.get('consensus_bias','?')}' | "
+          f"consensus_conf={consensus_pre.get('consensus_confidence','?')} | "
+          f"realtime_price={price_pre}")
+    logger.info(f"[Risk Manager] [PRE-NODE] {symbol} | "
+                f"consensus_bias={consensus_pre.get('consensus_bias')} | "
+                f"consensus_conf={consensus_pre.get('consensus_confidence')} | "
+                f"realtime_price={price_pre}")
     print(f"[MONITORING] [Risk Manager] Evaluating risk for {symbol}...")
     logger.info(f"[Risk Manager] Evaluating risk for {symbol}...")
     
@@ -108,4 +119,11 @@ def risk_manager_node(state: DyadixState) -> dict:
     
     print(f"[MONITORING] [Risk Manager] Verdict for {symbol}: cleared={cleared}, entry={current_price}, SL={sl_price}, TP={tp_price}")
     logger.info(f"[Risk Manager] Verdict for {symbol}: cleared={cleared}, entry={current_price}, SL={sl_price}, TP={tp_price}")
+    # ── Post-exit Logging ────────────────────────────────────────────
+    print(f"[POST-NODE] [Risk Manager] {symbol} | cleared={cleared} | "
+          f"entry={current_price} | SL={round(sl_price,5)} | TP={round(tp_price,5)} | "
+          f"ATR={round(atr,5)} | RR=1:{rr_ratio}")
+    logger.info(f"[Risk Manager] [POST-NODE] {symbol} | cleared={cleared} "
+                f"entry={current_price} SL={round(sl_price,5)} TP={round(tp_price,5)} "
+                f"atr={round(atr,5)} rr=1:{rr_ratio}")
     return {"risk_verdict": risk_verdict}
