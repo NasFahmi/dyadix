@@ -95,6 +95,7 @@ def test_rule_based_analysts_confluence():
 def test_risk_manager_calculations():
     """Memastikan risk manager menghitung SL, TP, dan status cleared dengan benar."""
     from workflows.nodes.risk_manager import risk_manager_node
+    from unittest.mock import patch
     
     mock_state = {
         "symbol": "BTCUSDC",
@@ -108,7 +109,16 @@ def test_risk_manager_calculations():
         }
     }
     
-    out = risk_manager_node(mock_state)
+    with patch("workflows.nodes.risk_manager.get_config") as mock_get_config:
+        mock_get_config.return_value = {
+            "risk_management": {
+                "risk_per_trade_pct": 1.0,
+                "leverage": 10,
+                "force_atr_fallback_clearance": True
+            }
+        }
+        out = risk_manager_node(mock_state)
+        
     assert "risk_verdict" in out
     verdict = out["risk_verdict"]
     assert verdict["cleared"] is True
@@ -212,3 +222,63 @@ def test_aggregator_veto_logic():
     verdict_anchor = res_anchor["aggregated_verdict"]
     assert "Bullish" in verdict_anchor["consensus_bias"]
     assert any("Tech disagrees with Core Consensus" in r for r in verdict_anchor["aggregated_reasons"])
+
+def test_notify_pre_decision_verdict():
+    """Memastikan notify_pre_decision_verdict memformat pesan dengan benar dan memanggil requests.post."""
+    from bot.telegram import TelegramNotifier
+    from unittest.mock import patch, MagicMock
+
+    notifier = TelegramNotifier()
+    notifier.enabled = True
+    notifier.token = "fake_token"
+    notifier.chat_id = "fake_chat_id"
+
+    mock_context = {
+        "realtime_price": 95000.0,
+        "current_market_session": "New York",
+        "consensus_verdict": {
+            "consensus_bias": "Strong Bullish",
+            "consensus_confidence": 0.85,
+            "market_regime": "NORMAL",
+            "aggregated_reasons": ["Reason 1", "Reason 2"]
+        },
+        "technical_analyst_verdict": {"bias": "Bullish", "confidence": 0.8},
+        "liquidity_analyst_verdict": {"bias": "Bullish", "confidence": 0.9},
+        "derivatives_analyst_verdict": {"bias": "Neutral", "confidence": 0.5},
+        "sentiment_analyst_verdict": {"bias": "Bullish", "confidence": 0.7},
+        "risk_manager_parameters": {
+            "cleared": True,
+            "entry_midpoint": 95000.0,
+            "stop_loss": 94000.0,
+            "take_profit": 98000.0,
+            "risk_reward": "1:3.0"
+        }
+    }
+
+    with patch("requests.post") as mock_post:
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        success = notifier.notify_pre_decision_verdict("BTCUSDC", mock_context)
+        assert success is True
+        
+        # Verify requests.post was called
+        mock_post.assert_called_once()
+        args, kwargs = mock_post.call_args
+        payload = kwargs.get("json", {})
+        
+        # Verify essential formatted elements exist in the message text
+        text = payload.get("text", "")
+        assert "PRE-DECISION STATE — BTCUSDC" in text
+        assert "New York" in text
+        assert "Strong Bullish" in text
+        assert "Technical: Bullish (0.8)" in text
+        assert "Liquidity: Bullish (0.9)" in text
+        assert "Risk Parameters:" in text
+        assert "Cleared: ✅ YES" in text
+        assert "$95,000.00" in text
+        assert "$94,000.00" in text
+        assert "$98,000.00" in text
+        assert "Reason 1" in text
+

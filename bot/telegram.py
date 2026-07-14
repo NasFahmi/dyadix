@@ -328,6 +328,96 @@ class TelegramNotifier:
                 
         return success
 
+    def notify_pre_decision_verdict(self, symbol: str, context: Dict) -> bool:
+        """
+        Kirim log/analisis ringkas dari para analyst sebelum memanggil Decision LLM.
+        """
+        if not self.enabled:
+            return False
+
+        # Extract data dengan safe fallbacks
+        realtime_price = context.get("realtime_price", 0.0)
+        
+        def format_price(val):
+            if val is None or val == "N/A":
+                return "N/A"
+            try:
+                num = float(val)
+                if num == 0.0:
+                    return "N/A"
+                return f"${num:,.5f}" if num < 1.0 else f"${num:,.2f}"
+            except Exception:
+                return escape_html(val)
+
+        price_text = format_price(realtime_price)
+        session = escape_html(context.get("current_market_session", "Unknown"))
+        
+        consensus = context.get("consensus_verdict", {})
+        consensus_bias = escape_html(consensus.get("consensus_bias", "N/A"))
+        consensus_conf = consensus.get("consensus_confidence", "N/A")
+        regime = escape_html(consensus.get("market_regime", "NORMAL"))
+        
+        # Individual analysts
+        tech = context.get("technical_analyst_verdict", {})
+        liq = context.get("liquidity_analyst_verdict", {})
+        deriv = context.get("derivatives_analyst_verdict", {})
+        sent = context.get("sentiment_analyst_verdict", {})
+        
+        tech_bias = escape_html(tech.get("bias", "N/A"))
+        tech_conf = tech.get("confidence", "N/A")
+        
+        liq_bias = escape_html(liq.get("bias", "N/A"))
+        liq_conf = liq.get("confidence", "N/A")
+        
+        deriv_bias = escape_html(deriv.get("bias", "N/A"))
+        deriv_conf = deriv.get("confidence", "N/A")
+        
+        sent_bias = escape_html(sent.get("bias", "N/A"))
+        sent_conf = sent.get("confidence", "N/A")
+        
+        # Risk Parameters
+        risk = context.get("risk_manager_parameters", {})
+        cleared = "✅ YES" if risk.get("cleared") else "❌ NO"
+        entry_mid = format_price(risk.get("entry_midpoint"))
+        sl = format_price(risk.get("stop_loss"))
+        tp = format_price(risk.get("take_profit"))
+        rr = escape_html(risk.get("risk_reward", "N/A"))
+        
+        # Reasons formatting
+        reasons = consensus.get("aggregated_reasons", [])
+        reasons_text = "\n".join(f"  • {escape_html(r)}" for r in reasons[:6]) if reasons else "  • N/A"
+
+        # Emoji berdasarkan consensus bias
+        emoji = "🟢" if "Bullish" in consensus_bias else "🔴" if "Bearish" in consensus_bias else "🟡"
+
+        text = (
+            f"{emoji} <b>PRE-DECISION STATE — {escape_html(symbol)}</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"<b>Price:</b> {price_text} | <b>Session:</b> {session}\n"
+            f"<b>Consensus Bias:</b> {consensus_bias} ({consensus_conf})\n"
+            f"<b>Regime:</b> {regime}\n"
+            f"\n"
+            f"<b>Analyst Verdicts:</b>\n"
+            f"  • Technical: {tech_bias} ({tech_conf})\n"
+            f"  • Liquidity: {liq_bias} ({liq_conf})\n"
+            f"  • Derivatives: {deriv_bias} ({deriv_conf})\n"
+            f"  • Sentiment: {sent_bias} ({sent_conf})\n"
+            f"\n"
+            f"<b>Risk Parameters:</b>\n"
+            f"  • Cleared: {cleared}\n"
+            f"  • Entry Midpoint: {entry_mid}\n"
+            f"  • Stop Loss: {sl}\n"
+            f"  • Take Profit: {tp}\n"
+            f"  • Risk/Reward: {rr}\n"
+            f"\n"
+            f"<b>Consensus Reasons:</b>\n"
+            f"{reasons_text}\n"
+            f"\n"
+            f"⏳ <i>Invoking final Decision LLM...</i>"
+        )
+        
+        return self.send_message(text)
+
     def notify_order_placed(
         self, pair: str, action: str, decision: Dict, realtime_price: float = 0.0,
         actual_entry: Optional[float] = None

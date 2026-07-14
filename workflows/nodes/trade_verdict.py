@@ -70,6 +70,15 @@ def trade_verdict_node(state: DyadixState) -> dict:
         "microstructure_data": state.get("microstructure_data", {})
     }
     
+    # Kirim log pre-decision ke Telegram jika enabled
+    try:
+        from bot.telegram import TelegramNotifier
+        notifier = TelegramNotifier()
+        if notifier.enabled:
+            notifier.notify_pre_decision_verdict(symbol, context_to_send)
+    except Exception as tg_err:
+        logger.error(f"[Trade Verdict] Gagal mengirim log pre-decision ke Telegram: {tg_err}")
+    
     user_input = (
         f"Multi-Agent Consolidated Context:\n"
         f"{json.dumps(context_to_send, indent=2, ensure_ascii=False, default=str)}"
