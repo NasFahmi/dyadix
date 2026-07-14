@@ -9,6 +9,15 @@ def sentiment_analyst_node(state: DyadixState) -> dict:
     Mengekstrak overall_sentiment, sentiment_score, fear_greed index, dsb.
     """
     symbol = state.get("symbol", "UNKNOWN")
+    # ── Pre-entry Logging ──────────────────────────────────────────
+    sent_pre = state.get("sentiment_data", {})
+    print(f"[PRE-NODE]  [Sentiment Analyst] {symbol} | "
+          f"overall_sentiment='{sent_pre.get('overall_sentiment','?')}' | "
+          f"sentiment_score={sent_pre.get('sentiment_score','?')} | "
+          f"data_keys={list(sent_pre.keys())}")
+    logger.info(f"[Sentiment Analyst] [PRE-NODE] {symbol} | "
+                f"overall_sentiment={sent_pre.get('overall_sentiment')} | "
+                f"sentiment_score={sent_pre.get('sentiment_score')}")
     print(f"[MONITORING] [Sentiment Analyst] Analyzing {symbol}...")
     logger.info(f"[Sentiment Analyst] Analyzing {symbol}...")
     
@@ -79,4 +88,9 @@ def sentiment_analyst_node(state: DyadixState) -> dict:
     
     print(f"[MONITORING] [Sentiment Analyst] Verdict for {symbol}: bias={bias}, confidence={confidence}")
     logger.info(f"[Sentiment Analyst] Verdict for {symbol}: bias={bias}, confidence={confidence}")
+    # ── Post-exit Logging ────────────────────────────────────────────
+    print(f"[POST-NODE] [Sentiment Analyst] {symbol} | bias={bias} | conf={round(confidence,2)} | "
+          f"score={sentiment_score} | fear_greed={fg_val} | raw='{sentiment_raw}'")
+    logger.info(f"[Sentiment Analyst] [POST-NODE] {symbol} | bias={bias} conf={round(confidence,2)} "
+                f"score={sentiment_score} fear_greed={fg_val}")
     return {"sentiment_verdict": verdict}

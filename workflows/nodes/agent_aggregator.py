@@ -81,6 +81,21 @@ def aggregator_node(state: DyadixState) -> dict:
     menggunakan model weighted consensus.
     """
     symbol = state.get("symbol", "UNKNOWN")
+    # ── Pre-entry Logging ──────────────────────────────────────────
+    _tech_pre = state.get("technical_verdict", {})
+    _liq_pre  = state.get("liquidity_verdict", {})
+    _deriv_pre = state.get("derivatives_verdict", {})
+    _sent_pre = state.get("sentiment_verdict", {})
+    print(f"[PRE-NODE]  [Agent Aggregator] {symbol} | "
+          f"Tech: {_tech_pre.get('bias','?')} ({_tech_pre.get('confidence','?')}) | "
+          f"Liq: {_liq_pre.get('bias','?')} ({_liq_pre.get('confidence','?')}) | "
+          f"Deriv: {_deriv_pre.get('bias','?')} ({_deriv_pre.get('confidence','?')}) | "
+          f"Sent: {_sent_pre.get('bias','?')} ({_sent_pre.get('confidence','?')})")
+    logger.info(f"[Agent Aggregator] [PRE-NODE] {symbol} | "
+                f"tech={_tech_pre.get('bias')} ({_tech_pre.get('confidence')}) | "
+                f"liq={_liq_pre.get('bias')} ({_liq_pre.get('confidence')}) | "
+                f"deriv={_deriv_pre.get('bias')} ({_deriv_pre.get('confidence')}) | "
+                f"sent={_sent_pre.get('bias')} ({_sent_pre.get('confidence')})")
     print(f"[MONITORING] [Agent Aggregator] Aggregating verdicts for {symbol}...")
     logger.info(f"[Agent Aggregator] Aggregating verdicts for {symbol}...")
     
@@ -226,4 +241,10 @@ def aggregator_node(state: DyadixState) -> dict:
     
     print(f"[MONITORING] [Agent Aggregator] Aggregated Verdict: bias={final_bias}, confidence={weighted_conf:.2f}")
     logger.info(f"[Agent Aggregator] Aggregated Verdict: bias={final_bias}, confidence={weighted_conf:.2f}")
+    # ── Post-exit Logging ────────────────────────────────────────────
+    print(f"[POST-NODE] [Agent Aggregator] {symbol} | final_bias={final_bias} | "
+          f"conf={weighted_conf:.2f} | score={weighted_score:.2f} | regime={regime.value} | "
+          f"conflict={is_core_conflict}")
+    logger.info(f"[Agent Aggregator] [POST-NODE] {symbol} | final_bias={final_bias} "
+                f"conf={weighted_conf:.2f} score={weighted_score:.2f} regime={regime.value} conflict={is_core_conflict}")
     return {"aggregated_verdict": verdict}

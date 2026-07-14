@@ -61,6 +61,8 @@ class DecisionLogger:
                 "risk_reward": decision.get("risk_reward"),
                 "reason": decision.get("reason"),
             },
+            "raw_llm_payload": decision.get("raw_payload"),
+            "raw_llm_response": decision.get("raw_response"),
         }
 
         self._append_entry(entry)

@@ -367,6 +367,54 @@ class HyperliquidClient:
             logger.error(f"Error getting avg fill price from fills for order #{order_id}: {e}")
             return 0.0
 
+    def get_recent_close_fill_price(self, pair: str, since_ms: int) -> float:
+        """
+        Cari harga close terakhir dari user_fills berdasarkan coin dan waktu.
+        Digunakan sebagai fallback untuk mendapatkan exit price yang akurat
+        ketika SL/TP order ID tidak menghasilkan fill yang tepat.
+
+        Args:
+            pair: Contoh "BTCUSDC"
+            since_ms: Unix timestamp dalam milliseconds (waktu trade dibuka)
+
+        Returns:
+            Harga fill close terbaru, atau 0.0 jika tidak ditemukan.
+        """
+        if not self.account_address:
+            return 0.0
+        try:
+            coin = self._to_coin(pair)
+            fills = self.info.user_fills(self.account_address)
+            if not fills:
+                return 0.0
+
+            # Filter: coin cocok, setelah trade dibuka, dan merupakan operasi CLOSE
+            close_fills = []
+            for fill in fills:
+                if fill.get("coin") != coin:
+                    continue
+                fill_time = fill.get("time", 0)
+                if fill_time < since_ms:
+                    continue
+                # Hyperliquid dir: "Open Long", "Close Long", "Open Short", "Close Short"
+                direction = fill.get("dir", "")
+                if "Close" in direction:
+                    close_fills.append(fill)
+
+            if not close_fills:
+                return 0.0
+
+            # Ambil fill terbaru
+            close_fills.sort(key=lambda f: f.get("time", 0), reverse=True)
+            latest = close_fills[0]
+            px = float(latest.get("px", 0.0))
+            logger.debug(f"Recent close fill for {coin}: px={px}, dir={latest.get('dir')}")
+            return px
+
+        except Exception as e:
+            logger.error(f"Error getting recent close fill price for {pair}: {e}")
+            return 0.0
+
     def get_order_status(self, pair: str, order_id: str, is_algo: bool = False) -> Optional[Dict[str, Any]]:
         """Cek status order."""
         try:

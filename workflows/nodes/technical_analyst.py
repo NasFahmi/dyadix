@@ -9,6 +9,17 @@ def technical_analyst_node(state: DyadixState) -> dict:
     Mengekstrak bias, confidence, dan alasan pendukung dari market_data.
     """
     symbol = state.get("symbol", "UNKNOWN")
+    # ── Pre-entry Logging ──────────────────────────────────────────
+    market_data_pre = state.get("market_data", {})
+    realtime_price = state.get("realtime_price")
+    print(f"[PRE-NODE]  [Technical Analyst] {symbol} | "
+          f"realtime_price={realtime_price} | "
+          f"overall_bias='{market_data_pre.get('overall_technical_bias','?')}' | "
+          f"daily_bias='{market_data_pre.get('daily_bias', {}).get('bias','?')}'")
+    logger.info(f"[Technical Analyst] [PRE-NODE] {symbol} | "
+                f"realtime_price={realtime_price} | "
+                f"overall_bias={market_data_pre.get('overall_technical_bias')} | "
+                f"daily_bias={market_data_pre.get('daily_bias', {}).get('bias')}")
     print(f"\n[MONITORING] [Technical Analyst] Analyzing {symbol}...")
     logger.info(f"[Technical Analyst] Analyzing {symbol}...")
     
@@ -136,4 +147,9 @@ def technical_analyst_node(state: DyadixState) -> dict:
     
     print(f"[MONITORING] [Technical Analyst] Verdict for {symbol}: bias={overall_bias}, confidence={confidence}")
     logger.info(f"[Technical Analyst] Verdict for {symbol}: bias={overall_bias}, confidence={confidence}")
+    # ── Post-exit Logging ────────────────────────────────────────────
+    print(f"[POST-NODE] [Technical Analyst] {symbol} | bias={overall_bias} | conf={round(confidence,2)} | "
+          f"trend='{trend_regime}' | rsi={rsi:.0f} | daily_bias='{daily_bias}' | ob_score={ob_confluence_score:.2f}")
+    logger.info(f"[Technical Analyst] [POST-NODE] {symbol} | bias={overall_bias} conf={round(confidence,2)} "
+                f"trend={trend_regime} rsi={rsi:.0f} daily_bias={daily_bias}")
     return {"technical_verdict": verdict}

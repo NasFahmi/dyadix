@@ -140,9 +140,8 @@ class TradeMonitor:
                 # Posisi sudah tertutup! Cari tahu apakah SL atau TP yang memicu
                 close_reason = self._detect_close_reason(trade)
                 self._close_trade(trade, order, reason=close_reason)
-            else:
-                # Posisi masih ada - cek apakah TP/SL tercapai (manual monitoring)
-                self._check_manual_tp_sl(trade, positions[0])
+            # NOTE: _check_manual_tp_sl sudah dipanggil di _sync_all_trades()
+            # Tidak perlu dipanggil lagi di sini untuk menghindari double close order
 
     def _detect_close_reason(self, trade) -> str:
         """
@@ -224,7 +223,18 @@ class TradeMonitor:
             )
 
             if close_order:
-                # Cari tahu apakah TP atau SL
+                # [FIX Bug #1] Ambil actual fill price dari close order
+                # Lebih akurat daripada current_price yang bisa bergeser
+                actual_exit_price = float(close_order.get("avgPrice") or 0.0)
+                if actual_exit_price == 0:
+                    close_order_id = str(close_order.get("orderId", ""))
+                    if close_order_id:
+                        time.sleep(0.3)  # beri waktu exchange memproses fill
+                        actual_exit_price = self.exchange.get_avg_fill_price_from_fills(close_order_id)
+                if actual_exit_price == 0:
+                    actual_exit_price = current_price  # fallback terakhir
+
+                # Tentukan status
                 if triggered == "Hit TP":
                     new_status = "CLOSED_TP"
                     exit_reason = "Hit TP"
@@ -232,8 +242,8 @@ class TradeMonitor:
                     new_status = "CLOSED_SL"
                     exit_reason = "Hit SL"
 
-                # Hitung realized P/L
-                realized_pnl = self._calculate_pnl(trade, current_price)
+                # Hitung realized P/L dengan actual fill price
+                realized_pnl = self._calculate_pnl(trade, actual_exit_price)
 
                 # Update database
                 from data.database import SessionFactory
@@ -244,7 +254,7 @@ class TradeMonitor:
                         db_trade = session.query(TradeRecord).filter_by(id=trade.id).first()
                         if db_trade:
                             db_trade.status = new_status
-                            db_trade.exit_price = current_price
+                            db_trade.exit_price = actual_exit_price
                             db_trade.exit_reason = exit_reason
                             db_trade.realized_pnl = realized_pnl
                             db_trade.closed_at = datetime.utcnow()
@@ -260,13 +270,13 @@ class TradeMonitor:
 
                 # Kirim notifikasi Telegram
                 if self.telegram:
-                    self._notify_trade_closed(trade, current_price, realized_pnl, exit_reason)
+                    self._notify_trade_closed(trade, actual_exit_price, realized_pnl, exit_reason)
 
-                # Trigger Autopsy jika SL
+                # [FIX Bug #2] Pass trade.id bukan trade object agar autopsy dapat fresh data
                 if new_status == "CLOSED_SL":
                     threading.Thread(
                         target=self._trigger_autopsy,
-                        args=(trade,),
+                        args=(trade.id,),
                         daemon=True,
                         name=f"AutopsyThread-{trade.pair}",
                     ).start()
@@ -280,25 +290,31 @@ class TradeMonitor:
 
         status = order.get("status", "")
 
-        # Untuk exit price, gunakan:
-        # 1. avgPrice dari closing order (TP/SL), atau
-        # 2. Current mark price jika position sudah tertutup (tidak ada order info)
-        exit_price = float(order.get("avgPrice", 0) or 0)
+        # [FIX Bug #1] Ambil exit price dari fills, bukan dari entry order
+        # Hyperliquid trigger orders tidak selalu mengisi avgPx di query_order_by_oid
+        exit_price = 0.0
 
-        # If position is closed, try to get exit price from TP/SL orders
-        if exit_price == 0 and reason in ("Hit SL", "Hit TP"):
-            if reason == "Hit SL" and trade.stop_loss_order_id:
-                sl_order = self.exchange.get_order_status(trade.pair, trade.stop_loss_order_id, is_algo=True)
-                if sl_order:
-                    exit_price = float(sl_order.get("avgPrice") or sl_order.get("actualPrice") or sl_order.get("stopPrice") or sl_order.get("triggerPrice") or 0)
-            elif reason == "Hit TP" and trade.take_profit_order_id:
-                tp_order = self.exchange.get_order_status(trade.pair, trade.take_profit_order_id, is_algo=True)
-                if tp_order:
-                    exit_price = float(tp_order.get("avgPrice") or tp_order.get("actualPrice") or tp_order.get("stopPrice") or tp_order.get("triggerPrice") or 0)
+        # Prioritas 1: Fills dari SL/TP order ID (paling presisi)
+        if reason == "Hit SL" and trade.stop_loss_order_id:
+            exit_price = self.exchange.get_avg_fill_price_from_fills(trade.stop_loss_order_id)
+            if exit_price > 0:
+                logger.debug(f"Exit price from SL fills: {exit_price}")
+        elif reason == "Hit TP" and trade.take_profit_order_id:
+            exit_price = self.exchange.get_avg_fill_price_from_fills(trade.take_profit_order_id)
+            if exit_price > 0:
+                logger.debug(f"Exit price from TP fills: {exit_price}")
 
-        # Last resort: get current mark price
+        # Prioritas 2: Recent close fills berdasarkan coin + waktu buka trade
+        if exit_price == 0 and trade.opened_at:
+            since_ms = int(trade.opened_at.timestamp() * 1000)
+            exit_price = self.exchange.get_recent_close_fill_price(trade.pair, since_ms)
+            if exit_price > 0:
+                logger.debug(f"Exit price from recent close fills: {exit_price}")
+
+        # Last resort: mark price saat ini
         if exit_price == 0:
             exit_price = self.exchange.get_realtime_price(trade.pair)
+            logger.warning(f"Exit price fallback to realtime price: {exit_price}")
 
 # Jika reason manual disediakan, gunakan itu
         if reason == "Entry Canceled":
@@ -335,8 +351,6 @@ class TradeMonitor:
                     db_trade.realized_pnl = realized_pnl
                     db_trade.closed_at = datetime.utcnow()
                     session.commit()
-                    session.refresh(db_trade)
-                    closed_trade = db_trade
         except Exception as e:
             logger.error(f"Error updating trade {trade.id} in DB: {e}")
             return
@@ -350,11 +364,11 @@ class TradeMonitor:
         if self.telegram:
             self._notify_trade_closed(trade, exit_price, realized_pnl, exit_reason)
 
-        # Trigger Autopsy jika kena SL
+        # [FIX Bug #2] Pass trade.id bukan trade object agar autopsy dapat fresh data
         if new_status == "CLOSED_SL":
             threading.Thread(
                 target=self._trigger_autopsy,
-                args=(trade,),
+                args=(trade.id,),
                 daemon=True,
                 name=f"AutopsyThread-{trade.pair}",
             ).start()
@@ -409,14 +423,31 @@ class TradeMonitor:
 
         self.telegram.send_message(text)
 
-    def _trigger_autopsy(self, trade):
-        """Panggil AutopsyEngine di thread terpisah."""
+    def _trigger_autopsy(self, trade_id: str):
+        """
+        Panggil AutopsyEngine di thread terpisah.
+        [FIX Bug #2] Fetch fresh trade dari DB agar autopsy dapat:
+        - realized_pnl yang sudah benar (bukan 0)
+        - exit_price yang akurat
+        - closed_at yang sudah terisi
+        """
         try:
             from service.trade.autopsy_engine import AutopsyEngine
+            from data.database import SessionFactory
+            from data.models import TradeRecord
+
+            # Fetch fresh data dari DB setelah commit selesai
+            with SessionFactory() as session:
+                fresh_trade = session.query(TradeRecord).filter_by(id=trade_id).first()
+                if not fresh_trade:
+                    logger.error(f"Autopsy: trade {trade_id} tidak ditemukan di DB")
+                    return
+                session.expunge(fresh_trade)  # Detach agar bisa dipakai di luar session
+
             engine = AutopsyEngine(telegram=self.telegram)
-            engine.run(trade)
+            engine.run(fresh_trade)
         except Exception as e:
-            logger.error(f"Autopsy failed for {trade.pair} trade {trade.id}: {e}")
+            logger.error(f"Autopsy failed for trade {trade_id}: {e}")
 
     def _check_auto_break_even(self, trade, position):
         """

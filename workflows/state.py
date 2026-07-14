@@ -28,6 +28,7 @@ class DyadixState(TypedDict):
     
     # Consolidations & Risk
     aggregated_verdict: Dict[str, Any]
+    structure_map: Dict[str, Any]   # Output dari Structure Mapper Node (SL/TP berbasis struktur)
     risk_verdict: Dict[str, Any]
     
     # Trade Verdict Output (LLM-based)

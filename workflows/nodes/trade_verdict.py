@@ -39,7 +39,17 @@ def trade_verdict_node(state: DyadixState) -> dict:
             }
         }
         
-    print(f"[MONITORING] [Trade Verdict] Invoking Decision LLM for {symbol}...")
+    # ── Pre-entry Logging ──────────────────────────────────────────
+    consensus = state.get("aggregated_verdict", {})
+    print(f"[PRE-NODE]  [Trade Verdict] {symbol} | "
+          f"Consensus: {consensus.get('consensus_bias','?')} (conf={consensus.get('consensus_confidence','?')}) | "
+          f"Risk cleared: {risk_verdict.get('cleared','?')} | "
+          f"Entry: {risk_verdict.get('entry_midpoint','?')} "
+          f"SL: {risk_verdict.get('stop_loss','?')} "
+          f"TP: {risk_verdict.get('take_profit','?')}")
+    logger.info(f"[Trade Verdict] [PRE-NODE] {symbol} | consensus_bias={consensus.get('consensus_bias')} "
+                f"conf={consensus.get('consensus_confidence')} | cleared={risk_verdict.get('cleared')} "
+                f"entry={risk_verdict.get('entry_midpoint')} sl={risk_verdict.get('stop_loss')} tp={risk_verdict.get('take_profit')}")
     logger.info(f"[Trade Verdict] Invoking Decision LLM for {symbol}...")
     
     system_prompt = SystemPrompt().get_system_prompt_decision()
@@ -54,6 +64,7 @@ def trade_verdict_node(state: DyadixState) -> dict:
         "derivatives_analyst_verdict": state.get("derivatives_verdict"),
         "sentiment_analyst_verdict": state.get("sentiment_verdict"),
         "consensus_verdict": state.get("aggregated_verdict"),
+        "structure_map": state.get("structure_map", {}),
         "risk_manager_parameters": risk_verdict,
         "raw_key_levels": state.get("market_data", {}).get("key_levels", {}),
         "microstructure_data": state.get("microstructure_data", {})
@@ -177,14 +188,38 @@ def trade_verdict_node(state: DyadixState) -> dict:
             if result and "error" not in result and "decision" in result:
                 print(f"[MONITORING] [Trade Verdict] Structured decision: {result.get('decision')} | confidence: {result.get('confidence')} | reason: {result.get('reason')}")
                 logger.info(f"[Trade Verdict] Structured output received successfully for {symbol}")
+                
+                # Capture payload and response
+                result["raw_payload"] = result.get("raw_payload") or json.dumps({"system": system_prompt, "user": user_input}, ensure_ascii=False)
+                result["raw_response"] = result.get("raw_response") or json.dumps(result, ensure_ascii=False)
+                
                 return {"trade_verdict": result}
+            elif result and "error" in result:
+                err_msg = result.get('error', 'Unknown error')
+                print(f"[MONITORING] [Trade Verdict] structured_generate error for {symbol}: {err_msg}")
+                logger.error(f"[Trade Verdict] structured_generate returned error for {symbol}: {err_msg}")
+                raise RuntimeError(f"structured_generate API error: {err_msg}")
+            else:
+                no_decision_msg = "Response missing 'decision' key or empty"
+                print(f"[MONITORING] [Trade Verdict] structured_generate invalid response for {symbol}: {no_decision_msg}")
+                logger.warning(f"[Trade Verdict] structured_generate: {no_decision_msg} for {symbol}")
+                raise RuntimeError(no_decision_msg)
         except Exception as e:
             logger.warning(f"[Trade Verdict] structured_generate failed ({e}), falling back to standard generate...")
             
         # Fallback ke generate standar
+        print(f"[MONITORING] [Trade Verdict] Attempting standard generate() fallback for {symbol}...")
         raw = llm.generate(system_prompt=system_prompt, user_input=user_input)
+        
+        # Periksa jika generate() mengembalikan error
+        if raw.get("error"):
+            raise RuntimeError(f"LLM generate() returned error: {raw['error']}")
+        
         content = raw.get("content", "").strip()
         
+        if not content:
+            raise RuntimeError("LLM generate() returned empty content — model overloaded or request timed out.")
+            
         if content.startswith("```"):
             content = content.split("```")[1]
             if content.startswith("json"):
@@ -196,8 +231,17 @@ def trade_verdict_node(state: DyadixState) -> dict:
             content = content[start : end + 1]
             
         parsed = json.loads(content.strip())
+        parsed["raw_payload"] = raw.get("raw_payload") or json.dumps({"system": system_prompt, "user": user_input}, ensure_ascii=False)
+        parsed["raw_response"] = raw.get("raw_response") or content
+        
         print(f"[MONITORING] [Trade Verdict] Standard parsed decision: {parsed.get('decision')} | confidence: {parsed.get('confidence')} | reason: {parsed.get('reason')}")
         logger.info(f"[Trade Verdict] Generated standard output successfully parsed for {symbol}")
+        # ── Post-exit Logging ────────────────────────────────────────────
+        print(f"[POST-NODE] [Trade Verdict] {symbol} | decision={parsed.get('decision')} | bias={parsed.get('bias')} | "
+              f"conf={parsed.get('confidence')} | entry={parsed.get('entry_zone')} "
+              f"sl={parsed.get('stop_loss')} tp={parsed.get('target')} rr={parsed.get('risk_reward')}")
+        logger.info(f"[Trade Verdict] [POST-NODE] {symbol} | decision={parsed.get('decision')} bias={parsed.get('bias')} "
+                    f"conf={parsed.get('confidence')} sl={parsed.get('stop_loss')} tp={parsed.get('target')}")
         return {"trade_verdict": parsed}
         
     except Exception as e:
@@ -217,6 +261,8 @@ def trade_verdict_node(state: DyadixState) -> dict:
             "execution_type": "LIMIT",
             "expected_move": "N/A",
             "reason": f"Decision LLM call failed: {str(e)}",
-            "key_risks": ["LLM failure"]
+            "key_risks": ["LLM failure"],
+            "raw_payload": json.dumps({"system": system_prompt, "user": user_input}, ensure_ascii=False),
+            "raw_response": f"Exception raised: {str(e)}"
         }
         return {"trade_verdict": fallback}
