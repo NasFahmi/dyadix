@@ -64,6 +64,7 @@ def trade_verdict_node(state: DyadixState) -> dict:
         "derivatives_analyst_verdict": state.get("derivatives_verdict"),
         "sentiment_analyst_verdict": state.get("sentiment_verdict"),
         "consensus_verdict": state.get("aggregated_verdict"),
+        "structure_map": state.get("structure_map", {}),
         "risk_manager_parameters": risk_verdict,
         "raw_key_levels": state.get("market_data", {}).get("key_levels", {}),
         "microstructure_data": state.get("microstructure_data", {})

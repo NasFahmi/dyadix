@@ -25,7 +25,8 @@ graph TD
     DA --> AGG
     SA --> AGG
     
-    AGG --> RM[Risk Manager Node]
+    AGG --> SM["Structure Mapper Node ✨"]
+    SM --> RM[Risk Manager Node]
     RM --> FD[Final Decision LLM Node]
     
     %% Portfolio & Correlation Filter Layer
@@ -67,6 +68,7 @@ class DyadixState(TypedDict):
     
     # Consolidations & Risk
     aggregated_verdict: Dict[str, Any]
+    structure_map: Dict[str, Any]      # NEW: Output dari Structure Mapper Node
     risk_verdict: Dict[str, Any]
     
     # Trade Verdict Output
@@ -102,13 +104,18 @@ Setelah node analis selesai berjalan secara paralel, grafik menyatukan (join) st
 *   **Agent Aggregator Node** (`workflows/nodes/agent_aggregator.py`):
     *   *Tugas:* Menggabungkan verdict dari 4 analis menggunakan model *weighted consensus* dinamis berdasarkan `MarketRegime` (NORMAL/HIGH_IMPACT_EVENT). Menerapkan **Core-Secondary Veto Logic** di mana *Liquidity* dan *Derivatives* bertindak sebagai analis inti (*core*). Jika mereka sepakat arahnya, bias final di-anchor ke arah tersebut dan *Technical* (Secondary) hanya memodifikasi confidence (-0.15 jika bertentangan). Veto (Neutral/WAIT) hanya dipicu jika *Liquidity* dan *Derivatives* berlawanan arah dengan keyakinan tinggi ($> 0.70$).
     *   *Output:* `consensus_bias`, `consensus_score`, `consensus_confidence` (terpenalti jika Technical bertentangan), `market_regime` (NORMAL/HIGH_IMPACT_EVENT), serta gabungan alasan terformat.
+*   **Structure Mapper Node** (`workflows/nodes/structure_mapper.py`) *(Baru)*:
+    *   *Tugas:* Menjembatani gap antara consensus bias ("ke mana?") dan level order yang bermakna ("di mana tepatnya?"). Membaca `market_data` (Order Blocks) dan `liquidity_data` (Pools, PDH/PDL, recent sweeps) **langsung dari state raw** — tidak dari verdict summaries — untuk membangun `structure_map`.
+    *   *Logika SL:* Kandidat SL diurutkan dari terdekat ke terjauh. Dipilih level pertama yang jaraknya ≤ 1.5× ATR dari entry (OB top/bottom, Strong Pool, PDH/PDL). Buffer 0.12% ditambahkan di luar level untuk menghindari stop hunting pada round number.
+    *   *Logika TP Cascade:* Algoritma iterasi dari level TP terdekat ke terjauh. Setiap level dievaluasi: Strong Pool (≥ 3 touches) atau PDH/PDL → threshold R:R ≥ 1.5; level yang muncul di `recent_sweeps` → threshold R:R ≥ 2.0 (penalti sweep); Moderate Pool (< 3 touches) → diskip sepenuhnya. Cascade berhenti saat level pertama memenuhi threshold. Jika tidak ada → `should_wait=True`.
+    *   *Output:* `structure_map` berisi `recommended_sl`, `recommended_tp`, `natural_rr`, `sl_type`, `tp_type`, `cascade_log`, dan `should_wait`.
 *   **Risk Manager Node** (`workflows/nodes/risk_manager.py`):
-    *   *Tugas:* Menentukan parameter risiko entry. Jika consensus bias valid (Bullish/Bearish), Risk Manager menghitung dynamic Stop Loss (entry ± 2 * ATR) dan Target Take Profit (min. Risk/Reward 1:3.0).
-    *   *Output:* status `cleared` (True/False), stop_loss price, take_profit price, dan leverage.
+    *   *Tugas:* Mengonsumsi `structure_map` dari Structure Mapper. **Path 1 (Structure-based):** Validasi bahwa `natural_rr ≥ 1.5` dan `sl_distance ≤ 3× ATR`, lalu set `cleared=True`. **Path 2 (ATR fallback):** Diaktifkan jika Structure Mapper tidak menghasilkan setup valid; selalu menghasilkan `cleared=False` (prefer WAIT daripada trade tanpa struktur).
+    *   *Output:* `status cleared` (True/False), stop_loss price, take_profit price, leverage, dan `source` (structure_mapper / atr_fallback).
 
 ### 3. Trade Verdict Node (LLM Coordinator)
 *   **Trade Verdict Node** (`workflows/nodes/trade_verdict.py`):
-    *   *Tugas:* Menerima hasil agregasi dan parameter risiko. Jika `cleared` bernilai `False`, node langsung mengembalikan keputusan `WAIT`. Jika `True`, node memanggil **Decision LLM** dengan JSON Schema ketat untuk merumuskan koordinat verdict trading (BUY/SELL, Entry Zone, Target, Stop Loss, Invalidated If, dan Key Risks). Data real-time **WebSocket Microstructure** (`microstructure_data`) ikut disalurkan di dalam payload konteks LLM ini.
+    *   *Tugas:* Menerima hasil agregasi dan parameter risiko. Jika `cleared` bernilai `False`, node langsung mengembalikan keputusan `WAIT`. Jika `True`, node memanggil **Decision LLM** dengan JSON Schema ketat untuk merumuskan koordinat verdict trading (BUY/SELL, Entry Zone, Target, Stop Loss, Invalidated If, dan Key Risks). Data **`structure_map`** (tipe SL/TP, level struktural, cascade log) dan **WebSocket Microstructure** (`microstructure_data`) keduanya disalurkan di dalam payload konteks LLM, memberikan LLM justifikasi struktural penuh untuk field `invalidated_if` dan `key_risks`.
 
 ---
 
@@ -118,7 +125,10 @@ Alur integrasi diimplementasikan pada `pipelines/main_pipeline.py` dan `pipeline
 
 1.  **Staggered Data Fetching:** `DataManager` menyegarkan cache data pasar (OHLCV, Funding, OI, Sentiment) yang sudah stale secara staggered.
 2.  **Screening & Pre-filtering:** `ScreeningService` memperbarui Top 10 Candidate secara dinamis (tanpa hardcode pair di settings). `SignalDetector` melakukan scoring confluence.
-3.  **Graph Execution (All Decisions):** Seluruh pair yang lolos pre-filter (Qualified Pairs) akan dieksekusi secara independen di LangGraph untuk menghasilkan keputusan trading final (`BUY`, `SELL`, `WAIT`, `HOLD`):
+3.  **Graph Execution (All Decisions):** Seluruh pair yang lolos pre-filter (Qualified Pairs) akan dieksekusi secara independen di LangGraph untuk menghasilkan keputusan trading final (`BUY`, `SELL`, `WAIT`, `HOLD`). Alur lengkap graph:
+    ```
+    [4 Analyst Nodes (Paralel)] → Aggregator → Structure Mapper → Risk Manager → Trade Verdict
+    ```
     ```python
     from workflows.trading_workflow import create_trading_workflow
     

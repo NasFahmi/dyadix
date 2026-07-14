@@ -16,32 +16,33 @@ graph TD
     Cache -->|Signal Detector| Qualified[Qualified Pairs]
     
     %% LangGraph Flow
-    Qualified -->|Trigger Graph| TA[Technical Analyst Node]
-    Qualified -->|Trigger Graph| LA[Liquidity Analyst Node]
-    Qualified -->|Trigger Graph| DA[Derivatives Analyst Node]
-    Qualified -->|Trigger Graph| SA[Sentiment Analyst Node]
+    Qualified --> |Trigger Graph| TA[Technical Analyst Node]
+    Qualified --> |Trigger Graph| LA[Liquidity Analyst Node]
+    Qualified --> |Trigger Graph| DA[Derivatives Analyst Node]
+    Qualified --> |Trigger Graph| SA[Sentiment Analyst Node]
     
     TA --> AGG[Consensus Aggregator]
     LA --> AGG
     DA --> AGG
     SA --> AGG
     
-    AGG --> RM[Risk Manager Node]
+    AGG --> SM["Structure Mapper Node ✨"]
+    SM --> RM[Risk Manager Node]
     RM --> FD[Trade Verdict LLM Node]
     
     %% Portfolio Filter & Order Execution
-    FD -->|Decisions| PS[Portfolio Selector]
-    PS -->|Ranked BUY/SELL Signals| CA[Correlation Analysis]
-    CA -->|Final Trade List| Exec[Order Executor]
-    Exec -->|Database Log| DB[(PostgreSQL)]
-    Exec -->|Send Order| DEX[Hyperliquid L1 API]
+    FD --> |Decisions| PS[Portfolio Selector]
+    PS --> |Ranked BUY/SELL Signals| CA[Correlation Analysis]
+    CA --> |Final Trade List| Exec[Order Executor]
+    Exec --> |Database Log| DB[(PostgreSQL)]
+    Exec --> |Send Order| DEX[Hyperliquid L1 API]
     
     %% Background Monitoring Loop
-    DEX -->|Positions Stream| WS[Websocket Microstructure Collector]
-    DEX -->|Trade Status| TM[Background Trade Monitor Thread]
-    TM -->|If Stop Loss Hit| AE[Autopsy Engine]
-    AE -->|Extract Lesson| DB
-    AE -->|Alert| TG[Telegram Channel]
+    DEX --> |Positions Stream| WS[Websocket Microstructure Collector]
+    DEX --> |Trade Status| TM[Background Trade Monitor Thread]
+    TM --> |If Stop Loss Hit| AE[Autopsy Engine]
+    AE --> |Extract Lesson| DB
+    AE --> |Alert| TG[Telegram Channel]
 ```
 
 ### Main Operations Lifecycle
@@ -77,9 +78,10 @@ Built in [trading_workflow.py](file:///d:/Project/Python/Bot/dyadix/workflows/tr
     *   **[Sentiment Analyst Node](file:///d:/Project/Python/Bot/dyadix/workflows/nodes/sentiment_analyst.py)**: Compiles Fear & Greed index, economic events, and global narratives.
 2.  **Consolidation Nodes**:
     *   **[Agent Aggregator Node](file:///d:/Project/Python/Bot/dyadix/workflows/nodes/agent_aggregator.py)**: Runs a dynamic weighted consensus based on `MarketRegime`. Implements **Core-Secondary Veto Logic** where *Liquidity* and *Derivatives* (Core) anchor the final consensus bias if they agree on direction, whereas *Technical* (Secondary) can only modify/penalize confidence by -0.15 if it disagrees. A trade is vetoed (Neutral/WAIT) only if *Liquidity* and *Derivatives* have opposing signals with high confidence ($> 0.70$).
-    *   **[Risk Manager Node](file:///d:/Project/Python/Bot/dyadix/workflows/nodes/risk_manager.py)**: Clears trades under strict limits and calculates dynamic SL (2 * ATR) and TP (targeting at least a 1:3.0 Risk-to-Reward ratio).
+    *   **[Structure Mapper Node](file:///d:/Project/Python/Bot/dyadix/workflows/nodes/structure_mapper.py)** *(New)*: Bridges the gap between directional consensus and precise order placement. Reads raw `market_data` (Order Blocks) and `liquidity_data` (Pools, PDH/PDL, recent sweeps) directly from state — bypassing verdict summaries — to build a `structure_map`. It selects the SL at the nearest valid structural level (Bearish/Bullish OB top/bottom or Strong Pool) with a 0.12% buffer, then runs a **cascade TP algorithm**: iterating from the nearest eligible TP level outward until a level achieves R:R ≥ 1.5. Levels recently swept are penalized (require R:R ≥ 2.0); Moderate pools (< 3 touches) are skipped entirely. If no valid TP is found across all candidates, the node returns `should_wait=True`.
+    *   **[Risk Manager Node](file:///d:/Project/Python/Bot/dyadix/workflows/nodes/risk_manager.py)**: Consumes `structure_map` from the Structure Mapper (Path 1 — structure-based). Validates that the natural R:R ≥ 1.5 and that SL distance ≤ 3× ATR, then sets `cleared=True`. Falls back to ATR-based calculation (Path 2) if the Structure Mapper returned no valid setup, but forces `cleared=False` in fallback to prefer WAIT over unstructured trades.
 3.  **Verdict Node**:
-    *   **[Trade Verdict Node](file:///d:/Project/Python/Bot/dyadix/workflows/nodes/trade_verdict.py)**: Ingests the aggregate metrics. If cleared, it calls the **Decision LLM** (Gemini, Groq, DeepSeek, or 9Router) enforcing a structured JSON output with precise order instructions. **WebSocket Microstructure Data** is passed inside `context_to_send` to provide the LLM with live order depth.
+    *   **[Trade Verdict Node](file:///d:/Project/Python/Bot/dyadix/workflows/nodes/trade_verdict.py)**: Ingests the aggregate metrics. If cleared, it calls the **Decision LLM** (Gemini, Groq, DeepSeek, or 9Router) enforcing a structured JSON output with precise order instructions. **`structure_map`** (SL/TP type, level, cascade log) and **WebSocket Microstructure Data** are both passed inside `context_to_send`, giving the LLM full structural rationale to justify `invalidated_if` and `key_risks`.
 
 ### C. Execution & Monitoring Services
 *   **[hyperliquid_client.py](file:///d:/Project/Python/Bot/dyadix/service/exchange/hyperliquid_client.py)**: Handles direct EVM transactions to the L1 DEX, supports delegated Agent Wallet authority, USDC balance inquiries, leverage settings, order placements (LIMIT/MARKET), and TP/SL trigger orders.
@@ -181,8 +183,9 @@ Below is the analysis of issues recorded in [problem.md](file:///d:/Project/Pyth
 
 ## 📈 5. Conclusion & Action Plan
 
-Dyadix is a highly modular system that divides its workflow into rule-based analysis (speed and safety) and LLM reasoning (complex strategy synthesis). 
+Dyadix is a highly modular system that divides its workflow into rule-based analysis (speed and safety) and LLM reasoning (complex strategy synthesis). The recent addition of the **Structure Mapper Node** marks a paradigm shift from *direction-first* trading (vote on bias → calculate SL/TP mathematically) to *level-first* trading (identify structural levels first → derive SL/TP organically → evaluate R:R).
 
 The remaining core optimizations include:
 1.  **Refining Loop Blockers**: Modify [loop_scheduler.py](file:///d:/Project/Python/Bot/dyadix/pipelines/loop_scheduler.py) to decouple position count checks from market scanning, keeping the system active and responsive.
 2.  **Deeper News Parsing**: Moving beyond RSS title feeds to a structured scraper that extracts the full content of articles before presenting summaries to the LLM.
+3.  **H4 Sweep History** *(Future)*: Currently, the Structure Mapper can only detect sweeps within the last 8–10 candles of the active timeframe. Adding H4 OHLCV data to `market_data` would enable detection of sweeps from the past ~7 days, improving the accuracy of the TP sweep-deduction rule.
